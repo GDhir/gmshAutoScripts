@@ -16,51 +16,72 @@ int main(int argc, char **argv)
     // hexahedra. Unstructured meshes can be recombined in the same way. Let's
     // define a simple geometry with an analytical mesh size field:
 
-    int Nx = 5;
+    int Nx1 = 3;
+    int Nx2 = 7;
+    int Nx3 = 11;
     int Ny = 21;
     double dx = 1.0 / (Ny - 1);
     double lc = dx;
     int Nright = Ny / 2 + 1;
 
-    std::vector<int> linesleft;
-    std::vector<int> ptsleft;
+    std::vector<int> lines1;
+    std::vector<int> pts1;
 
     double xoffset = 0;
     double yoffset = 0;
 
-    createBox(xoffset, yoffset, ptsleft, linesleft, lc, Nx, Ny);
+    createBox(xoffset, yoffset, pts1, lines1, lc, Nx1, Ny);
 
-    std::vector<int> linesright;
-    std::vector<int> ptsright;
+    std::vector<int> lines2;
+    std::vector<int> pts2;
 
-    xoffset = (Nx - 1) * dx + 2 * dx;
+    xoffset = (Nx1 - 1) * dx + 2 * dx;
     yoffset = 0;
 
-    createBox(xoffset, yoffset, ptsright, linesright, lc * 2, Nx, Ny / 2 + 1);
+    createBox(xoffset, yoffset, pts2, lines2, lc * 2, Nx2, Ny / 2 + 1);
+
+    std::vector<int> lines3;
+    std::vector<int> pts3;
+
+    xoffset = (Nx1 - 1) * dx + 2 * dx + (Nx2 - 1) * 2 * dx + 2 * dx;
+    yoffset = 0;
+
+    createBox(xoffset, yoffset, pts3, lines3, lc, Nx3, Ny );
 
     // gmsh::model::geo::addPoint(1.25, 0.25, 0, lc/2);
     // gmsh::model::geo::addPoint(1.25, 0.75, 0, lc/2);
 
-    std::vector<int> linesmid;
+    std::vector<int> linesmid1;
 
-    std::vector<int> midcurves;
-    std::vector<int> midplanes;
+    std::vector<int> midcurves1;
+    std::vector<int> midplanes1;
 
-    createMidObjects(linesmid, midcurves, midplanes, ptsleft, ptsright, linesleft, linesright, Nright, Nx, std::make_pair(Nx - 1, 0), std::make_pair(0, 0), false, true);
+    createMidObjects(linesmid1, midcurves1, midplanes1, pts1, pts2, lines1, lines2, Nright, Nx1, std::make_pair(Nx1 - 1, 0), std::make_pair(0, 0), false, true);
 
-    int cl = gmsh::model::geo::addCurveLoop(linesleft);
-    int pl = gmsh::model::geo::addPlaneSurface({cl});
+    std::vector<int> linesmid2;
 
-    int cr = gmsh::model::geo::addCurveLoop(linesright);
-    int pr = gmsh::model::geo::addPlaneSurface({cr});
+    std::vector<int> midcurves2;
+    std::vector<int> midplanes2;
 
-    std::vector< std::vector<int> > linesVec{ linesleft, linesright, linesmid };
+    createMidObjects(linesmid2, midcurves2, midplanes2, pts2, pts3, lines2, lines3, Nright, Nx2, std::make_pair(Nx2 - 1, 0), std::make_pair(0, 0), true, true);
+
+    int c1 = gmsh::model::geo::addCurveLoop(lines1);
+    int p1 = gmsh::model::geo::addPlaneSurface({c1});
+
+    int c2 = gmsh::model::geo::addCurveLoop(lines2);
+    int p2 = gmsh::model::geo::addPlaneSurface({c2});
+
+    int c3 = gmsh::model::geo::addCurveLoop(lines3);
+    int p3 = gmsh::model::geo::addPlaneSurface({c3});
+
+    std::vector< std::vector<int> > linesVec{ lines1, lines2, lines3, linesmid1, linesmid2 };
+    // std::vector< std::vector<int> > linesVec{ lines1, lines2, lines3, linesmid2 };
     setTransfiniteCurves( linesVec );
 
-    std::vector<int> planeIds{ pl, pr };
-    std::vector< std::vector<int> > ptsVec{ ptsleft, ptsright };
-    std::vector<int> Nxvals{ Nx, Nx };  
-    std::vector<int> Nyvals{ Ny, Nright };
+    std::vector<int> planeIds{ p1, p2, p3 };
+    std::vector< std::vector<int> > ptsVec{ pts1, pts2, pts3 };
+    std::vector<int> Nxvals{ Nx1, Nx2, Nx3 };  
+    std::vector<int> Nyvals{ Ny, Nright, Ny };
 
     setTransfiniteSurfaces( planeIds, ptsVec, Nxvals, Nyvals );
     gmsh::model::geo::synchronize();
@@ -115,7 +136,7 @@ int main(int argc, char **argv)
     // gmsh::model::mesh::recombine();
     // gmsh::option::setNumber("Mesh.SubdivisionAlgorithm", 1);
     // gmsh::model::mesh::refine();
-    gmsh::write("hangingMeshv2.msh");
+    gmsh::write("hangingMeshv3.msh");
 
     // Launch the GUI to see the results:
     std::set<std::string> args(argv, argv + argc);

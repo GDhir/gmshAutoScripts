@@ -7,8 +7,8 @@
 void createBox(double xoffset, double yoffset, std::vector<int> &pts, std::vector<int> &lines, double lc, int Nx, int Ny);
 
 void createMidObjects(std::vector<int> &linesmid, std::vector<int> &midcurves, std::vector<int> &midplanes,
-                      std::vector<int> &ptsleft, std::vector<int> &ptsright, std::vector<int> &linesleft,
-                       std::vector<int> &linesright, int Nright, int Nx);
+                      std::vector<int> &ptsleft, std::vector<int> &ptsright, std::vector<int> &linesleft, std::vector<int> &linesright,
+                      int Ncoarse, int Nx, std::pair<int, int> leftOffset, std::pair<int, int> rightOffset, bool leftCoarse, bool dxn);
 
 void setTransfiniteCurves( std::vector< std::vector<int> >& linesVec );
 

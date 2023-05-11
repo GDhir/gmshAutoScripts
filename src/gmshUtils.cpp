@@ -72,45 +72,82 @@ void createBox(double xoffset, double yoffset, std::vector<int> &pts, std::vecto
 }
 
 void createMidObjects(std::vector<int> &linesmid, std::vector<int> &midcurves, std::vector<int> &midplanes,
-                      std::vector<int> &ptsleft, std::vector<int> &ptsright, std::vector<int> &linesleft, std::vector<int> &linesright, int Nright, int Nx)
+                      std::vector<int> &ptsleft, std::vector<int> &ptsright, std::vector<int> &linesleft, std::vector<int> &linesright,
+                      int Ncoarse, int Nx, std::pair<int, int> leftOffset, std::pair<int, int> rightOffset, bool leftCoarse, bool dxn)
 {
 
-    linesmid.push_back(gmsh::model::geo::addLine(ptsleft[Nx - 1], ptsright[0]));
+    int xleft{ leftOffset.first };
+    int xright{ rightOffset.first };
+    int yleft{ leftOffset.second };
+    int yright{ rightOffset.second };
 
-    for (int i = 1; i < Nright; i++)
+    if (dxn)
     {
-        linesmid.push_back(gmsh::model::geo::addLine(ptsleft[(Nx - 1) + i * 2], ptsright[ptsright.size() - i]));
-        // std::cout << ptsleft[ (N - 1) + i*2 ] << "\t" << ptsright[ ptsright.size() - i - 1 ] << "\n";
-    }
+        if (leftCoarse)
+        {
+            linesmid.push_back(gmsh::model::geo::addLine(ptsleft[xleft], ptsright[xright]));
 
-    for (int i = 0; i < Nright - 1; i++)
-    {
+            for (int i = 1; i < Ncoarse; i++)
+            {
+                linesmid.push_back(gmsh::model::geo::addLine(ptsleft[xleft + i], ptsright[ptsright.size() - i*2]));
+                // std::cout << ptsleft[ (N - 1) + i*2 ] << "\t" << ptsright[ ptsright.size() - i - 1 ] << "\n";
+            }
 
-        midcurves.push_back(gmsh::model::geo::addCurveLoop({linesmid[i], -*(linesright.end() - i - 1), -linesmid[i + 1], -linesleft[Nx - 1 + i * 2 + 1], -linesleft[Nx - 1 + i * 2]}));
-        midplanes.push_back(gmsh::model::geo::addPlaneSurface({midcurves.back()}));
+            for (int i = 0; i < Ncoarse - 1; i++)
+            {
+
+                midcurves.push_back(gmsh::model::geo::addCurveLoop({linesmid[i], -*(linesright.end() - i*2 - 1), -*(linesright.end() - i*2 - 2), -linesmid[i + 1], -linesleft[xleft + i] }));
+                midplanes.push_back(gmsh::model::geo::addPlaneSurface({midcurves.back()}));
+
+                    // gmsh::model::geo::mesh::setTransfiniteSurface(midplanes[i], "Left", {ptsleft[xleft + i], ptsright[ptsright.size() - i*2 ], ptsright[ptsright.size() - i*2 - 2], ptsleft[xleft + i + 1]});
+   
+            }
+            // gmsh::model::geo::mesh::setTransfiniteSurface(midplanes[0], "Left", {ptsleft[xleft], ptsright[0], ptsright[ptsright.size() - 2], ptsleft[xleft + 1]});
+
+        }
+        else
+        {
+            linesmid.push_back(gmsh::model::geo::addLine(ptsleft[xleft], ptsright[xright]));
+
+            for (int i = 1; i < Ncoarse; i++)
+            {
+                linesmid.push_back(gmsh::model::geo::addLine(ptsleft[xleft + i * 2], ptsright[ptsright.size() - i]));
+                // std::cout << ptsleft[ (N - 1) + i*2 ] << "\t" << ptsright[ ptsright.size() - i - 1 ] << "\n";
+            }
+
+            for (int i = 0; i < Ncoarse - 1; i++)
+            {
+
+                midcurves.push_back(gmsh::model::geo::addCurveLoop({linesmid[i], -*(linesright.end() - i - 1), -linesmid[i + 1], -linesleft[xleft + i * 2 + 1], -linesleft[xleft + i * 2]}));
+                midplanes.push_back(gmsh::model::geo::addPlaneSurface({midcurves.back()}));
+            }
+        }
     }
 }
 
-void setTransfiniteCurves( std::vector< std::vector<int> >& linesVec ) {
+void setTransfiniteCurves(std::vector<std::vector<int>> &linesVec)
+{
 
-    for( auto& lines: linesVec ) {
+    for (auto &lines : linesVec)
+    {
         for (int i = 0; i < lines.size(); i++)
         {
             gmsh::model::geo::mesh::setTransfiniteCurve(lines[i], 2);
         }
     }
-
 }
 
-void setTransfiniteSurfaces( std::vector<int>& planeIds, std::vector< std::vector<int> >& ptsVec,
-     std::vector<int>& Nxvals, std::vector<int>& Nyvals ) {
+void setTransfiniteSurfaces(std::vector<int> &planeIds, std::vector<std::vector<int>> &ptsVec,
+                            std::vector<int> &Nxvals, std::vector<int> &Nyvals)
+{
 
     int id{0};
     std::vector<int> pts;
     int Nx{0};
     int Ny{0};
 
-    for( int i = 0; i < planeIds.size(); i++ ) {    
+    for (int i = 0; i < planeIds.size(); i++)
+    {
 
         id = planeIds[i];
         pts = ptsVec[i];
@@ -119,14 +156,14 @@ void setTransfiniteSurfaces( std::vector<int>& planeIds, std::vector< std::vecto
         Ny = Nyvals[i];
 
         gmsh::model::geo::mesh::setTransfiniteSurface(id, "Left", {pts[0], pts[(Nx - 1)], pts[(Nx - 1) + (Ny - 1)], pts[(Nx - 1) * 2 + Ny - 1]});
-
     }
-
 }
 
-void recombineSurfaces( std::vector<int>& planeIds ) {
+void recombineSurfaces(std::vector<int> &planeIds)
+{
 
-    for( auto& id: planeIds ) {
+    for (auto &id : planeIds)
+    {
         gmsh::model::mesh::setRecombine(2, id);
     }
 }

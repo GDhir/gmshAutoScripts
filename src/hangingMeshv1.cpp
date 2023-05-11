@@ -15,8 +15,6 @@ int main(int argc, char **argv)
 {
     gmsh::initialize();
 
-    gmsh::model::add("t11");
-
     // We have seen in tutorials `t3.cpp' and `t6.cpp' that extruded and
     // transfinite meshes can be "recombined" into quads, prisms or
     // hexahedra. Unstructured meshes can be recombined in the same way. Let's
@@ -43,54 +41,17 @@ int main(int argc, char **argv)
 
     createBox( xoffset, yoffset, ptsright, linesright, lc*2, N, N/2 + 1 );
 
-    // gmsh::model::geo::addPoint(1.25, 0.25, 0, lc/2);
-    // gmsh::model::geo::addPoint(1.25, 0.75, 0, lc/2);
-
     std::vector<int> linesmid;
-
-    // linesmid.push_back( gmsh::model::geo::addLine( ptsleft[ N - 1 ], ptsright[ 0 ] ) );
-
-    // for( int i = 1; i < Nright; i++ ) {
-    //     linesmid.push_back( gmsh::model::geo::addLine( ptsleft[ (N - 1) + i*2 ], ptsright[ ptsright.size() - i ] ) );
-    //     // std::cout << ptsleft[ (N - 1) + i*2 ] << "\t" << ptsright[ ptsright.size() - i - 1 ] << "\n";
-    // }
-
     std::vector< int > midcurves;
     std::vector< int > midplanes;
 
-    createMidObjects(linesmid, midcurves, midplanes, ptsleft, ptsright, linesleft, linesright, Nright, N);
-
-    // for( int i = 0; i < Nright - 1; i++ ) {
-
-    //     midcurves.push_back( gmsh::model::geo::addCurveLoop( { linesmid[i], -*( linesright.end() - i - 1 ), -linesmid[i + 1], -linesleft[ N - 1 + i*2 + 1 ], -linesleft[ N - 1 + i*2 ] } ) );
-    //     midplanes.push_back( gmsh::model::geo::addPlaneSurface({midcurves.back()}) );
-
-    // }
+    createMidObjects(linesmid, midcurves, midplanes, ptsleft, ptsright, linesleft, linesright, Nright, N, std::make_pair(N - 1, 0), std::make_pair(0, 0), false, true);
 
     int cl = gmsh::model::geo::addCurveLoop( linesleft );
     int pl = gmsh::model::geo::addPlaneSurface({cl});
 
     int cr = gmsh::model::geo::addCurveLoop( linesright );
     int pr = gmsh::model::geo::addPlaneSurface({cr});
-
-    // int cmid0 = gmsh::model::geo::addCurveLoop( linesmid0 );
-    // int pmid0 = gmsh::model::geo::addPlaneSurface({cmid0});
-
-    // int cmid1 = gmsh::model::geo::addCurveLoop( linesmid1 );
-    // int pmid1 = gmsh::model::geo::addPlaneSurface({cmid1});
-
-    // for( int i = 0; i < linesleft.size(); i++ ) {
-    //     gmsh::model::geo::mesh::setTransfiniteCurve( linesleft[i], 2 );
-    // }
-    // for( int i = 0; i < linesright.size(); i++ ) {
-    //     gmsh::model::geo::mesh::setTransfiniteCurve( linesright[i], 2 );
-    // }
-    // for( int i = 0; i < linesmid.size(); i++ ) {
-    //     gmsh::model::geo::mesh::setTransfiniteCurve( linesmid[i], 2 );
-    // }
-
-    // gmsh::model::geo::mesh::setTransfiniteSurface(pl, "Left", {ptsleft[0], ptsleft[ (N - 1) ], ptsleft[ (N - 1)*2 ], ptsleft[ (N - 1)*3 ]});
-    // gmsh::model::geo::mesh::setTransfiniteSurface(pr, "Left", {ptsright[0], ptsright[ (Nright - 1) ], ptsright[ (Nright - 1)*2 ], ptsright[ (Nright - 1)*3 ]});
 
     std::vector< std::vector<int> > linesVec{ linesleft, linesright, linesmid };
     setTransfiniteCurves( linesVec );
@@ -105,8 +66,6 @@ int main(int argc, char **argv)
     gmsh::model::geo::synchronize();
 
     // To generate quadrangles instead of triangles, we can simply add
-    // gmsh::model::mesh::setRecombine(2, pr);
-    // gmsh::model::mesh::setRecombine(2, pl);
     recombineSurfaces( planeIds );
 
     // If we'd had several surfaces, we could have used the global option
@@ -158,6 +117,9 @@ int main(int argc, char **argv)
     // gmsh::model::mesh::refine();
 
     // Launch the GUI to see the results:
+    gmsh::write("hangingMeshv1.msh");
+    // gmsh::view::write(t1, "TextFiles/hangingMeshv1.msh");
+
     std::set<std::string> args(argv, argv + argc);
     if (!args.count("-nopopup"))
         gmsh::fltk::run();
