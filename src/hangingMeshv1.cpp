@@ -9,73 +9,7 @@
 #include <set>
 #include <gmsh.h>
 #include <iostream>
-
-void createBox( double xoffset, double yoffset, int pttagoffset, std::vector<int>& pts, std::vector<int>& lines, double lc, int N ) {
-
-    int side = 1;
-    int i = 0;
-    double x, y;
-
-    while( i < (N - 1)*side + 1 ) {
-        x = xoffset + lc*i;
-        y = yoffset + 0.0;
-        // std::cout << x << "\t" << y << "\n";
-        // pts.push_back( gmsh::model::geo::addPoint(x, y, 0, lc, pttagoffset + (N - 1)*side + i) );
-        pts.push_back( gmsh::model::geo::addPoint(x, y, 0, lc) );
-        i++;
-    }
-
-    side = 2;
-
-    int j = 1;
-
-    while( i < (N - 1)*side + 1 ) {
-        x = xoffset + (N - 1)*lc;
-        y = yoffset + j*lc;
-        // std::cout << x << "\t" << y << "\n";
-        // pts.push_back( gmsh::model::geo::addPoint( x, y, 0, lc, pttagoffset + (N - 1)*side + i) );
-        pts.push_back( gmsh::model::geo::addPoint(x, y, 0, lc) );
-
-        j++;
-        i++;
-    }
-
-    side = 3;
-    j = 1;
-
-    while( i < (N - 1)*side + 1 ) {
-        x = xoffset + (N - 1)*lc - j*lc;
-        y = yoffset + (N - 1)*lc;
-        // std::cout << x << "\t" << y << "\n";
-        // pts.push_back( gmsh::model::geo::addPoint( x, y, 0, lc, pttagoffset + (N - 1)*side + i) );
-        pts.push_back( gmsh::model::geo::addPoint(x, y, 0, lc) );
-
-        j++;
-        i++;
-    }
-
-    side = 4;
-    j = 1;
-
-    while( i < (N - 1)*side ) {
-        x = xoffset + 0;
-        y = yoffset + (N - 1)*lc - j*lc;
-        // std::cout << x << "\t" << y << "\n";
-        // pts.push_back( gmsh::model::geo::addPoint( 0, (N - 1)*lc - j*lc, 0, lc, pttagoffset + (N - 1)*side + i) );
-        pts.push_back( gmsh::model::geo::addPoint(x, y, 0, lc) );
-        j++;
-        i++;
-    }
-
-    for( int i = 0; i < pts.size() - 1; i++ ) {
-
-        lines.push_back( gmsh::model::geo::addLine( pts[i], pts[i + 1] ) );
-
-    }
-
-    lines.push_back( gmsh::model::geo::addLine( pts.back(), pts[0] ) );
-
-}
+#include "gmshUtils.hpp"
 
 int main(int argc, char **argv)
 {
@@ -99,7 +33,7 @@ int main(int argc, char **argv)
     double xoffset = 0;
     double yoffset = 0;
 
-    createBox( xoffset, yoffset, 0, ptsleft, linesleft, lc, N );
+    createBox( xoffset, yoffset, ptsleft, linesleft, lc, N, N );
 
     std::vector<int> linesright;
     std::vector<int> ptsright;
@@ -107,29 +41,31 @@ int main(int argc, char **argv)
     xoffset = (N - 1)*dx + 2*dx;
     yoffset = 0;
 
-    createBox( xoffset, yoffset, ptsleft.back() + 1, ptsright, linesright, lc*2, N/2 + 1 );
+    createBox( xoffset, yoffset, ptsright, linesright, lc*2, N, N/2 + 1 );
 
     // gmsh::model::geo::addPoint(1.25, 0.25, 0, lc/2);
     // gmsh::model::geo::addPoint(1.25, 0.75, 0, lc/2);
 
     std::vector<int> linesmid;
 
-    linesmid.push_back( gmsh::model::geo::addLine( ptsleft[ N - 1 ], ptsright[ 0 ] ) );
+    // linesmid.push_back( gmsh::model::geo::addLine( ptsleft[ N - 1 ], ptsright[ 0 ] ) );
 
-    for( int i = 1; i < Nright; i++ ) {
-        linesmid.push_back( gmsh::model::geo::addLine( ptsleft[ (N - 1) + i*2 ], ptsright[ ptsright.size() - i ] ) );
-        // std::cout << ptsleft[ (N - 1) + i*2 ] << "\t" << ptsright[ ptsright.size() - i - 1 ] << "\n";
-    }
+    // for( int i = 1; i < Nright; i++ ) {
+    //     linesmid.push_back( gmsh::model::geo::addLine( ptsleft[ (N - 1) + i*2 ], ptsright[ ptsright.size() - i ] ) );
+    //     // std::cout << ptsleft[ (N - 1) + i*2 ] << "\t" << ptsright[ ptsright.size() - i - 1 ] << "\n";
+    // }
 
     std::vector< int > midcurves;
     std::vector< int > midplanes;
 
-    for( int i = 0; i < Nright - 1; i++ ) {
+    createMidObjects(linesmid, midcurves, midplanes, ptsleft, ptsright, linesleft, linesright, Nright, N);
 
-        midcurves.push_back( gmsh::model::geo::addCurveLoop( { linesmid[i], -*( linesright.end() - i - 1 ), -linesmid[i + 1], -linesleft[ N - 1 + i*2 + 1 ], -linesleft[ N - 1 + i*2 ] } ) );
-        midplanes.push_back( gmsh::model::geo::addPlaneSurface({midcurves.back()}) );
+    // for( int i = 0; i < Nright - 1; i++ ) {
 
-    }
+    //     midcurves.push_back( gmsh::model::geo::addCurveLoop( { linesmid[i], -*( linesright.end() - i - 1 ), -linesmid[i + 1], -linesleft[ N - 1 + i*2 + 1 ], -linesleft[ N - 1 + i*2 ] } ) );
+    //     midplanes.push_back( gmsh::model::geo::addPlaneSurface({midcurves.back()}) );
+
+    // }
 
     int cl = gmsh::model::geo::addCurveLoop( linesleft );
     int pl = gmsh::model::geo::addPlaneSurface({cl});
@@ -143,24 +79,35 @@ int main(int argc, char **argv)
     // int cmid1 = gmsh::model::geo::addCurveLoop( linesmid1 );
     // int pmid1 = gmsh::model::geo::addPlaneSurface({cmid1});
 
-    for( int i = 0; i < linesleft.size(); i++ ) {
-        gmsh::model::geo::mesh::setTransfiniteCurve( linesleft[i], 2 );
-    }
-    for( int i = 0; i < linesright.size(); i++ ) {
-        gmsh::model::geo::mesh::setTransfiniteCurve( linesright[i], 2 );
-    }
-    for( int i = 0; i < linesmid.size(); i++ ) {
-        gmsh::model::geo::mesh::setTransfiniteCurve( linesmid[i], 2 );
-    }
+    // for( int i = 0; i < linesleft.size(); i++ ) {
+    //     gmsh::model::geo::mesh::setTransfiniteCurve( linesleft[i], 2 );
+    // }
+    // for( int i = 0; i < linesright.size(); i++ ) {
+    //     gmsh::model::geo::mesh::setTransfiniteCurve( linesright[i], 2 );
+    // }
+    // for( int i = 0; i < linesmid.size(); i++ ) {
+    //     gmsh::model::geo::mesh::setTransfiniteCurve( linesmid[i], 2 );
+    // }
 
-    gmsh::model::geo::mesh::setTransfiniteSurface(pl, "Left", {ptsleft[0], ptsleft[ (N - 1) ], ptsleft[ (N - 1)*2 ], ptsleft[ (N - 1)*3 ]});
-    gmsh::model::geo::mesh::setTransfiniteSurface(pr, "Left", {ptsright[0], ptsright[ (Nright - 1) ], ptsright[ (Nright - 1)*2 ], ptsright[ (Nright - 1)*3 ]});
+    // gmsh::model::geo::mesh::setTransfiniteSurface(pl, "Left", {ptsleft[0], ptsleft[ (N - 1) ], ptsleft[ (N - 1)*2 ], ptsleft[ (N - 1)*3 ]});
+    // gmsh::model::geo::mesh::setTransfiniteSurface(pr, "Left", {ptsright[0], ptsright[ (Nright - 1) ], ptsright[ (Nright - 1)*2 ], ptsright[ (Nright - 1)*3 ]});
+
+    std::vector< std::vector<int> > linesVec{ linesleft, linesright, linesmid };
+    setTransfiniteCurves( linesVec );
+
+    std::vector<int> planeIds{ pl, pr };
+    std::vector< std::vector<int> > ptsVec{ ptsleft, ptsright };
+    std::vector<int> Nxvals{ N, N };  
+    std::vector<int> Nyvals{ N, Nright };
+
+    setTransfiniteSurfaces( planeIds, ptsVec, Nxvals, Nyvals );
 
     gmsh::model::geo::synchronize();
 
     // To generate quadrangles instead of triangles, we can simply add
-    gmsh::model::mesh::setRecombine(2, pr);
-    gmsh::model::mesh::setRecombine(2, pl);
+    // gmsh::model::mesh::setRecombine(2, pr);
+    // gmsh::model::mesh::setRecombine(2, pl);
+    recombineSurfaces( planeIds );
 
     // If we'd had several surfaces, we could have used the global option
     // "Mesh.RecombineAll":
