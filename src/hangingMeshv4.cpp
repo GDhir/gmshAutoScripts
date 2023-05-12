@@ -16,10 +16,14 @@ int main(int argc, char **argv)
     // hexahedra. Unstructured meshes can be recombined in the same way. Let's
     // define a simple geometry with an analytical mesh size field:
 
-    int Nx1 = 3;
+    int Nx1 = 5;
     int Nx2 = 7;
     int Nx3 = 11;
+    int Nx4 = Nx1 + 2*Nx2 + 1 + Nx3;
+
     int Ny = 5;
+    int Ny4 = 3;
+
     double dx = 1.0 / (Ny - 1);
     double lc = dx;
     int Nright = Ny / 2 + 1;
@@ -51,6 +55,76 @@ int main(int argc, char **argv)
     // gmsh::model::geo::addPoint(1.25, 0.25, 0, lc/2);
     // gmsh::model::geo::addPoint(1.25, 0.75, 0, lc/2);
 
+    std::vector<int> lines4;
+    std::vector<int> pts4;
+
+    xoffset = 0;
+    yoffset = (Ny - 1)*lc + 2*lc;
+
+    createBox(xoffset, yoffset, pts4, lines4, lc, Nx4, Ny4 );
+
+    xoffset = 0;
+    yoffset = (Ny - 1)*lc;
+    // std::vector<int> connectPtsLeft;
+    std::vector< std::vector<int> > connectLinesLeft( 2, std::vector<int>() );
+
+    std::vector<int> topPtsLeft( Nx1, 0 );
+    std::vector<int> botPtsLeft( Nx1, 0 );
+
+    std::vector<int> topLinesLeft;
+    std::vector<int> botLinesLeft;
+
+    for( int i = 0; i < Nx1; i++ ) {
+        botPtsLeft[i] = pts1[ Nx1 + Ny - 1 + Nx1 - 1 - 1 - i ];
+        topPtsLeft[i] = pts4[ i ];
+    }
+
+    for( int i = 0; i < Nx1 - 1; i++ ) {
+        botLinesLeft.push_back( -lines1[ Nx1 - 1 + Ny - 1 + Nx1 - 1 - 1 - i ] );
+    }
+
+    for( int i = 0; i < Nx1 - 1; i++ ) {
+        topLinesLeft.push_back( -lines4[ Nx1 - 1 - 1 - i ] );
+    }
+
+    std::vector<int> pts5;
+    std::vector<int> lines5;
+
+    connectRefinedRegion( Nx1, Ny, xoffset, yoffset, lc, 
+        botPtsLeft, topPtsLeft, botLinesLeft, topLinesLeft, pts5, lines5, connectLinesLeft );    
+
+    // connect right refined region
+
+    xoffset = (Nx1 - 1)*lc + 2*lc + (Nx2 - 1)*2*lc + 2*lc;
+    yoffset = (Ny - 1)*lc;
+    // std::vector<int> connectPtsLeft;
+    std::vector< std::vector<int> > connectLinesRight( 2, std::vector<int>() );
+
+    std::vector<int> topPtsRight( Nx3, 0 );
+    std::vector<int> botPtsRight( Nx3, 0 );
+
+    std::vector<int> topLinesRight;
+    std::vector<int> botLinesRight;
+
+    for( int i = 0; i < Nx3; i++ ) {
+        botPtsRight[i] = pts3[ Nx3 + Ny - 1 + Nx3 - 1 - 1 - i ];
+        topPtsRight[i] = pts4[ Nx1 + 2*Nx2 + 1 + i ];
+    }
+
+    for( int i = 0; i < Nx3 - 1; i++ ) {
+        botLinesRight.push_back( -lines3[ Nx3 - 1 + Ny - 1 + Nx3 - 1 - 1 - i ] );
+    }
+
+    for( int i = 0; i < Nx3 - 1; i++ ) {
+        topLinesRight.push_back( -lines4[ Nx1 - 1 + 2 + 2*Nx2 - 2 + 2 + Nx3 - 1 - 1 - i ] );
+    }
+
+    std::vector<int> pts6;
+    std::vector<int> lines6;
+
+    connectRefinedRegion( Nx3, Ny, xoffset, yoffset, lc, 
+        botPtsRight, topPtsRight, botLinesRight, topLinesRight, pts6, lines6, connectLinesRight );    
+
     std::vector<int> linesmid1;
 
     std::vector<int> midcurves1;
@@ -74,14 +148,24 @@ int main(int argc, char **argv)
     int c3 = gmsh::model::geo::addCurveLoop(lines3);
     int p3 = gmsh::model::geo::addPlaneSurface({c3});
 
-    std::vector< std::vector<int> > linesVec{ lines1, lines2, lines3, linesmid1, linesmid2 };
+    int c4 = gmsh::model::geo::addCurveLoop(lines4);
+    int p4 = gmsh::model::geo::addPlaneSurface({c4});
+
+    int c5 = gmsh::model::geo::addCurveLoop(lines5);
+    int p5 = gmsh::model::geo::addPlaneSurface({c5});
+
+    int c6 = gmsh::model::geo::addCurveLoop(lines6);
+    int p6 = gmsh::model::geo::addPlaneSurface({c6});
+
+    std::vector< std::vector<int> > linesVec{ lines1, lines2, lines3, lines4, linesmid1, linesmid2,
+     connectLinesLeft[0], connectLinesLeft[1],connectLinesRight[0], connectLinesRight[1] };
     // std::vector< std::vector<int> > linesVec{ lines1, lines2, lines3, linesmid2 };
     setTransfiniteCurves( linesVec );
 
-    std::vector<int> planeIds{ p1, p2, p3 };
-    std::vector< std::vector<int> > ptsVec{ pts1, pts2, pts3 };
-    std::vector<int> Nxvals{ Nx1, Nx2, Nx3 };  
-    std::vector<int> Nyvals{ Ny, Nright, Ny };
+    std::vector<int> planeIds{ p1, p2, p3, p4, p5, p6};
+    std::vector< std::vector<int> > ptsVec{ pts1, pts2, pts3, pts4, pts5, pts6};
+    std::vector<int> Nxvals{ Nx1, Nx2, Nx3, Nx4, Nx1, Nx3 };  
+    std::vector<int> Nyvals{ Ny, Nright, Ny, Ny4, 3, 3 };
 
     setTransfiniteSurfaces( planeIds, ptsVec, Nxvals, Nyvals );
     gmsh::model::geo::synchronize();

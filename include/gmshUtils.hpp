@@ -17,4 +17,8 @@ void setTransfiniteSurfaces( std::vector<int>& planeIds, std::vector< std::vecto
 
 void recombineSurfaces( std::vector<int>& planeIds );
 
+void connectRefinedRegion( int Nx, int Ny, double xoffset, double yoffset, double lc, 
+    std::vector<int>& botPts, std::vector<int>& topPts, std::vector<int>& botLinesLeft, std::vector<int>& topLinesLeft, 
+    std::vector<int>& pts5, std::vector<int>& lines5, std::vector< std::vector<int> >& connectLines );
+
 #endif

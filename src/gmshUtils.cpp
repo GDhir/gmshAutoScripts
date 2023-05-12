@@ -1,6 +1,6 @@
 #include "gmshUtils.hpp"
 
-void createBox(double xoffset, double yoffset, std::vector<int> &pts, std::vector<int> &lines, double lc, int Nx, int Ny)
+void createBox( double xoffset, double yoffset, std::vector<int> &pts, std::vector<int> &lines, double lc, int Nx, int Ny )
 {
 
     int side = 1;
@@ -69,6 +69,46 @@ void createBox(double xoffset, double yoffset, std::vector<int> &pts, std::vecto
     }
 
     lines.push_back(gmsh::model::geo::addLine(pts.back(), pts[0]));
+}
+
+void connectRefinedRegion( int Nx, int Ny, double xoffset, double yoffset, double lc, 
+    std::vector<int>& botPts, std::vector<int>& topPts, std::vector<int>& botLines, std::vector<int>& topLines, 
+    std::vector<int>& pts5, std::vector<int>& lines5, std::vector< std::vector<int> >& connectLines ) {
+
+    double x = xoffset;
+    double y = yoffset + lc;
+    std::vector<int> connectPts;
+
+    connectPts.push_back( gmsh::model::geo::addPoint(x, y, 0, lc) );
+
+    x = xoffset + ( Nx - 1 )*lc;
+    connectPts.push_back( gmsh::model::geo::addPoint(x, y, 0, lc) );
+
+    // int botIdx = Nx + Ny - 1 + Nx - 1 - 1;
+    // int topIdx = 0;
+
+    connectLines[0].push_back( gmsh::model::geo::addLine( botPts[ 0 ], connectPts[0] ) );
+    connectLines[0].push_back( gmsh::model::geo::addLine( connectPts[0], topPts[0] ) );
+
+    // // botIdx = Nx + Ny - 1 - 1;
+    // // topIdx = Nx - 1;
+
+    connectLines[1].push_back( gmsh::model::geo::addLine( botPts[ Nx - 1 ], connectPts[1] ) );
+    connectLines[1].push_back( gmsh::model::geo::addLine( connectPts[1], topPts[ Nx - 1 ] ) );
+
+    pts5.insert( pts5.end(), botPts.begin(), botPts.end() );
+    pts5.push_back( connectPts[1] );
+    pts5.insert( pts5.end(), topPts.rbegin(), topPts.rend() );
+    pts5.push_back( connectPts[0] );
+
+    lines5.insert( lines5.end(), botLines.begin(), botLines.end() );
+    lines5.insert( lines5.end(), connectLines[1].begin(), connectLines[1].end() );
+    lines5.insert( lines5.end(), topLines.begin(), topLines.end() );
+
+    for( int i = 0; i < 2; i++ ) {
+        lines5.push_back( -connectLines[0][ 1 - i ] );
+    }
+
 }
 
 void createMidObjects(std::vector<int> &linesmid, std::vector<int> &midcurves, std::vector<int> &midplanes,
