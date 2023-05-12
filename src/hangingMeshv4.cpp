@@ -16,9 +16,9 @@ int main(int argc, char **argv)
     // hexahedra. Unstructured meshes can be recombined in the same way. Let's
     // define a simple geometry with an analytical mesh size field:
 
-    int Nx1 = 5;
+    int Nx1 = 3;
     int Nx2 = 7;
-    int Nx3 = 11;
+    int Nx3 = 3;
     int Nx4 = Nx1 + 2*Nx2 + 1 + Nx3;
 
     int Ny = 21;
@@ -259,7 +259,6 @@ int main(int argc, char **argv)
     // createMidObjects(linesmid2, midcurves2, midplanes2, pts2, pts3, lines2, lines3, Nright, Nx2, std::make_pair(Nx2 - 1, 0), std::make_pair(0, 0), true, true);
     createMidObjects(linesmid3, midcurves3, midplanes3, ptsleft, ptsright, linesleft, linesright, Nx2, Nx2, false, true);
 
-
     int c1 = gmsh::model::geo::addCurveLoop(lines1);
     int p1 = gmsh::model::geo::addPlaneSurface({c1});
 
@@ -277,6 +276,14 @@ int main(int argc, char **argv)
 
     int c6 = gmsh::model::geo::addCurveLoop(lines6);
     int p6 = gmsh::model::geo::addPlaneSurface({c6});
+
+    int c7 = gmsh::model::geo::addCurveLoop( { linesmid1.back(), -linesmid3[0], -lines4[ Nx1 ], -lines4[ Nx1 - 1 ],
+     -connectLinesLeft[1][1], -connectLinesLeft[1][0] } );
+     int p7 = gmsh::model::geo::addPlaneSurface({c7});
+
+     int c8 = gmsh::model::geo::addCurveLoop( { linesmid2.back(), connectLinesRight[0][0], connectLinesRight[0][1],
+      -lines4[ Nx1 - 1 + 2 + 2*Nx2 - 1 ], -lines4[ Nx1 - 1 + 2 + 2*Nx2 - 2 ], linesmid3.back() } );
+     int p8 = gmsh::model::geo::addPlaneSurface({c8});
 
     std::vector< std::vector<int> > linesVec{ lines1, lines2, lines3, lines4, linesmid1, linesmid2, linesmid3,
      connectLinesLeft[0], connectLinesLeft[1],connectLinesRight[0], connectLinesRight[1] };
