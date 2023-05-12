@@ -21,7 +21,7 @@ int main(int argc, char **argv)
     int Nx3 = 11;
     int Nx4 = Nx1 + 2*Nx2 + 1 + Nx3;
 
-    int Ny = 5;
+    int Ny = 21;
     int Ny4 = 3;
 
     double dx = 1.0 / (Ny - 1);
@@ -130,14 +130,135 @@ int main(int argc, char **argv)
     std::vector<int> midcurves1;
     std::vector<int> midplanes1;
 
-    createMidObjects(linesmid1, midcurves1, midplanes1, pts1, pts2, lines1, lines2, Nright, Nx1, std::make_pair(Nx1 - 1, 0), std::make_pair(0, 0), false, true);
+    std::vector<int> ptsleft;
+    std::vector<int> ptsright;
+
+    std::vector<int> linesleft;
+    std::vector<int> linesright;
+
+    for( int i = 0; i < Ny - 1; i++ ) {
+
+        linesleft.push_back( lines1[ Nx1 - 1 + i ] );
+
+    }
+
+    for( int i = 0; i < Nright - 1; i++ ) {
+
+        linesright.push_back( -lines2[  lines2.size() - 1 - i ] );
+
+    }
+
+    for( int i = 0; i < Ny; i += 2 ) {
+
+        ptsleft.push_back( pts1[ Nx1 + i - 1 ] );
+
+    }
+
+    ptsright.push_back( pts2[ 0 ] );
+    for( int i = 0; i < Nright - 1; i += 1 ) {
+
+        ptsright.push_back( pts2[ pts2.size() - 1 - i ] );
+
+    }
+
+    createMidObjects(linesmid1, midcurves1, midplanes1, ptsleft, ptsright, linesleft, linesright, Nright, Nx1, false, true);
 
     std::vector<int> linesmid2;
 
     std::vector<int> midcurves2;
     std::vector<int> midplanes2;
 
-    createMidObjects(linesmid2, midcurves2, midplanes2, pts2, pts3, lines2, lines3, Nright, Nx2, std::make_pair(Nx2 - 1, 0), std::make_pair(0, 0), true, true);
+    linesleft.clear();
+    linesright.clear();
+    ptsleft.clear();
+    ptsright.clear();
+
+    for( int i = 0; i < Nright - 1; i++ ) {
+
+        linesleft.push_back( lines2[ Nx2 - 1 + i ] );
+        std::cout << linesleft[i] << "\n";
+
+    }
+
+    std::cout << "lines3 \n";
+
+    for( int i = 0; i < lines3.size(); i++ ) {
+        std::cout << lines3[i] << "\n";
+    }
+
+    std::cout << "linesright \n";
+
+    for( int i = 0; i < Ny - 1; i++ ) {
+
+        linesright.push_back( -lines3[  lines3.size() - 1 - i ] );
+        std::cout << linesright[i] << "\n";
+    }
+
+    for( int i = 0; i < Nright; i += 1 ) {
+
+        ptsleft.push_back( pts2[ Nx2 + i - 1 ] );
+
+    }
+
+    ptsright.push_back( pts3[ 0 ] );
+    for( int i = 0; i < Ny - 1; i += 2 ) {
+
+        ptsright.push_back( pts3[ pts3.size() - 2 - i ] );
+
+    }
+
+    // createMidObjects(linesmid2, midcurves2, midplanes2, pts2, pts3, lines2, lines3, Nright, Nx2, std::make_pair(Nx2 - 1, 0), std::make_pair(0, 0), true, true);
+    createMidObjects(linesmid2, midcurves2, midplanes2, ptsleft, ptsright, linesleft, linesright, Nright, Nx2, true, true);
+
+    // new
+
+    std::vector<int> linesmid3;
+
+    std::vector<int> midcurves3;
+    std::vector<int> midplanes3;
+
+    linesleft.clear();
+    linesright.clear();
+    ptsleft.clear();
+    ptsright.clear();
+
+    for( int i = 0; i < 2*Nx2 - 2; i++ ) {
+
+        linesleft.push_back( lines4[ Nx1 - 1 + 2 + i ] );
+        // std::cout << linesleft[i] << "\n";
+
+    }
+
+    // std::cout << "lines3 \n";
+
+    // for( int i = 0; i < lines3.size(); i++ ) {
+    //     std::cout << lines3[i] << "\n";
+    // }
+
+    // std::cout << "linesright \n";
+
+    for( int i = 0; i < Nx2 - 1; i++ ) {
+
+        linesright.push_back( -lines2[  lines2.size() - ( Nright - 1 ) - 1 - i ] );
+        // std::cout << linesright[i] << "\n";
+    }
+
+    for( int i = 0; i < 2*Nx2 - 1; i += 2 ) {
+
+        ptsleft.push_back( pts4[ Nx1 + 2 + i - 1 ] );
+
+    }
+
+    // ptsright.push_back( pts3[ 0 ] );
+    for( int i = 0; i < Nx2; i += 1 ) {
+
+        ptsright.push_back( pts2[ pts2.size() - ( Nright - 1) - i ] );
+
+    }
+
+    // createMidObjects(linesmid2, midcurves2, midplanes2, pts2, pts3, lines2, lines3, Nright, Nx2, std::make_pair(Nx2 - 1, 0), std::make_pair(0, 0), true, true);
+    createMidObjects(linesmid3, midcurves3, midplanes3, ptsleft, ptsright, linesleft, linesright, Nx2, Nx2, false, true);
+
 
     int c1 = gmsh::model::geo::addCurveLoop(lines1);
     int p1 = gmsh::model::geo::addPlaneSurface({c1});
@@ -157,7 +278,7 @@ int main(int argc, char **argv)
     int c6 = gmsh::model::geo::addCurveLoop(lines6);
     int p6 = gmsh::model::geo::addPlaneSurface({c6});
 
-    std::vector< std::vector<int> > linesVec{ lines1, lines2, lines3, lines4, linesmid1, linesmid2,
+    std::vector< std::vector<int> > linesVec{ lines1, lines2, lines3, lines4, linesmid1, linesmid2, linesmid3,
      connectLinesLeft[0], connectLinesLeft[1],connectLinesRight[0], connectLinesRight[1] };
     // std::vector< std::vector<int> > linesVec{ lines1, lines2, lines3, linesmid2 };
     setTransfiniteCurves( linesVec );
