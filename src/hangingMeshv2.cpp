@@ -16,8 +16,8 @@ int main(int argc, char **argv)
     // hexahedra. Unstructured meshes can be recombined in the same way. Let's
     // define a simple geometry with an analytical mesh size field:
 
-    int Nx = 5;
-    int Ny = 21;
+    int Nx = 3;
+    int Ny = 3;
     double dx = 1.0 / (Ny - 1);
     double lc = dx;
     int Nright = Ny / 2 + 1;

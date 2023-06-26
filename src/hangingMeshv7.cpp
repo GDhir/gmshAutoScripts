@@ -13,19 +13,25 @@ int main(int argc, char **argv)
     // hexahedra. Unstructured meshes can be recombined in the same way. Let's
     // define a simple geometry with an analytical mesh size field:
 
-    int Nx1 = 10;
-    std::vector<int> Nyvals = {33, 65, 129, 257, 513};
+    // int Nx1{0};
+    std::vector<int> Nvals = {11, 13, 15, 17, 19};
     // std::vector<int> Nx2vals = {9, 17, 33, 65, 129};
     // std::vector<int> Nx2vals = {3};
-    int Nx3 = 10;
-    int Ny4 = 10;
+    
     int Nx2{0}, Nx4{0};
     std::ofstream outhandle{ "outfile.txt" };
 
-    for( auto& Ny: Nyvals ) {
+    std::string foldername{ argv[1] };
+
+    for( auto& N: Nvals ) {
         gmsh::initialize();
         gmsh::model::add("hangingMeshv4");
-        
+
+        int Nx3 = N;
+        int Ny4 = N - 2;
+        int Nx1 = N;
+        int Ny = 3*N - 4;
+
         Nx2 = (Ny + Ny4)/2 - (Nx3 - 1)/2 - (Nx1 - 1)/2 - 1;
         Nx4 = Nx1 + 2*Nx2 + 1 + Nx3;
         
@@ -356,7 +362,7 @@ int main(int argc, char **argv)
         // gmsh::model::mesh::recombine();
         // gmsh::option::setNumber("Mesh.SubdivisionAlgorithm", 1);
         // gmsh::model::mesh::refine();
-        std::string meshfilename = "hangingMeshv4Nx=" + std::to_string( Nx2 ) + "Ny=" + std::to_string( Ny ) + ".msh";
+        std::string meshfilename = foldername + "hangingMeshNx=" + std::to_string( Nx2 ) + "Ny=" + std::to_string( Ny ) + ".msh";
         gmsh::write(meshfilename);
 
         // Launch the GUI to see the results:

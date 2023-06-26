@@ -17,9 +17,9 @@ int main(int argc, char **argv)
     // define a simple geometry with an analytical mesh size field:
 
     int Nx1 = 3;
-    int Nx2 = 7;
-    int Nx3 = 11;
-    int Ny = 5;
+    int Nx2 = 3;
+    int Nx3 = 3;
+    int Ny = 3;
     double dx = 1.0 / (Ny - 1);
     double lc = dx;
     int Nright = Ny / 2 + 1;

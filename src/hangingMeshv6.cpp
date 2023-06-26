@@ -2,10 +2,11 @@
 #include <gmsh.h>
 #include <iostream>
 #include "gmshUtils.hpp"
-#include <fstream>
 
 int main(int argc, char **argv)
 {
+
+
     // gmsh::model::add("t11");
 
     // We have seen in tutorials `t3.cpp' and `t6.cpp' that extruded and
@@ -13,26 +14,23 @@ int main(int argc, char **argv)
     // hexahedra. Unstructured meshes can be recombined in the same way. Let's
     // define a simple geometry with an analytical mesh size field:
 
-    int Nx1 = 10;
-    std::vector<int> Nyvals = {33, 65, 129, 257, 513};
+    int Nx1 = 3;
     // std::vector<int> Nx2vals = {9, 17, 33, 65, 129};
-    // std::vector<int> Nx2vals = {3};
-    int Nx3 = 10;
-    int Ny4 = 10;
-    int Nx2{0}, Nx4{0};
-    std::ofstream outhandle{ "outfile.txt" };
+    std::vector<int> Nx2vals = {9};
+    int Nx3 = 1;
 
-    for( auto& Ny: Nyvals ) {
-        gmsh::initialize();
+    for( auto& Nx2: Nx2vals ) {
+         gmsh::initialize();
         gmsh::model::add("hangingMeshv4");
-        
-        Nx2 = (Ny + Ny4)/2 - (Nx3 - 1)/2 - (Nx1 - 1)/2 - 1;
-        Nx4 = Nx1 + 2*Nx2 + 1 + Nx3;
+        int Nx4 = Nx1 + 2*Nx2;
+
+        int Ny = 11;
+        int Ny4 = 3;
+
         
         // std::string filenamesuffix = 
 
-        double dx = 1.0 / (Ny + Ny4);
-        outhandle << 2*dx << "\n";
+        double dx = 1.0 / (Ny - 1);
         double lc = dx;
         int Nright = Ny / 2 + 1;
 
@@ -52,13 +50,13 @@ int main(int argc, char **argv)
 
         createBox(xoffset, yoffset, pts2, lines2, lc * 2, Nx2, Ny / 2 + 1);
 
-        std::vector<int> lines3;
-        std::vector<int> pts3;
+        // std::vector<int> lines3;
+        // std::vector<int> pts3;
 
-        xoffset = (Nx1 - 1) * dx + 2 * dx + (Nx2 - 1) * 2 * dx + 2 * dx;
-        yoffset = 0;
+        // xoffset = (Nx1 - 1) * dx + 2 * dx + (Nx2 - 1) * 2 * dx + 2 * dx;
+        // yoffset = 0;
 
-        createBox(xoffset, yoffset, pts3, lines3, lc, Nx3, Ny );
+        // createBox(xoffset, yoffset, pts3, lines3, lc, Nx3, Ny );
 
         // gmsh::model::geo::addPoint(1.25, 0.25, 0, lc/2);
         // gmsh::model::geo::addPoint(1.25, 0.75, 0, lc/2);
@@ -103,35 +101,35 @@ int main(int argc, char **argv)
 
         // connect right refined region
 
-        xoffset = (Nx1 - 1)*lc + 2*lc + (Nx2 - 1)*2*lc + 2*lc;
-        yoffset = (Ny - 1)*lc;
-        // std::vector<int> connectPtsLeft;
-        std::vector< std::vector<int> > connectLinesRight( 2, std::vector<int>() );
+        // xoffset = (Nx1 - 1)*lc + 2*lc + (Nx2 - 1)*2*lc + 2*lc;
+        // yoffset = (Ny - 1)*lc;
+        // // std::vector<int> connectPtsLeft;
+        // std::vector< std::vector<int> > connectLinesRight( 2, std::vector<int>() );
 
-        std::vector<int> topPtsRight( Nx3, 0 );
-        std::vector<int> botPtsRight( Nx3, 0 );
+        // std::vector<int> topPtsRight( Nx3, 0 );
+        // std::vector<int> botPtsRight( Nx3, 0 );
 
-        std::vector<int> topLinesRight;
-        std::vector<int> botLinesRight;
+        // std::vector<int> topLinesRight;
+        // std::vector<int> botLinesRight;
 
-        for( int i = 0; i < Nx3; i++ ) {
-            botPtsRight[i] = pts3[ Nx3 + Ny - 1 + Nx3 - 1 - 1 - i ];
-            topPtsRight[i] = pts4[ Nx1 + 2*Nx2 + 1 + i ];
-        }
+        // for( int i = 0; i < Nx3; i++ ) {
+        //     botPtsRight[i] = pts3[ Nx3 + Ny - 1 + Nx3 - 1 - 1 - i ];
+        //     topPtsRight[i] = pts4[ Nx1 + 2*Nx2 + 1 + i ];
+        // }
 
-        for( int i = 0; i < Nx3 - 1; i++ ) {
-            botLinesRight.push_back( -lines3[ Nx3 - 1 + Ny - 1 + Nx3 - 1 - 1 - i ] );
-        }
+        // for( int i = 0; i < Nx3 - 1; i++ ) {
+        //     botLinesRight.push_back( -lines3[ Nx3 - 1 + Ny - 1 + Nx3 - 1 - 1 - i ] );
+        // }
 
-        for( int i = 0; i < Nx3 - 1; i++ ) {
-            topLinesRight.push_back( -lines4[ Nx1 - 1 + 2 + 2*Nx2 - 2 + 2 + Nx3 - 1 - 1 - i ] );
-        }
+        // for( int i = 0; i < Nx3 - 1; i++ ) {
+        //     topLinesRight.push_back( -lines4[ Nx1 - 1 + 2 + 2*Nx2 - 2 + 2 + Nx3 - 1 - 1 - i ] );
+        // }
 
-        std::vector<int> pts6;
-        std::vector<int> lines6;
+        // std::vector<int> pts6;
+        // std::vector<int> lines6;
 
-        connectRefinedRegion( Nx3, Ny, xoffset, yoffset, lc, 
-            botPtsRight, topPtsRight, botLinesRight, topLinesRight, pts6, lines6, connectLinesRight );    
+        // connectRefinedRegion( Nx3, Ny, xoffset, yoffset, lc, 
+        //     botPtsRight, topPtsRight, botLinesRight, topLinesRight, pts6, lines6, connectLinesRight );    
 
         std::vector<int> linesmid1;
 
@@ -171,52 +169,52 @@ int main(int argc, char **argv)
 
         createMidObjects(linesmid1, midcurves1, midplanes1, ptsleft, ptsright, linesleft, linesright, Nright, Nx1, false, true);
 
-        std::vector<int> linesmid2;
+        // std::vector<int> linesmid2;
 
-        std::vector<int> midcurves2;
-        std::vector<int> midplanes2;
+        // std::vector<int> midcurves2;
+        // std::vector<int> midplanes2;
 
-        linesleft.clear();
-        linesright.clear();
-        ptsleft.clear();
-        ptsright.clear();
+        // linesleft.clear();
+        // linesright.clear();
+        // ptsleft.clear();
+        // ptsright.clear();
 
-        for( int i = 0; i < Nright - 1; i++ ) {
+        // for( int i = 0; i < Nright - 1; i++ ) {
 
-            linesleft.push_back( lines2[ Nx2 - 1 + i ] );
-            // std::cout << linesleft[i] << "\n";
+        //     linesleft.push_back( lines2[ Nx2 - 1 + i ] );
+        //     std::cout << linesleft[i] << "\n";
 
-        }
+        // }
 
         // std::cout << "lines3 \n";
 
-        for( int i = 0; i < lines3.size(); i++ ) {
-            // std::cout << lines3[i] << "\n";
-        }
+        // for( int i = 0; i < lines3.size(); i++ ) {
+        //     std::cout << lines3[i] << "\n";
+        // }
 
         // std::cout << "linesright \n";
 
-        for( int i = 0; i < Ny - 1; i++ ) {
+        // for( int i = 0; i < Ny - 1; i++ ) {
 
-            linesright.push_back( -lines3[  lines3.size() - 1 - i ] );
-            // std::cout << linesright[i] << "\n";
-        }
+        //     linesright.push_back( -lines3[  lines3.size() - 1 - i ] );
+        //     std::cout << linesright[i] << "\n";
+        // }
 
-        for( int i = 0; i < Nright; i += 1 ) {
+        // for( int i = 0; i < Nright; i += 1 ) {
 
-            ptsleft.push_back( pts2[ Nx2 + i - 1 ] );
+        //     ptsleft.push_back( pts2[ Nx2 + i - 1 ] );
 
-        }
+        // }
 
-        ptsright.push_back( pts3[ 0 ] );
-        for( int i = 0; i < Ny - 1; i += 2 ) {
+        // ptsright.push_back( pts3[ 0 ] );
+        // for( int i = 0; i < Ny - 1; i += 2 ) {
 
-            ptsright.push_back( pts3[ pts3.size() - 2 - i ] );
+        //     ptsright.push_back( pts3[ pts3.size() - 2 - i ] );
 
-        }
+        // }
 
-        // createMidObjects(linesmid2, midcurves2, midplanes2, pts2, pts3, lines2, lines3, Nright, Nx2, std::make_pair(Nx2 - 1, 0), std::make_pair(0, 0), true, true);
-        createMidObjects(linesmid2, midcurves2, midplanes2, ptsleft, ptsright, linesleft, linesright, Nright, Nx2, true, true);
+        // // createMidObjects(linesmid2, midcurves2, midplanes2, pts2, pts3, lines2, lines3, Nright, Nx2, std::make_pair(Nx2 - 1, 0), std::make_pair(0, 0), true, true);
+        // createMidObjects(linesmid2, midcurves2, midplanes2, ptsleft, ptsright, linesleft, linesright, Nright, Nx2, true, true);
 
         // new
 
@@ -273,8 +271,8 @@ int main(int argc, char **argv)
         int c2 = gmsh::model::geo::addCurveLoop(lines2);
         int p2 = gmsh::model::geo::addPlaneSurface({c2});
 
-        int c3 = gmsh::model::geo::addCurveLoop(lines3);
-        int p3 = gmsh::model::geo::addPlaneSurface({c3});
+        // int c3 = gmsh::model::geo::addCurveLoop(lines3);
+        // int p3 = gmsh::model::geo::addPlaneSurface({c3});
 
         int c4 = gmsh::model::geo::addCurveLoop(lines4);
         int p4 = gmsh::model::geo::addPlaneSurface({c4});
@@ -282,26 +280,26 @@ int main(int argc, char **argv)
         int c5 = gmsh::model::geo::addCurveLoop(lines5);
         int p5 = gmsh::model::geo::addPlaneSurface({c5});
 
-        int c6 = gmsh::model::geo::addCurveLoop(lines6);
-        int p6 = gmsh::model::geo::addPlaneSurface({c6});
+        // int c6 = gmsh::model::geo::addCurveLoop(lines6);
+        // int p6 = gmsh::model::geo::addPlaneSurface({c6});
 
         int c7 = gmsh::model::geo::addCurveLoop( { linesmid1.back(), -linesmid3[0], -lines4[ Nx1 ], -lines4[ Nx1 - 1 ],
         -connectLinesLeft[1][1], -connectLinesLeft[1][0] } );
         int p7 = gmsh::model::geo::addPlaneSurface({c7});
 
-        int c8 = gmsh::model::geo::addCurveLoop( { linesmid2.back(), connectLinesRight[0][0], connectLinesRight[0][1],
-        -lines4[ Nx1 - 1 + 2 + 2*Nx2 - 1 ], -lines4[ Nx1 - 1 + 2 + 2*Nx2 - 2 ], linesmid3.back() } );
-        int p8 = gmsh::model::geo::addPlaneSurface({c8});
+        // int c8 = gmsh::model::geo::addCurveLoop( { linesmid2.back(), connectLinesRight[0][0], connectLinesRight[0][1],
+        // -lines4[ Nx1 - 1 + 2 + 2*Nx2 - 1 ], -lines4[ Nx1 - 1 + 2 + 2*Nx2 - 2 ], linesmid3.back() } );
+        // int p8 = gmsh::model::geo::addPlaneSurface({c8});
 
-        std::vector< std::vector<int> > linesVec{ lines1, lines2, lines3, lines4, linesmid1, linesmid2, linesmid3,
-        connectLinesLeft[0], connectLinesLeft[1],connectLinesRight[0], connectLinesRight[1] };
+        std::vector< std::vector<int> > linesVec{ lines1, lines2, lines4, linesmid1, linesmid3,
+        connectLinesLeft[0], connectLinesLeft[1] };
         // std::vector< std::vector<int> > linesVec{ lines1, lines2, lines3, linesmid2 };
         setTransfiniteCurves( linesVec );
 
-        std::vector<int> planeIds{ p1, p2, p3, p4, p5, p6};
-        std::vector< std::vector<int> > ptsVec{ pts1, pts2, pts3, pts4, pts5, pts6};
-        std::vector<int> Nxvals{ Nx1, Nx2, Nx3, Nx4, Nx1, Nx3 };  
-        std::vector<int> Nyvals{ Ny, Nright, Ny, Ny4, 3, 3 };
+        std::vector<int> planeIds{ p1, p2, p4, p5 };
+        std::vector< std::vector<int> > ptsVec{ pts1, pts2, pts4, pts5 };
+        std::vector<int> Nxvals{ Nx1, Nx2, Nx4, Nx1 };  
+        std::vector<int> Nyvals{ Ny, Nright, Ny4, 3 };
 
         setTransfiniteSurfaces( planeIds, ptsVec, Nxvals, Nyvals );
         gmsh::model::geo::synchronize();
@@ -356,7 +354,7 @@ int main(int argc, char **argv)
         // gmsh::model::mesh::recombine();
         // gmsh::option::setNumber("Mesh.SubdivisionAlgorithm", 1);
         // gmsh::model::mesh::refine();
-        std::string meshfilename = "hangingMeshv4Nx=" + std::to_string( Nx2 ) + "Ny=" + std::to_string( Ny ) + ".msh";
+        std::string meshfilename = "hangingMeshv6" + std::to_string( Nx2 ) + ".msh";
         gmsh::write(meshfilename);
 
         // Launch the GUI to see the results:
