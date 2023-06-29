@@ -10,6 +10,7 @@
 #include <gmsh.h>
 #include <iostream>
 #include "gmshUtils.hpp"
+#include "fstream"
 
 int main(int argc, char **argv)
 {
@@ -21,13 +22,15 @@ int main(int argc, char **argv)
 
     int N = 21;
     // std::vector<double> dxvals{ 0.166667, 0.1, 0.0555556, 0.0294118, 0.0151515 };
-    std::vector<double> Ndashvals{ 11, 13, 15, 17, 19 };
+    std::vector<double> Ndashvals{ 11, 17, 21, 27, 31 };
 
     std::string foldername{ argv[1] };
+    std::ofstream outhandle{ "outfileregular.txt" };
 
     for( auto&Ndash: Ndashvals ) {
-        double lc = 2/( 8*Ndash - 8 );
+        double lc = 2/( 4*Ndash - 6 );
         N = 1/lc + 1;
+        outhandle << lc << "\n";
         
         std::vector<int> linesleft;
         std::vector<int> ptsleft;

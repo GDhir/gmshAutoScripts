@@ -14,7 +14,7 @@ int main(int argc, char **argv)
     // define a simple geometry with an analytical mesh size field:
 
     // int Nx1{0};
-    std::vector<int> Nvals = {11, 13, 15, 17, 19};
+    std::vector<int> Nvals = { 11, 17, 21, 27, 31 };
     // std::vector<int> Nx2vals = {9, 17, 33, 65, 129};
     // std::vector<int> Nx2vals = {3};
     
