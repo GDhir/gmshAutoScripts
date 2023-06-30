@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 
     int N = 21;
     // std::vector<double> dxvals{ 0.166667, 0.1, 0.0555556, 0.0294118, 0.0151515 };
-    std::vector<double> Ndashvals{ 11, 17, 21, 27, 31 };
+    std::vector<double> Ndashvals{ 11, 21, 41, 81, 161 };
 
     std::string foldername{ argv[1] };
     std::ofstream outhandle{ "outfileregular.txt" };

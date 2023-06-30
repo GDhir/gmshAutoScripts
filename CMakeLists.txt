@@ -12,12 +12,14 @@ set(gmsh_src_v7 src/hangingMeshv7.cpp src/gmshUtils.cpp )
 set(gmsh_src_regular src/regularMeshv1.cpp src/gmshUtils.cpp )
 set(gmsh_src_regular src/regularMeshv2.cpp src/gmshUtils.cpp )
 set(gmsh_src_import src/hangingMeshImport.cpp src/gmshUtils.cpp )
+set(gmsh_src_order src/hangingMeshSetOrder.cpp src/gmshUtils.cpp )
 
 set(gmsh_inc /home/gaurav/gmsh-4.11.1-Linux64-sdk/include/gmsh.h include/gmshUtils.hpp )
 
 include_directories( include )
 
 add_executable(hangingMeshImport ${gmsh_inc} ${gmsh_src_import})
+add_executable(hangingMeshSetOrder ${gmsh_inc} ${gmsh_src_order})
 add_executable(regularMeshv1 ${gmsh_inc} ${gmsh_src_regular})
 add_executable(regularMeshv2 ${gmsh_inc} ${gmsh_src_regular})
 add_executable(hangingMeshv7 ${gmsh_inc} ${gmsh_src_v7})
@@ -36,6 +38,9 @@ target_link_libraries(regularMeshv1 PUBLIC /home/gaurav/gmsh-4.11.1-Linux64-sdk/
 
 target_include_directories(hangingMeshImport PUBLIC /home/gaurav/gmsh-4.11.1-Linux64-sdk/include include/)
 target_link_libraries(hangingMeshImport PUBLIC /home/gaurav/gmsh-4.11.1-Linux64-sdk/lib/libgmsh.so)
+
+target_include_directories(hangingMeshSetOrder PUBLIC /home/gaurav/gmsh-4.11.1-Linux64-sdk/include include/)
+target_link_libraries(hangingMeshSetOrder PUBLIC /home/gaurav/gmsh-4.11.1-Linux64-sdk/lib/libgmsh.so)
 
 target_include_directories(hangingMeshv7 PUBLIC /home/gaurav/gmsh-4.11.1-Linux64-sdk/include include/)
 target_link_libraries(hangingMeshv7 PUBLIC /home/gaurav/gmsh-4.11.1-Linux64-sdk/lib/libgmsh.so)

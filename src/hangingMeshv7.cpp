@@ -14,7 +14,7 @@ int main(int argc, char **argv)
     // define a simple geometry with an analytical mesh size field:
 
     // int Nx1{0};
-    std::vector<int> Nvals = { 11, 17, 21, 27, 31 };
+    std::vector<int> Nvals = { 11, 17 };
     // std::vector<int> Nx2vals = {9, 17, 33, 65, 129};
     // std::vector<int> Nx2vals = {3};
     
@@ -26,6 +26,7 @@ int main(int argc, char **argv)
     for( auto& N: Nvals ) {
         gmsh::initialize();
         gmsh::model::add("hangingMeshv4");
+
 
         int Nx3 = N;
         int Ny4 = N - 2;
@@ -352,6 +353,7 @@ int main(int argc, char **argv)
         // You can also set the subdivision step alone, with
         //
         // gmsh::option::setNumber("Mesh.SubdivisionAlgorithm", 1);
+        gmsh::model::mesh::setOrder( 1 );
 
         gmsh::model::mesh::generate(2);
 
