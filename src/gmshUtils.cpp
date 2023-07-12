@@ -110,6 +110,12 @@ void connectRefinedRegion(int Nx, int Ny, double xoffset, double yoffset, double
     {
         lines5.push_back(-connectLines[0][1 - i]);
     }
+
+    // std::cout << "begin \n";
+    // for( auto& val: pts5 ) {
+    //     std::cout << val << "\n";
+    // }
+    // std::cout << "end \n";
 }
 
 void createMidObjects(std::vector<int> &linesmid, std::vector<int> &midcurves, std::vector<int> &midplanes,
@@ -176,7 +182,7 @@ void createMidObjects(std::vector<int> &linesmid, std::vector<int> &midcurves, s
 
         if( leftCoarse ) {
 
-            std::cout << "othermid \n";
+            // std::cout << "othermid \n";
 
             for (int i = 0; i < Ncoarse; i++)
             {
@@ -187,7 +193,7 @@ void createMidObjects(std::vector<int> &linesmid, std::vector<int> &midcurves, s
             for (int i = 0; i < Ncoarse - 1; i++)
             {
 
-                std::cout << linesmid[i] << "\t" << linesright[2*i] << "\t" << linesright[2*i + 1] << "\t" << -linesmid[i + 1] << "\t" << -linesleft[i] << "\n";
+                // std::cout << linesmid[i] << "\t" << linesright[2*i] << "\t" << linesright[2*i + 1] << "\t" << -linesmid[i + 1] << "\t" << -linesleft[i] << "\n";
 
                 midcurves.push_back(gmsh::model::geo::addCurveLoop({linesright[ 2*i ], linesright[ 2*i + 1 ], -linesmid[i + 1], -linesleft[i], linesmid[i]}));
                 midplanes.push_back(gmsh::model::geo::addPlaneSurface({midcurves.back()}));
