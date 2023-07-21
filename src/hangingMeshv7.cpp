@@ -364,6 +364,7 @@ int main(int argc, char **argv)
         // gmsh::model::mesh::recombine();
         // gmsh::option::setNumber("Mesh.SubdivisionAlgorithm", 1);
         // gmsh::model::mesh::refine();
+        gmsh::option::setNumber("Mesh.MshFileVersion", 2);
         std::string meshfilename = foldername + "hangingMeshNx=" + std::to_string( Nx2 ) + "Ny=" + std::to_string( Ny ) + ".msh";
         gmsh::write(meshfilename);
 

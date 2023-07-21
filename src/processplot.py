@@ -5,6 +5,13 @@ import re
 from os import listdir
 from os.path import isfile, join
 import subprocess
+from paraview.simple import *
+import meshio
+
+rootfoldername = "/media/gaurav/easystore/Finch/MixedElement/"
+textfoldername = rootfoldername + "TextFiles/"
+plotfoldername = rootfoldername + "PlotFiles/SimPlots/"
+gmshImageFolderName = "/home/gaurav/gmshAutoScripts/Images/"
 
 def getData( filename ):
 
@@ -42,7 +49,7 @@ def buildMesh( gmshfilecmd, gmshfileargs ):
 
 def runJulia( exefilename ):
 
-    juliapath = "/home/gaurav/julia-1.8.5/bin/julia"
+    juliapath = "/home/gaurav/Downloads/julia-1.9.2-linux-x86_64/julia-1.9.2/bin/julia"
     julialstcmd = [juliapath, exefilename]
     subprocess.run( julialstcmd )
 
@@ -59,25 +66,84 @@ def runSim():
     gmshfileargs = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
     removeFiles( gmshfileargs )
 
-    gmshfilecmd = "hangingMeshv7"
+    gmshfilecmd = "hangingMeshv8"
     buildMesh( gmshfilecmd, gmshfileargs )
 
-    gmshfilecmd = "regularMeshv2"
+    gmshfilecmd = "regularMeshv3"
     buildMesh( gmshfilecmd, gmshfileargs )
 
     exefilename = "example-mixed-element-2d.jl"
     runJulia( exefilename )
 
     showplot()
+    showParaviewPlot()
     # removeFiles( gmshfileargs )
 
+def showParaviewPlot():
+
+    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
+
+    for index, meshval in enumerate(meshvals):
+        mesh = meshio.read( meshpath + meshval )
+        meshio.write( meshpath + meshval[:-4] + ".vtu", mesh )
+
+    for index, meshval in enumerate(meshvals):
+
+        if not re.search( "regular", meshval  ):
+
+            meshvtkName = meshpath + meshval[:-4] + ".vtu"
+            Nxval = re.search( "Nx=", meshval )
+            offset = Nxval.start() + 3
+            Nxval = re.search( "[0-9]+", meshval[offset:] )
+            Nxval = Nxval.group(0)
+
+            Nyval = re.search( "Ny=", meshval )
+            offset = Nyval.start() + 3
+            Nyval = re.search( "[0-9]+", meshval[offset:] )
+            Nyval = Nyval.group(0)
+
+            hangingfilename = textfoldername + "mixed_" + "errorAnduNx=" + Nxval + "Ny=" + Nyval + ".vtu"
+
+            # view = CreateRenderView( )
+            solfile = OpenDataFile( hangingfilename )
+            display = Show(solfile)
+
+            gmshfile = OpenDataFile( meshvtkName )
+            dp = GetDisplayProperties( gmshfile )
+            dp.Representation = 'Wireframe'
+            gmshdisplay = Show(gmshfile)
+            ColorBy(display, ('POINTS', 'err'))
+            Render()
+            myview = GetActiveView()
+            SaveScreenshot( plotfoldername + "mixed_" + "errorAnduNx=" + Nxval + "Ny=" + Nyval + ".png", myview)
+            Hide( solfile )
+            Hide( gmshfile )
+
+        else:
+            meshvtkName = meshpath + meshval[:-4] + ".vtu"
+            regularNval = re.search( "[0-9]+"  , meshval  )
+            regularNval = regularNval.group(0)
+
+            regularfilename = textfoldername + "regular_" + "errorAnduN=" + regularNval + ".vtu"
+
+            # view = CreateRenderView(  )
+            solfile = OpenDataFile( regularfilename )
+            display = Show(solfile)
+
+            gmshfile = OpenDataFile( meshvtkName )
+            dp = GetDisplayProperties( gmshfile )
+            dp.Representation = 'Wireframe'
+            gmshdisplay = Show(gmshfile)
+            ColorBy(display, ('POINTS', 'err'))
+            Render()
+            myview = GetActiveView()
+            SaveScreenshot( plotfoldername + "regular_" + "errorAnduN=" + regularNval + ".png", myview)
+            Hide( solfile )
+            Hide( gmshfile )
+    
+
 def showplot():
-
-    rootfoldername = "/media/gaurav/easystore/Finch/MixedElement/"
-
-    textfoldername = rootfoldername + "TextFiles/"
-
-    plotfoldername = rootfoldername + "PlotFiles/SimPlots/"
 
     # indexes = [ 1, 2, 3, 4, 5 ]
     # Nyvals = np.array( [ 9, 17, 33, 65, 129 ] )
@@ -288,7 +354,9 @@ def showplot():
 
 if __name__ == "__main__":
 
-    # runSim()
-    showplot()
+    runSim()
+    # showParaviewPlot()
+    # showplot()
     # a = 3
     # print(a)
+

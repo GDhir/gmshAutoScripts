@@ -41,30 +41,36 @@ int main(int argc, char **argv)
     // hexahedra. Unstructured meshes can be recombined in the same way. Let's
     // define a simple geometry with an analytical mesh size field:
 
-    int Nx1 = 5;
     // std::vector<int> Nyvals = {33, 65, 129, 257, 513};
     // std::vector<int> Nyvals = {13, 15, 17};
-    std::vector<int> Nyvals = {17, 33, 65, 129};
+    std::vector<int> Nyvals = {17, 33, 49, 65, 129};
+    // std::vector<int> Nyvals = {17, 33};
     // std::vector<int> Nx2vals = {3};
-    int Nx3 = 5;
-    int Ny4 = 5;
-    int Ny5 = 5;
-    int Nx2{0}, Nx4{0}, Nx5{0};
+    
+    int N, Nx1, Nx3, Ny4, Ny5, Nx2{0}, Nx4{0}, Nx5{0};
     std::ofstream outhandle;
+    std::string foldername{ argv[1] };
 
     for( auto& Ny: Nyvals ) {
         gmsh::initialize();
         gmsh::model::add("hangingMeshv8");
         
+        N = (Ny + 5)/2;
+        Nx1 = N;
+        Nx3 = N;
+        Ny4 = N;
+        Ny5 = N;
+
         // Nx2 = (Ny + Ny4)/2 - (Nx3 - 1)/2 - (Nx1 - 1)/2 - 1;
-        Nx2 = (Ny + Ny4 + Ny5)/2 - (Nx3)/2 - (Nx1)/2;
+        // Nx2 = (Ny + Ny4 + Ny5)/2 - (Nx3)/2 - (Nx1)/2;
+        Nx2 = Ny/2 + 1;
         Nx4 = Nx1 + 2*Nx2 + 1 + Nx3;
         Nx5 = Nx1 + 2*Nx2 + 1 + Nx3;
         
         // std::string filenamesuffix = 
         outhandle.open( "outfile.txt", std::ios::app );
         double dx = 1.0 / (Ny + Ny4 + Ny5 + 1);
-        // outhandle << 2*dx << "\n";
+        outhandle << 2*dx << "\n";
         outhandle << Nx1 << "\t" << Nx2 << "\t" << Nx3 << "\t" << Nx4 << "\t" << Nx5 << "\n";
         outhandle << Ny << "\t" << Ny4 << "\t" << Ny5 << "\n";
         outhandle << "end \n";
@@ -558,7 +564,8 @@ int main(int argc, char **argv)
         // gmsh::model::mesh::recombine();
         // gmsh::option::setNumber("Mesh.SubdivisionAlgorithm", 1);
         // gmsh::model::mesh::refine();
-        std::string meshfilename = "hangingMeshv8Nx=" + std::to_string( Nx2 ) + "Ny=" + std::to_string( Ny ) + ".msh";
+        gmsh::option::setNumber("Mesh.MshFileVersion", 2);
+        std::string meshfilename = foldername + "hangingMeshv8Nx=" + std::to_string( Nx2 ) + "Ny=" + std::to_string( Ny ) + ".msh";
         gmsh::write(meshfilename);
 
         // Launch the GUI to see the results:
