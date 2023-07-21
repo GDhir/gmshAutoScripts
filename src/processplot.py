@@ -76,12 +76,12 @@ def runSim():
     runJulia( exefilename )
 
     showplot()
-    showParaviewPlot()
+    # showParaviewPlot()
     # removeFiles( gmshfileargs )
 
 def showParaviewPlot():
 
-    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
     meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
 
     for index, meshval in enumerate(meshvals):
@@ -145,18 +145,23 @@ def showParaviewPlot():
 
 def showplot():
 
-    # indexes = [ 1, 2, 3, 4, 5 ]
-    # Nyvals = np.array( [ 9, 17, 33, 65, 129 ] )
-    Nvals = np.array( [ 11, 17, 21, 27, 31 ] )
-    dxvals = 2/( 4*Nvals - 6 )
-    # indexes = [1, 2]
+    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfileregular.txt"
+
+    dxvals = []
+
+    with open( dxfilename ) as dxfilehandle:
+
+        dxvals = dxfilehandle.readlines()
+
+    dxvals = np.array([ float( dxval[ :-1 ] ) for dxval in dxvals ])
+
     import matplotlib.ticker as ticker
 
-    hangingMaxErrorVals = []
-    hangingl2ErrorVals = []
+    hangingMaxErrorVals = dict()
+    hangingl2ErrorVals = dict()
 
-    regularMaxErrorVals = []
-    regularl2ErrorVals = []
+    regularMaxErrorVals = dict()
+    regularl2ErrorVals = dict()
 
     meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
     meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
@@ -255,8 +260,9 @@ def showplot():
             xvalsHanging = getData( textfoldername + "mixed_xvalues_Nx=" + Nxval + "Ny=" + Nyval + ".txt" )
             yvalsHanging = getData( textfoldername + "mixed_yvalues_Nx=" + Nxval + "Ny=" + Nyval + ".txt" )
             hangingErrvals = getData( textfoldername + "mixed_errorvalues_Nx=" + Nxval + "Ny=" + Nyval + ".txt" )
-            hangingMaxErrorVals.append( np.max(hangingErrvals) )
-            hangingl2ErrorVals.append( np.sum( np.array(hangingErrvals)**2 ) )
+            keyval = int(Nxval) * int(Nyval)
+            hangingMaxErrorVals[ keyval ] = np.max(hangingErrvals) 
+            hangingl2ErrorVals[ keyval ] = np.sum( np.array(hangingErrvals)**2 ) 
             curminval = np.min( hangingErrvals )
             curmaxval = np.max(hangingErrvals)
             # uvals = getData( textfoldername + "uvalues_index=" + str(index) + ".txt" )
@@ -307,8 +313,9 @@ def showplot():
             xvals = getData( textfoldername + "regular_xvalues_N=" + regularNval + ".txt" )
             yvals = getData( textfoldername + "regular_yvalues_N=" + regularNval + ".txt" )
             regularErrvals = getData( textfoldername + "regular_errorvalues_N=" + regularNval + ".txt" )
-            regularMaxErrorVals.append( np.max(regularErrvals) )
-            regularl2ErrorVals.append( np.sum( np.array(regularErrvals)**2 ) )
+            keyval = int(regularNval)
+            regularMaxErrorVals[ keyval ] = np.max(regularErrvals) 
+            regularl2ErrorVals[ keyval ] = np.sum( np.array(regularErrvals)**2 )
             # uvals = getData( textfoldername + "uvalues_index=" + str(index) + ".txt" )
 
             curminval = np.min(regularErrvals)
@@ -334,29 +341,41 @@ def showplot():
             plt.close()
             indexval += 1
 
+    hangingMaxErrorList = []
+    regularMaxErrorList = []
+    hangingl2ErrorList = []
+    regularl2ErrorList = []
+
+    for idx, keyval in enumerate( sortedkeyshanging ):
+
+        hangingMaxErrorList.append( hangingMaxErrorVals[ keyval ] )
+        hangingl2ErrorList.append( hangingl2ErrorVals[ keyval ] )
+
+    for idx, keyval in enumerate( sortedkeysregular ):
+
+        regularMaxErrorList.append( regularMaxErrorVals[ keyval ] )
+        regularl2ErrorList.append(  regularl2ErrorVals[ keyval ] )
 
     plt.figure()
-    plt.loglog( dxvals, hangingMaxErrorVals, "-o", label = "Boundary Refined $L^{\infty}$ Error" )
-    plt.loglog( dxvals, regularMaxErrorVals, "-o", label = "Regular $L^{\infty}$ Error" )
+    plt.loglog( dxvals, hangingMaxErrorList, "-o", label = "Boundary Refined $L^{\infty}$ Error" )
+    plt.loglog( dxvals, regularMaxErrorList, "-o", label = "Regular $L^{\infty}$ Error" )
     plt.loglog( dxvals, dxvals**2, "-x", label = "$h^2$" )
     plt.legend()
-    plt.savefig( plotfoldername + "maxError" + ".png" )
+    plt.savefig( gmshImageFolderName + "maxError" + ".png" )
 
     plt.figure()
-    plt.loglog( dxvals, hangingl2ErrorVals, "-o", label = "Boundary Refined $L^{2}$ Error" )
-    plt.loglog( dxvals, regularl2ErrorVals, "-o", label = "Regular $L^{2}$ Error" )
+    plt.loglog( dxvals, hangingl2ErrorList, "-o", label = "Boundary Refined $L^{2}$ Error" )
+    plt.loglog( dxvals, regularl2ErrorList, "-o", label = "Regular $L^{2}$ Error" )
     plt.loglog( dxvals, dxvals**2, "-x", label = "$h^2$" )
     plt.legend()
-    plt.savefig( plotfoldername + "l2Error" + ".png" )
+    plt.savefig( gmshImageFolderName + "l2Error" + ".png" )
 
     plt.show()
     return 1
 
 if __name__ == "__main__":
 
-    runSim()
+    # runSim()
     # showParaviewPlot()
-    # showplot()
-    # a = 3
-    # print(a)
+    showplot()
 
