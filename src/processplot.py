@@ -4,6 +4,7 @@ import matplotlib as m
 import re
 from os import listdir
 from os.path import isfile, join
+import os
 import subprocess
 from paraview.simple import *
 import meshio
@@ -76,17 +77,19 @@ def runSim():
     runJulia( exefilename )
 
     showplot()
+    # showplotTriangle()
     # showParaviewPlot()
     # removeFiles( gmshfileargs )
 
 def showParaviewPlot():
 
-    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
+    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
     meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
 
     for index, meshval in enumerate(meshvals):
         mesh = meshio.read( meshpath + meshval )
-        meshio.write( meshpath + meshval[:-4] + ".vtu", mesh )
+        meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
 
     for index, meshval in enumerate(meshvals):
 
@@ -145,6 +148,11 @@ def showParaviewPlot():
 
 def showplot():
 
+    simPlotFolderName = plotfoldername + "Plot10_4pi_Hanging/"
+
+    if not os.path.exists(simPlotFolderName):
+        os.mkdir( simPlotFolderName )
+
     dxfilename = "/home/gaurav/gmshAutoScripts/build/outfileregular.txt"
 
     dxvals = []
@@ -182,7 +190,7 @@ def showplot():
     indexval = 0
     for index, meshval in enumerate(meshvals):
 
-        if not re.search( "regular", meshval  ):
+        if re.search( "hanging", meshval  ):
             Nxval = re.search( "Nx=", meshval )
             offset = Nxval.start() + 3
             Nxval = re.search( "[0-9]+", meshval[offset:] )
@@ -245,7 +253,7 @@ def showplot():
     indexval = 0
     for index, meshval in enumerate(meshvals):
 
-        if not re.search( "regular", meshval  ):
+        if re.search( "hanging", meshval  ):
 
             Nxval = re.search( "Nx=", meshval )
             offset = Nxval.start() + 3
@@ -260,7 +268,14 @@ def showplot():
             xvalsHanging = getData( textfoldername + "mixed_xvalues_Nx=" + Nxval + "Ny=" + Nyval + ".txt" )
             yvalsHanging = getData( textfoldername + "mixed_yvalues_Nx=" + Nxval + "Ny=" + Nyval + ".txt" )
             hangingErrvals = getData( textfoldername + "mixed_errorvalues_Nx=" + Nxval + "Ny=" + Nyval + ".txt" )
+
             keyval = int(Nxval) * int(Nyval)
+            folderIndex = sortedkeyshanging.index( keyval )
+            curPlotFolderName = simPlotFolderName + "Plot" + str(folderIndex) + "/"
+
+            if not os.path.exists( curPlotFolderName ):
+                os.mkdir( curPlotFolderName )
+
             hangingMaxErrorVals[ keyval ] = np.max(hangingErrvals) 
             hangingl2ErrorVals[ keyval ] = np.sum( np.array(hangingErrvals)**2 ) 
             curminval = np.min( hangingErrvals )
@@ -276,7 +291,7 @@ def showplot():
             plt.colorbar()
             # plt.scatter( xvalsHanging, yvalsHanging )
             # plt.show()
-            plt.savefig( plotfoldername + "hangingErrorcontour_Nx=" + Nxval + "Ny=" + Nyval + ".png" )
+            plt.savefig( curPlotFolderName + "hangingErrorcontour_Nx=" + Nxval + "Ny=" + Nyval + ".png" )
             plt.close()
 
             plt.figure()
@@ -286,7 +301,7 @@ def showplot():
             # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, levels = levels, colors='r')
             plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, levels = levels, colors = 'r')
             plt.colorbar()
-            plt.savefig( plotfoldername + "large_hangingErrorcontour_Nx=" + Nxval + "Ny=" + Nyval + ".png" )
+            plt.savefig( curPlotFolderName + "large_hangingErrorcontour_Nx=" + Nxval + "Ny=" + Nyval + ".png" )
             plt.close()
         # plt.figure()
         # plt.tricontourf( xvals, yvals, uvals, levels = 20 )
@@ -313,7 +328,15 @@ def showplot():
             xvals = getData( textfoldername + "regular_xvalues_N=" + regularNval + ".txt" )
             yvals = getData( textfoldername + "regular_yvalues_N=" + regularNval + ".txt" )
             regularErrvals = getData( textfoldername + "regular_errorvalues_N=" + regularNval + ".txt" )
+
             keyval = int(regularNval)
+            keyval = int(regularNval)
+            folderIndex = sortedkeysregular.index( keyval )
+            curPlotFolderName = simPlotFolderName + "Plot" + str(folderIndex) + "/"
+            
+            if not os.path.exists( curPlotFolderName ):
+                os.mkdir( curPlotFolderName )
+
             regularMaxErrorVals[ keyval ] = np.max(regularErrvals) 
             regularl2ErrorVals[ keyval ] = np.sum( np.array(regularErrvals)**2 )
             # uvals = getData( textfoldername + "uvalues_index=" + str(index) + ".txt" )
@@ -329,7 +352,7 @@ def showplot():
             plt.colorbar()
             # plt.scatter( xvals, yvals )
             # plt.show()
-            plt.savefig( plotfoldername + "regularErrorcontour_N=" + regularNval + ".png" )
+            plt.savefig( curPlotFolderName + "regularErrorcontour_N=" + regularNval + ".png" )
             plt.close()
             
             plt.figure()
@@ -337,7 +360,7 @@ def showplot():
             # plt.tricontourf( xvals, yvals, regularErrvals, levels = levels, colors='r')
             plt.tricontourf( xvals, yvals, regularErrvals, levels = levels, colors = 'r')
             plt.colorbar()
-            plt.savefig( plotfoldername + "large_regularErrorcontour_N=" + regularNval + ".png" )
+            plt.savefig( curPlotFolderName + "large_regularErrorcontour_N=" + regularNval + ".png" )
             plt.close()
             indexval += 1
 
@@ -361,21 +384,240 @@ def showplot():
     plt.loglog( dxvals, regularMaxErrorList, "-o", label = "Regular $L^{\infty}$ Error" )
     plt.loglog( dxvals, dxvals**2, "-x", label = "$h^2$" )
     plt.legend()
-    plt.savefig( gmshImageFolderName + "maxError" + ".png" )
+    plt.savefig( simPlotFolderName + "maxError" + ".png" )
 
     plt.figure()
     plt.loglog( dxvals, hangingl2ErrorList, "-o", label = "Boundary Refined $L^{2}$ Error" )
     plt.loglog( dxvals, regularl2ErrorList, "-o", label = "Regular $L^{2}$ Error" )
     plt.loglog( dxvals, dxvals**2, "-x", label = "$h^2$" )
     plt.legend()
-    plt.savefig( gmshImageFolderName + "l2Error" + ".png" )
+    plt.savefig( simPlotFolderName + "l2Error" + ".png" )
+
+    plt.show()
+    return 1
+
+
+def showplotTriangle():
+
+    simPlotFolderName = plotfoldername + "Plot8/"
+
+    os.mkdir( simPlotFolderName )
+
+    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfileregular.txt"
+
+    dxvals = []
+
+    with open( dxfilename ) as dxfilehandle:
+
+        dxvals = dxfilehandle.readlines()
+
+    dxvals = np.array([ float( dxval[ :-1 ] ) for dxval in dxvals ])
+
+    import matplotlib.ticker as ticker
+
+    triangleMaxErrorVals = dict()
+    trianglel2ErrorVals = dict()
+
+    regularMaxErrorVals = dict()
+    regularl2ErrorVals = dict()
+
+    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
+    levelsmintriangle = dict()
+    levelsmaxtriangle = dict()
+
+    levelsminregular = dict()
+    levelsmaxregular = dict()
+
+    cdict = {
+        'red'  :  ( (0.0, 0.25, .25), (0.02, .59, .59), (1., 1., 1.)),
+        'green':  ( (0.0, 0.0, 0.0), (0.02, .45, .45), (1., .97, .97)),
+        'blue' :  ( (0.0, 1.0, 1.0), (0.02, .75, .75), (1., 0.45, 0.45))
+    }
+ 
+    cm = m.colors.LinearSegmentedColormap('my_colormap', cdict, 1024)
+ 
+    indexval = 0
+    for index, meshval in enumerate(meshvals):
+
+        if re.search( "triangle", meshval  ):
+            # print(meshval)
+            triangleNval = re.search( "[0-9]+"  , meshval  )
+            triangleNval = triangleNval.group(0)
+            triangleErrvals = getData( textfoldername + "triangle_errorvalues_N=" + triangleNval + ".txt" )
+            # uvals = getData( textfoldername + "uvalues_index=" + str(index) + ".txt" )
+
+            curminval = np.min(triangleErrvals)
+            curmaxval = np.max(triangleErrvals)
+            N = int(triangleNval)
+            levelsmintriangle[N] = curminval, meshval 
+            levelsmaxtriangle[N] = curmaxval, meshval 
+            indexval += 1
+
+
+    indexval = 0
+    for index, meshval in enumerate(meshvals):
+
+        if re.search( "regular", meshval  ):
+            # print(meshval)
+            regularNval = re.search( "[0-9]+"  , meshval  )
+            regularNval = regularNval.group(0)
+
+            regularErrvals = getData( textfoldername + "regular_errorvalues_N=" + regularNval + ".txt" )
+            # uvals = getData( textfoldername + "uvalues_index=" + str(index) + ".txt" )
+
+            curminval = np.min(regularErrvals)
+            curmaxval = np.max(regularErrvals)
+            N = int(regularNval)
+            levelsminregular[N] = curminval, meshval 
+            levelsmaxregular[N] = curmaxval, meshval 
+            indexval += 1
+
+    sortedkeystriangle = sorted( levelsmintriangle.keys() )
+    sortedkeysregular = sorted( levelsminregular.keys() )    
+
+    levelsmin = dict()
+    levelsmax = dict()
+
+    for idx in range( len(sortedkeystriangle) ):
+
+        minval = min( levelsminregular[ sortedkeysregular[idx] ][0], levelsmintriangle[ sortedkeystriangle[idx] ][0] )
+        maxval = max( levelsmaxregular[ sortedkeysregular[idx] ][0], levelsmaxtriangle[ sortedkeystriangle[idx] ][0] )
+
+        levelsmin[ levelsminregular[ sortedkeysregular[idx] ][1] ] = minval
+        levelsmax[ levelsmaxregular[ sortedkeysregular[idx] ][1] ] = maxval
+
+        levelsmin[ levelsmintriangle[ sortedkeystriangle[idx] ][1] ] = minval
+        levelsmax[ levelsmaxtriangle[ sortedkeystriangle[idx] ][1] ] = maxval
+
+
+    indexval = 0
+    for index, meshval in enumerate(meshvals):
+
+        if re.search( "triangle", meshval  ):
+
+            triangleNval = re.search( "[0-9]+"  , meshval  )
+            triangleNval = triangleNval.group(0)
+
+            xvals = getData( textfoldername + "triangle_xvalues_N=" + triangleNval + ".txt" )
+            yvals = getData( textfoldername + "triangle_yvalues_N=" + triangleNval + ".txt" )
+            triangleErrvals = getData( textfoldername + "triangle_errorvalues_N=" + triangleNval + ".txt" )
+            keyval = int(triangleNval)
+
+            folderIndex = sortedkeystriangle.index( keyval )
+            curPlotFolderName = simPlotFolderName + "Plot" + str(folderIndex) + "/"
+            
+            if not os.path.exists( curPlotFolderName ):
+                os.mkdir( curPlotFolderName )
+
+            triangleMaxErrorVals[ keyval ] = np.max(triangleErrvals) 
+            trianglel2ErrorVals[ keyval ] = np.sum( np.array(triangleErrvals)**2 )
+            # uvals = getData( textfoldername + "uvalues_index=" + str(index) + ".txt" )
+
+            curminval = np.min(triangleErrvals)
+            curmaxval = np.max(triangleErrvals)
+            # print(curminval, curmaxval)
+            # print(levelsmin[indexval], levelsmax[indexval])
+            levels = np.linspace(levelsmin[meshval], levelsmax[meshval], 40)
+            plt.figure()
+            # plt.tricontourf( xvals, yvals, triangleErrvals, levels = levels, vmin = levelsmin[indexval], vmax = levelsmax[indexval] )
+            plt.tricontourf( xvals, yvals, triangleErrvals, levels = levels, vmin = levelsmin[meshval], vmax = levelsmax[meshval], cmap = cm )
+            plt.colorbar()
+            # plt.scatter( xvals, yvals )
+            # plt.show()
+            plt.savefig( curPlotFolderName + "triangleErrorcontour_N=" + triangleNval + ".png" )
+            plt.close()
+            
+            plt.figure()
+            levels = np.linspace(curminval*0.4 + curmaxval*0.6, curmaxval, 40)
+            # plt.tricontourf( xvals, yvals, triangleErrvals, levels = levels, colors='r')
+            plt.tricontourf( xvals, yvals, triangleErrvals, levels = levels, colors = 'r')
+            plt.colorbar()
+            plt.savefig( curPlotFolderName + "large_triangleErrorcontour_N=" + triangleNval + ".png" )
+            plt.close()
+            indexval += 1
+
+    indexval = 0
+    for index, meshval in enumerate(meshvals):
+
+        if re.search( "regular", meshval  ):
+            regularNval = re.search( "[0-9]+"  , meshval  )
+            regularNval = regularNval.group(0)
+
+            xvals = getData( textfoldername + "regular_xvalues_N=" + regularNval + ".txt" )
+            yvals = getData( textfoldername + "regular_yvalues_N=" + regularNval + ".txt" )
+            regularErrvals = getData( textfoldername + "regular_errorvalues_N=" + regularNval + ".txt" )
+            
+            keyval = int(regularNval)
+            folderIndex = sortedkeysregular.index( keyval )
+            curPlotFolderName = simPlotFolderName + "Plot" + str(folderIndex) + "/"
+            
+            if not os.path.exists( curPlotFolderName ):
+                os.mkdir( curPlotFolderName )
+
+            regularMaxErrorVals[ keyval ] = np.max(regularErrvals) 
+            regularl2ErrorVals[ keyval ] = np.sum( np.array(regularErrvals)**2 )
+            # uvals = getData( textfoldername + "uvalues_index=" + str(index) + ".txt" )
+
+            curminval = np.min(regularErrvals)
+            curmaxval = np.max(regularErrvals)
+            # print(curminval, curmaxval)
+            # print(levelsmin[indexval], levelsmax[indexval])
+            levels = np.linspace(levelsmin[meshval], levelsmax[meshval], 40)
+            plt.figure()
+            # plt.tricontourf( xvals, yvals, regularErrvals, levels = levels, vmin = levelsmin[indexval], vmax = levelsmax[indexval] )
+            plt.tricontourf( xvals, yvals, regularErrvals, levels = levels, vmin = levelsmin[meshval], vmax = levelsmax[meshval], cmap = cm )
+            plt.colorbar()
+            # plt.scatter( xvals, yvals )
+            # plt.show()
+            plt.savefig( curPlotFolderName + "regularErrorcontour_N=" + regularNval + ".png" )
+            plt.close()
+            
+            plt.figure()
+            levels = np.linspace(curminval*0.4 + curmaxval*0.6, curmaxval, 40)
+            # plt.tricontourf( xvals, yvals, regularErrvals, levels = levels, colors='r')
+            plt.tricontourf( xvals, yvals, regularErrvals, levels = levels, colors = 'r')
+            plt.colorbar()
+            plt.savefig( curPlotFolderName + "large_regularErrorcontour_N=" + regularNval + ".png" )
+            plt.close()
+            indexval += 1
+
+    triangleMaxErrorList = []
+    regularMaxErrorList = []
+    trianglel2ErrorList = []
+    regularl2ErrorList = []
+
+    for idx, keyval in enumerate( sortedkeystriangle ):
+
+        triangleMaxErrorList.append( triangleMaxErrorVals[ keyval ] )
+        trianglel2ErrorList.append( trianglel2ErrorVals[ keyval ] )
+
+    for idx, keyval in enumerate( sortedkeysregular ):
+
+        regularMaxErrorList.append( regularMaxErrorVals[ keyval ] )
+        regularl2ErrorList.append(  regularl2ErrorVals[ keyval ] )
+
+    plt.figure()
+    plt.loglog( dxvals, triangleMaxErrorList, "-o", label = "Triangle $L^{\infty}$ Error" )
+    plt.loglog( dxvals, regularMaxErrorList, "-o", label = "Regular $L^{\infty}$ Error" )
+    plt.loglog( dxvals, dxvals**2, "-x", label = "$h^2$" )
+    plt.legend()
+    plt.savefig( simPlotFolderName + "maxError" + ".png" )
+
+    plt.figure()
+    plt.loglog( dxvals, trianglel2ErrorList, "-o", label = "Triangle $L^{2}$ Error" )
+    plt.loglog( dxvals, regularl2ErrorList, "-o", label = "Regular $L^{2}$ Error" )
+    plt.loglog( dxvals, dxvals**2, "-x", label = "$h^2$" )
+    plt.legend()
+    plt.savefig( simPlotFolderName + "l2Error" + ".png" )
 
     plt.show()
     return 1
 
 if __name__ == "__main__":
 
-    # runSim()
+    runSim()
     # showParaviewPlot()
-    showplot()
+    # showplot()
+    # showplotTriangle()
 

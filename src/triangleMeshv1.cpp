@@ -26,7 +26,7 @@ int main(int argc, char **argv)
     std::vector<double> Ndashvals{ 17, 33, 49, 65, 129 };
 
     std::string foldername{ argv[1] };
-    std::ofstream outhandle{ "outfileregular.txt" };
+    std::ofstream outhandle{ "outfiletriangle.txt" };
 
     for( auto&Ndash: Ndashvals ) {
         
@@ -59,9 +59,6 @@ int main(int argc, char **argv)
         setTransfiniteSurfaces( planeIds, ptsVec, Nxvals, Nyvals );
 
         gmsh::model::geo::synchronize();
-
-        // To generate quadrangles instead of triangles, we can simply add
-        recombineSurfaces( planeIds );
 
         // If we'd had several surfaces, we could have used the global option
         // "Mesh.RecombineAll":
@@ -113,13 +110,13 @@ int main(int argc, char **argv)
 
         // Launch the GUI to see the results:
         gmsh::option::setNumber("Mesh.MshFileVersion", 2);
-        std::string regMeshFileName = foldername + "regularMeshN=" + std::to_string(N) + ".msh";
-        gmsh::write( regMeshFileName );
+        std::string triMeshFileName = foldername + "triangleMeshN=" + std::to_string(N) + ".msh";
+        gmsh::write( triMeshFileName );
         // gmsh::view::write(t1, "TextFiles/hangingMeshv1.msh");
 
-        // std::set<std::string> args(argv, argv + argc);
-        // if (!args.count("-nopopup"))
-        //     gmsh::fltk::run();
+        std::set<std::string> args(argv, argv + argc);
+        if (!args.count("-nopopup"))
+            gmsh::fltk::run();
 
         gmsh::finalize();
     }
