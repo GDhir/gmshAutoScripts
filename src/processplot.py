@@ -344,6 +344,8 @@ def showplot( simPlotFolderName ):
 
     minMaxRangeVals = getMinMaxRange( sortedMeshValsRegular, sortedMeshValsHanging )
 
+
+
     cdict = {
         'red'  :  ( (0.0, 0.25, .25), (0.02, .59, .59), (1., 1., 1.)),
         'green':  ( (0.0, 0.0, 0.0), (0.02, .45, .45), (1., .97, .97)),
@@ -704,7 +706,7 @@ if __name__ == "__main__":
 
     simPlotFolderName = gmshImageFolderName + "Plot11_2pi_Hanging/"
     # runSim( simPlotFolderName )
-    # showParaviewPlot( simPlotFolderName )
-    showplot( simPlotFolderName )
+    showParaviewPlot( simPlotFolderName )
+    # showplot( simPlotFolderName )
     # showplotTriangle()
 
