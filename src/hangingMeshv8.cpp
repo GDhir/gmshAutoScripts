@@ -569,9 +569,9 @@ int main(int argc, char **argv)
         gmsh::write(meshfilename);
 
         // Launch the GUI to see the results:
-        std::set<std::string> args(argv, argv + argc);
-        if (!args.count("-nopopup"))
-            gmsh::fltk::run();
+        // std::set<std::string> args(argv, argv + argc);
+        // if (!args.count("-nopopup"))
+        //     gmsh::fltk::run();
 
         gmsh::finalize();
     }
