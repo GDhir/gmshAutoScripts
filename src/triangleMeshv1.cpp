@@ -114,9 +114,9 @@ int main(int argc, char **argv)
         gmsh::write( triMeshFileName );
         // gmsh::view::write(t1, "TextFiles/hangingMeshv1.msh");
 
-        std::set<std::string> args(argv, argv + argc);
-        if (!args.count("-nopopup"))
-            gmsh::fltk::run();
+        // std::set<std::string> args(argv, argv + argc);
+        // if (!args.count("-nopopup"))
+        //     gmsh::fltk::run();
 
         gmsh::finalize();
     }
