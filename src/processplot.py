@@ -8,6 +8,10 @@ import os
 import subprocess
 from paraview.simple import *
 import meshio
+import pdb
+import time
+
+paraview.simple._DisableFirstRenderCameraReset()
 
 rootfoldername = "/media/gaurav/easystore/Finch/MixedElement/"
 textfoldername = rootfoldername + "TextFiles/"
@@ -136,11 +140,6 @@ def getData( filename ):
 
     return uvals
 
-# def fmt(x, pos):
-#     a, b = '{:.2e}'.format(x).split('e')
-#     b = int(b)
-#     return r'${} \times 10^{{{}}}$'.format(a, b)
-
 def buildMesh( gmshfilecmd, gmshfileargs ):
 
     gmshbuildFolder = "/home/gaurav/gmshAutoScripts/build/"
@@ -208,7 +207,6 @@ def showParaviewPlot( simPlotFolderName, regexVals ):
             meshvtkName = meshVizPath + meshval[:-4] + ".vtu"
             hangingfilename = getFileNameFromMeshName( meshval, textfoldername, "errorAndu", ".vtu" )
 
-            # view = CreateRenderView( )
             solfile = OpenDataFile( hangingfilename )
             display = Show(solfile)
             ColorBy(display, ('POINTS', 'err'))
@@ -221,10 +219,19 @@ def showParaviewPlot( simPlotFolderName, regexVals ):
             dpGmsh.Representation = 'Wireframe'
             gmshdisplay = Show(gmshfile)
             
-            Render()
-            
             myview = GetActiveView()
             myview.ViewSize = [1920, 1080]
+            myview.InteractionMode = '2D'
+            myview.AxesGrid = 'Grid Axes 3D Actor'
+            myview.CenterOfRotation = [0.5, 0.5, 0.0]
+            myview.StereoType = 'Crystal Eyes'
+            myview.CameraPosition = [0.5, 0.5, 3.0349403797187358]
+            myview.CameraFocalPoint = [0.5, 0.5, 0.0]
+            myview.CameraFocalDisk = 1.0
+            myview.CameraParallelScale = 0.7908298380174797
+            myview.LegendGrid = 'Legend Grid Actor'
+
+            Render()
             
             dpSol = GetDisplayProperties(solfile, myview)
             # to show the color legend
@@ -370,12 +377,113 @@ def showplot( simPlotFolderName, regexVals ):
 
     return
 
+def compareParaview( simPlotFolderName, regexVals ):
+
+    assert( len(regexVals) == 2 )
+
+    if not os.path.exists(simPlotFolderName):
+        os.mkdir( simPlotFolderName )
+
+    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
+    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
+
+    allSortedMeshVals = []
+
+    for regexVal in regexVals:
+        sortedMeshVals = getSortedMeshVals( meshvals, regexVal )
+        allSortedMeshVals.append( sortedMeshVals )
+
+    minMaxRangeVals = getMinMaxRange( allSortedMeshVals )
+
+    for sortedMeshVals in allSortedMeshVals:
+        for index, meshval in enumerate( sortedMeshVals ):
+            mesh = meshio.read( meshpath + meshval )
+            meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
+
+    meshValsLen = len( allSortedMeshVals[0] )
+
+    allViews = dict()
+    for regexVal in regexVals:
+        allViews[regexVal] = CreateRenderView()
+        renderView = allViews[regexVal]
+        renderView.ViewSize = [701, 784]
+        renderView.InteractionMode = '2D'
+        renderView.AxesGrid = 'Grid Axes 3D Actor'
+        renderView.CenterOfRotation = [0.5, 0.5, 0.0]
+        renderView.StereoType = 'Crystal Eyes'
+        renderView.CameraPosition = [0.5, 0.5, 3.0349403797187358]
+        renderView.CameraFocalPoint = [0.5, 0.5, 0.0]
+        renderView.CameraFocalDisk = 1.0
+        renderView.CameraParallelScale = 0.7908298380174797
+        renderView.LegendGrid = 'Legend Grid Actor'
+
+    layout = CreateLayout(name='Layout #1')
+    layout.SplitHorizontal(0, 0.500000)
+
+    for idx, regexVal in enumerate(regexVals):
+        layout.AssignView( idx + 1, allViews[regexVal] )
+
+    layout.SetSize(1403, 784)
+    # layout.SetSize(1920, 1080)
+
+    for idx in range(meshValsLen):
+
+        curPlotFolderName = simPlotFolderName + "Plot" + str(idx) + "/"   
+        if not os.path.exists( curPlotFolderName ):
+            os.mkdir( curPlotFolderName )
+
+        solfiles = []
+        gmshfiles = []
+
+        for regexIdx, regexVal in enumerate( regexVals ):
+            
+            SetActiveView( allViews[regexVal] )
+            myview = GetActiveView()
+
+            meshval = allSortedMeshVals[regexIdx][idx]
+            meshvtkName = meshVizPath + meshval[:-4] + ".vtu"
+            filename = getFileNameFromMeshName( meshval, textfoldername, "errorAndu", ".vtu" )
+
+            solfile = OpenDataFile( filename )
+            solfiles.append(solfile)
+            display = Show(solfile)
+            ColorBy(display, ('POINTS', 'err'))
+            minVal, maxVal = minMaxRangeVals[ idx ]
+            colorMap = GetColorTransferFunction('err')
+            colorMap.RescaleTransferFunction( minVal, maxVal )        
+
+            gmshfile = OpenDataFile( meshvtkName )
+            gmshfiles.append(gmshfile)
+            dpGmsh = GetDisplayProperties( gmshfile )
+            dpGmsh.Representation = 'Wireframe'
+            gmshdisplay = Show(gmshfile)
+            
+            dpSol = GetDisplayProperties(solfile, myview)
+            # # to show the color legend
+            dpSol.SetScalarBarVisibility(myview, True)
+            myview.Update()
+
+        Render()
+        plotfilename = curPlotFolderName + "paraview_error_comparison.png" 
+        SaveScreenshot( plotfilename, layout)        
+
+        for regexIdx, regexVal in enumerate( regexVals ):
+
+            SetActiveView( allViews[regexVal] )
+            Hide( solfiles[regexIdx] )
+            Hide( gmshfiles[regexIdx] )
+
+    return
+
 if __name__ == "__main__":
 
-    simPlotFolderName = gmshImageFolderName + "Plot12_2pi/"
-    gmshFileCmdNames = ["hangingMeshv8", "regularMeshv3", "triangleMeshv1"]
-    regexVals = ["hanging", "regular", "triangle"]
+    simPlotFolderName = gmshImageFolderName + "Plot13_3pi/"
+    gmshFileCmdNames = ["regularMeshv3", "triangleMeshv1"]
+    regexVals = ["regular", "triangle"]
     # runSim( simPlotFolderName, gmshFileCmdNames, regexVals )
 
     showParaviewPlot( simPlotFolderName, regexVals )
-    # showplot( simPlotFolderName, ["hanging", "regular"] )
+    # showplot( simPlotFolderName, regexVals )
+    compareParaview( simPlotFolderName, regexVals )
+
