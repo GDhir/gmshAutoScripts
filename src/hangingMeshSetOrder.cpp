@@ -19,7 +19,7 @@ int main(int argc, char **argv)
     int order = 2;
     gmsh::model::mesh::setOrder(order);
 
-    gmsh::model::mesh::generate(2);
+    // gmsh::model::mesh::generate(2);
 
     filename = "hangingMeshv7Order=" + std::to_string(order) + "Nx=8Ny=29.msh";
     gmsh::write( filename );

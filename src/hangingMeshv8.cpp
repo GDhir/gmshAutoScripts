@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
     // std::vector<int> Nyvals = {33, 65, 129, 257, 513};
     // std::vector<int> Nyvals = {13, 15, 17};
-    std::vector<int> Nyvals = {17, 33, 49, 65, 129 };
+    std::vector<int> Nyvals = { 9, 17, 33, 65, 129 };
     // std::vector<int> Nyvals = {17, 33};
     // std::vector<int> Nx2vals = {3};
     

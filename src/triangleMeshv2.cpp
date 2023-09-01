@@ -26,7 +26,7 @@ int main(int argc, char **argv)
     std::vector<double> Ndashvals{ 9, 17, 33, 65, 129 };
 
     std::string foldername{ argv[1] };
-    std::ofstream outhandle{ "outfileregular.txt" };
+    std::ofstream outhandle{ "outfiletriangleunstruct.txt" };
 
     for( auto&Ndash: Ndashvals ) {
         
@@ -56,12 +56,9 @@ int main(int argc, char **argv)
         std::vector<int> Nxvals{ N };  
         std::vector<int> Nyvals{ N };
 
-        setTransfiniteSurfaces( planeIds, ptsVec, Nxvals, Nyvals );
+        // setTransfiniteSurfaces( planeIds, ptsVec, Nxvals, Nyvals );
 
         gmsh::model::geo::synchronize();
-
-        // To generate quadrangles instead of triangles, we can simply add
-        recombineSurfaces( planeIds );
 
         // If we'd had several surfaces, we could have used the global option
         // "Mesh.RecombineAll":
@@ -85,7 +82,7 @@ int main(int argc, char **argv)
         // in Engineering, 94, pp. 494-512, 2013. Uncomment the following line to try
         // the Frontal-Delaunay algorithms for quads:
         //
-        gmsh::option::setNumber("Mesh.Algorithm", 8);
+        // gmsh::option::setNumber("Mesh.Algorithm", 8);
 
         // The default recombination algorithm might leave some triangles in the mesh,
         // if recombining all the triangles leads to badly shaped quads. In such
@@ -95,7 +92,7 @@ int main(int argc, char **argv)
         // coarser mesh followed by recombination, smoothing and
         // subdivision. Uncomment the following line to try the full-quad algorithm:
         //
-        gmsh::option::setNumber("Mesh.RecombinationAlgorithm", 2); // or 3
+        // gmsh::option::setNumber("Mesh.RecombinationAlgorithm", 2); // or 3
 
         // You can also set the subdivision step alone, with
         //
@@ -113,8 +110,8 @@ int main(int argc, char **argv)
 
         // Launch the GUI to see the results:
         gmsh::option::setNumber("Mesh.MshFileVersion", 2);
-        std::string regMeshFileName = foldername + "regularMeshN=" + std::to_string(N) + ".msh";
-        gmsh::write( regMeshFileName );
+        std::string triMeshFileName = foldername + "triangleMeshUnstructN=" + std::to_string(N) + ".msh";
+        gmsh::write( triMeshFileName );
         // gmsh::view::write(t1, "TextFiles/hangingMeshv1.msh");
 
         // std::set<std::string> args(argv, argv + argc);

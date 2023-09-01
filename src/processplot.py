@@ -6,12 +6,12 @@ from os import listdir
 from os.path import isfile, join
 import os
 import subprocess
-from paraview.simple import *
-import meshio
+# from paraview.simple import *
+# import meshio
 import pdb
 import time
 
-paraview.simple._DisableFirstRenderCameraReset()
+# paraview.simple._DisableFirstRenderCameraReset()
 
 rootfoldername = "/media/gaurav/easystore/Finch/MixedElement/"
 textfoldername = rootfoldername + "TextFiles/"
@@ -43,7 +43,7 @@ def getSortedMeshVals( meshvals, regexVal ):
 
                 prevIndexMap[ keyval ] = index
 
-    if regexVal == "regular" or regexVal == "triangle":
+    if regexVal == "regular" or regexVal == "triangle" or regexVal == "triangleMeshUnstruct" or regexVal == "triangleMeshStruct":
 
         for index, meshval in enumerate(meshvals):
 
@@ -93,6 +93,18 @@ def getFileNameFromMeshName( meshval, folderName, varName, extension ):
         regularNval = regularNval.group(0)
 
         fileName = folderName + "triangle_" + varName + "N=" + regularNval + extension
+
+    if re.search( "triangleMeshStruct", meshval  ):
+        regularNval = re.search( "[0-9]+"  , meshval  )
+        regularNval = regularNval.group(0)
+
+        fileName = folderName + "triangleMeshStruct_" + varName + "N=" + regularNval + extension
+
+    if re.search( "triangleMeshUnstruct", meshval  ):
+        regularNval = re.search( "[0-9]+"  , meshval  )
+        regularNval = regularNval.group(0)
+
+        fileName = folderName + "triangleMeshUnstruct_" + varName + "N=" + regularNval + extension
 
     return fileName
 
@@ -152,7 +164,8 @@ def buildMesh( gmshfilecmd, gmshfileargs ):
 
 def runJulia( exefilename ):
 
-    juliapath = "/home/gaurav/Downloads/julia-1.9.2-linux-x86_64/julia-1.9.2/bin/julia"
+    # juliapath = "/home/gaurav/Downloads/julia-1.9.2-linux-x86_64/julia-1.9.2/bin/julia"
+    juliapath = "/home/gaurav/julia-1.8.5/bin/julia"
     julialstcmd = [juliapath, exefilename]
     subprocess.run( julialstcmd )
 
@@ -176,76 +189,76 @@ def runSim( simPlotFolderName, gmshFileCmdNames, regexVals ):
     runJulia( exefilename )
 
     showplot( simPlotFolderName, regexVals )
-    showParaviewPlot( simPlotFolderName, regexVals )
+    # showParaviewPlot( simPlotFolderName, regexVals )
     # removeFiles( gmshfileargs )
 
-def showParaviewPlot( simPlotFolderName, regexVals ):
+# def showParaviewPlot( simPlotFolderName, regexVals ):
 
-    if not os.path.exists(simPlotFolderName):
-        os.mkdir( simPlotFolderName )
+#     if not os.path.exists(simPlotFolderName):
+#         os.mkdir( simPlotFolderName )
 
-    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
-    meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
-    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
+#     meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+#     meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
+#     meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
 
-    allSortedMeshVals = []
+#     allSortedMeshVals = []
 
-    for regexVal in regexVals:
-        sortedMeshVals = getSortedMeshVals( meshvals, regexVal )
-        allSortedMeshVals.append( sortedMeshVals )
+#     for regexVal in regexVals:
+#         sortedMeshVals = getSortedMeshVals( meshvals, regexVal )
+#         allSortedMeshVals.append( sortedMeshVals )
 
-    minMaxRangeVals = getMinMaxRange( allSortedMeshVals )
+#     minMaxRangeVals = getMinMaxRange( allSortedMeshVals )
 
-    for sortedMeshVals in allSortedMeshVals:
-        for index, meshval in enumerate( sortedMeshVals ):
-            mesh = meshio.read( meshpath + meshval )
-            meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
+#     for sortedMeshVals in allSortedMeshVals:
+#         for index, meshval in enumerate( sortedMeshVals ):
+#             mesh = meshio.read( meshpath + meshval )
+#             meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
 
-    for sortedMeshVals in allSortedMeshVals:
-        for index, meshval in enumerate(sortedMeshVals):
+#     for sortedMeshVals in allSortedMeshVals:
+#         for index, meshval in enumerate(sortedMeshVals):
 
-            meshvtkName = meshVizPath + meshval[:-4] + ".vtu"
-            hangingfilename = getFileNameFromMeshName( meshval, textfoldername, "errorAndu", ".vtu" )
+#             meshvtkName = meshVizPath + meshval[:-4] + ".vtu"
+#             hangingfilename = getFileNameFromMeshName( meshval, textfoldername, "errorAndu", ".vtu" )
 
-            solfile = OpenDataFile( hangingfilename )
-            display = Show(solfile)
-            ColorBy(display, ('POINTS', 'err'))
-            minVal, maxVal = minMaxRangeVals[ index ]
-            colorMap = GetColorTransferFunction('err')
-            colorMap.RescaleTransferFunction( minVal, maxVal )        
+#             solfile = OpenDataFile( hangingfilename )
+#             display = Show(solfile)
+#             ColorBy(display, ('POINTS', 'err'))
+#             minVal, maxVal = minMaxRangeVals[ index ]
+#             colorMap = GetColorTransferFunction('err')
+#             colorMap.RescaleTransferFunction( minVal, maxVal )        
 
-            gmshfile = OpenDataFile( meshvtkName )
-            dpGmsh = GetDisplayProperties( gmshfile )
-            dpGmsh.Representation = 'Wireframe'
-            gmshdisplay = Show(gmshfile)
+#             gmshfile = OpenDataFile( meshvtkName )
+#             dpGmsh = GetDisplayProperties( gmshfile )
+#             dpGmsh.Representation = 'Wireframe'
+#             gmshdisplay = Show(gmshfile)
             
-            myview = GetActiveView()
-            myview.ViewSize = [1920, 1080]
-            myview.InteractionMode = '2D'
-            myview.AxesGrid = 'Grid Axes 3D Actor'
-            myview.CenterOfRotation = [0.5, 0.5, 0.0]
-            myview.StereoType = 'Crystal Eyes'
-            myview.CameraPosition = [0.5, 0.5, 3.0349403797187358]
-            myview.CameraFocalPoint = [0.5, 0.5, 0.0]
-            myview.CameraFocalDisk = 1.0
-            myview.CameraParallelScale = 0.7908298380174797
-            myview.LegendGrid = 'Legend Grid Actor'
+#             myview = GetActiveView()
+#             myview.ViewSize = [1920, 1080]
+#             myview.InteractionMode = '2D'
+#             myview.AxesGrid = 'Grid Axes 3D Actor'
+#             myview.CenterOfRotation = [0.5, 0.5, 0.0]
+#             myview.StereoType = 'Crystal Eyes'
+#             myview.CameraPosition = [0.5, 0.5, 3.0349403797187358]
+#             myview.CameraFocalPoint = [0.5, 0.5, 0.0]
+#             myview.CameraFocalDisk = 1.0
+#             myview.CameraParallelScale = 0.7908298380174797
+#             myview.LegendGrid = 'Legend Grid Actor'
 
-            Render()
+#             Render()
             
-            dpSol = GetDisplayProperties(solfile, myview)
-            # to show the color legend
-            dpSol.SetScalarBarVisibility(myview, True)
+#             dpSol = GetDisplayProperties(solfile, myview)
+#             # to show the color legend
+#             dpSol.SetScalarBarVisibility(myview, True)
 
-            curPlotFolderName = simPlotFolderName + "Plot" + str(index) + "/"   
-            if not os.path.exists( curPlotFolderName ):
-                os.mkdir( curPlotFolderName )
+#             curPlotFolderName = simPlotFolderName + "Plot" + str(index) + "/"   
+#             if not os.path.exists( curPlotFolderName ):
+#                 os.mkdir( curPlotFolderName )
 
-            plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, "paraview_error", ".png" )
-            SaveScreenshot( plotfilename, myview)
+#             plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, "paraview_error", ".png" )
+#             SaveScreenshot( plotfilename, myview)
 
-            Hide( solfile )
-            Hide( gmshfile )
+#             Hide( solfile )
+#             Hide( gmshfile )
     
 
 def showplot( simPlotFolderName, regexVals ):
@@ -292,6 +305,8 @@ def showplot( simPlotFolderName, regexVals ):
     figL2Error = plt.figure()
     axL2Error = figL2Error.add_subplot(1, 1, 1)
 
+    # print(allSortedMeshVals)
+
     for idx, sortedMeshVals in enumerate( allSortedMeshVals ):
 
         curMaxErrorList = []
@@ -306,6 +321,8 @@ def showplot( simPlotFolderName, regexVals ):
             xvals = getData( xvalsFileName )
             yvals = getData( yvalsFileName )
             errvals = getData( errvalsFileName )
+
+            # print(errvalsFileName)
 
             curmaxval = np.max(errvals)
             curminval = np.min(errvals)
@@ -359,131 +376,180 @@ def showplot( simPlotFolderName, regexVals ):
             # plt.show()
             # plt.savefig( plotfoldername + "uexactcontour_index=" + str(index) + ".png" )
 
-        labelName = regexVals[idx] + " $L^{\infty}$ Error"
-        axMaxError.loglog( dxvals, curMaxErrorList, "-o", label = labelName )
+        allMaxErrorList.append( curMaxErrorList )
+        allL2ErrorList.append( curL2ErrorList )
 
-        labelName = regexVals[idx] + " $L^{2}$ Error"
-        axL2Error.loglog( dxvals, curMaxErrorList, "-o", label = labelName )
+        labelName = regexVals[idx] + " $L^{\infty}$ Error_" + "2h"
+        axMaxError.loglog( dxvals[:-1], curMaxErrorList[:-1], "-o", label = labelName )
 
-    axMaxError.loglog( dxvals, dxvals**2, "-x", label = "$h^2$" )
-    axL2Error.loglog( dxvals, dxvals**2, "-x", label = "$h^2$" )
-    axMaxError.legend()
-    axL2Error.legend()
+        labelName = regexVals[idx] + " $L^{\infty}$ Error_" + "h"
+        axMaxError.loglog( dxvals[:-1], curMaxErrorList[1:], "-o", label = labelName )
 
-    figMaxError.savefig( simPlotFolderName + "maxError" + ".png" )
-    figL2Error.savefig( simPlotFolderName + "l2Error" + ".png" )
+        labelName = regexVals[idx] + " $L^{2}$ Error_" + "2h"
+        axL2Error.loglog( dxvals[:-1], curL2ErrorList[:-1], "-o", label = labelName )
+
+        labelName = regexVals[idx] + " $L^{2}$ Error_" + "h"
+        axL2Error.loglog( dxvals[:-1], curL2ErrorList[1:], "-o", label = labelName )
+
+    h2vals = dxvals**2
+
+    axMaxError.loglog( dxvals[:-1], h2vals[:-1], "-x", label = "$h^2$" )
+    axL2Error.loglog( dxvals[:-1], h2vals[:-1], "-x", label = "$h^2$" )
+    # axMaxError.legend()
+    # axL2Error.legend()
+
+    box = axMaxError.get_position()
+    axMaxError.set_position([box.x0, box.y0 + box.height * 0.1,
+                    box.width, box.height * 0.9])
+
+    # Put a legend below current axis
+    maxLgd = axMaxError.legend(loc=9, bbox_to_anchor=(0.5, -0.05),
+            fancybox=True, shadow=True, ncol=5)  
+    
+    textMaxError = axMaxError.text(-0.2,1.05, "         ", transform=axMaxError.transAxes)
+    
+    box = axL2Error.get_position()
+    axL2Error.set_position([box.x0, box.y0 + box.height * 0.1,
+                        box.width, box.height * 0.9])
+
+    # Put a legend below current axis
+    l2Lgd = axL2Error.legend(loc=9, bbox_to_anchor=(0.5, -0.05),
+            fancybox=True, shadow=True, ncol=5)
+    
+    textL2Error = axL2Error.text(-0.2,1.05, "         ", transform=axL2Error.transAxes)
+
+    figMaxError.savefig( simPlotFolderName + "maxError" + ".png", bbox_extra_artists=(maxLgd, textMaxError), bbox_inches = 'tight' )
+    figL2Error.savefig( simPlotFolderName + "l2Error" + ".png", bbox_extra_artists=(l2Lgd, textL2Error), bbox_inches = 'tight' )
+
+    errorDiffMax = [ allMaxErrorList[1][idx] - allMaxErrorList[0][idx] for idx in range( len(allMaxErrorList[0]) ) ]
+    errorDiffL2 = [ allL2ErrorList[1][idx] - allL2ErrorList[0][idx] for idx in range( len(allL2ErrorList[0]) ) ]
+
+    plt.figure()
+    plt.plot( dxvals, errorDiffMax, "-o" )
+    titleval = regexVals[1] + " - " + regexVals[0] + " Max Error Plot"
+    plt.xlabel( "h" )
+    plt.ylabel( "Error" )
+    plt.title( titleval )
+
+    plt.figure()
+    titleval = regexVals[1] + " - " + regexVals[0] + " L2 Error Plot"
+    plt.plot( dxvals, errorDiffL2, "-o" )
+    plt.xlabel( "h" )
+    plt.ylabel( "Error" )
+    plt.title( titleval )
 
     plt.show()
 
     return
 
-def compareParaview( simPlotFolderName, regexVals ):
+# def compareParaview( simPlotFolderName, regexVals ):
 
-    assert( len(regexVals) == 2 )
+#     assert( len(regexVals) == 2 )
 
-    if not os.path.exists(simPlotFolderName):
-        os.mkdir( simPlotFolderName )
+#     if not os.path.exists(simPlotFolderName):
+#         os.mkdir( simPlotFolderName )
 
-    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
-    meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
-    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
+#     meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+#     meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
+#     meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
 
-    allSortedMeshVals = []
+#     allSortedMeshVals = []
 
-    for regexVal in regexVals:
-        sortedMeshVals = getSortedMeshVals( meshvals, regexVal )
-        allSortedMeshVals.append( sortedMeshVals )
+#     for regexVal in regexVals:
+#         sortedMeshVals = getSortedMeshVals( meshvals, regexVal )
+#         allSortedMeshVals.append( sortedMeshVals )
 
-    minMaxRangeVals = getMinMaxRange( allSortedMeshVals )
+#     minMaxRangeVals = getMinMaxRange( allSortedMeshVals )
 
-    for sortedMeshVals in allSortedMeshVals:
-        for index, meshval in enumerate( sortedMeshVals ):
-            mesh = meshio.read( meshpath + meshval )
-            meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
+#     for sortedMeshVals in allSortedMeshVals:
+#         for index, meshval in enumerate( sortedMeshVals ):
+#             mesh = meshio.read( meshpath + meshval )
+#             meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
 
-    meshValsLen = len( allSortedMeshVals[0] )
+#     meshValsLen = len( allSortedMeshVals[0] )
 
-    allViews = dict()
-    for regexVal in regexVals:
-        allViews[regexVal] = CreateRenderView()
-        renderView = allViews[regexVal]
-        renderView.ViewSize = [701, 784]
-        renderView.InteractionMode = '2D'
-        renderView.AxesGrid = 'Grid Axes 3D Actor'
-        renderView.CenterOfRotation = [0.5, 0.5, 0.0]
-        renderView.StereoType = 'Crystal Eyes'
-        renderView.CameraPosition = [0.5, 0.5, 3.0349403797187358]
-        renderView.CameraFocalPoint = [0.5, 0.5, 0.0]
-        renderView.CameraFocalDisk = 1.0
-        renderView.CameraParallelScale = 0.7908298380174797
-        renderView.LegendGrid = 'Legend Grid Actor'
+#     allViews = dict()
+#     for regexVal in regexVals:
+#         allViews[regexVal] = CreateRenderView()
+#         renderView = allViews[regexVal]
+#         renderView.ViewSize = [701, 784]
+#         renderView.InteractionMode = '2D'
+#         renderView.AxesGrid = 'Grid Axes 3D Actor'
+#         renderView.CenterOfRotation = [0.5, 0.5, 0.0]
+#         renderView.StereoType = 'Crystal Eyes'
+#         renderView.CameraPosition = [0.5, 0.5, 3.0349403797187358]
+#         renderView.CameraFocalPoint = [0.5, 0.5, 0.0]
+#         renderView.CameraFocalDisk = 1.0
+#         renderView.CameraParallelScale = 0.7908298380174797
+#         renderView.LegendGrid = 'Legend Grid Actor'
 
-    layout = CreateLayout(name='Layout #1')
-    layout.SplitHorizontal(0, 0.500000)
+#     layout = CreateLayout(name='Layout #1')
+#     layout.SplitHorizontal(0, 0.500000)
 
-    for idx, regexVal in enumerate(regexVals):
-        layout.AssignView( idx + 1, allViews[regexVal] )
+#     for idx, regexVal in enumerate(regexVals):
+#         layout.AssignView( idx + 1, allViews[regexVal] )
 
-    layout.SetSize(1403, 784)
-    # layout.SetSize(1920, 1080)
+#     layout.SetSize(1403, 784)
+#     # layout.SetSize(1920, 1080)
 
-    for idx in range(meshValsLen):
+#     for idx in range(meshValsLen):
 
-        curPlotFolderName = simPlotFolderName + "Plot" + str(idx) + "/"   
-        if not os.path.exists( curPlotFolderName ):
-            os.mkdir( curPlotFolderName )
+#         curPlotFolderName = simPlotFolderName + "Plot" + str(idx) + "/"   
+#         if not os.path.exists( curPlotFolderName ):
+#             os.mkdir( curPlotFolderName )
 
-        solfiles = []
-        gmshfiles = []
+#         solfiles = []
+#         gmshfiles = []
 
-        for regexIdx, regexVal in enumerate( regexVals ):
+#         for regexIdx, regexVal in enumerate( regexVals ):
             
-            SetActiveView( allViews[regexVal] )
-            myview = GetActiveView()
+#             SetActiveView( allViews[regexVal] )
+#             myview = GetActiveView()
 
-            meshval = allSortedMeshVals[regexIdx][idx]
-            meshvtkName = meshVizPath + meshval[:-4] + ".vtu"
-            filename = getFileNameFromMeshName( meshval, textfoldername, "errorAndu", ".vtu" )
+#             meshval = allSortedMeshVals[regexIdx][idx]
+#             meshvtkName = meshVizPath + meshval[:-4] + ".vtu"
+#             filename = getFileNameFromMeshName( meshval, textfoldername, "errorAndu", ".vtu" )
 
-            solfile = OpenDataFile( filename )
-            solfiles.append(solfile)
-            display = Show(solfile)
-            ColorBy(display, ('POINTS', 'err'))
-            minVal, maxVal = minMaxRangeVals[ idx ]
-            colorMap = GetColorTransferFunction('err')
-            colorMap.RescaleTransferFunction( minVal, maxVal )        
+#             solfile = OpenDataFile( filename )
+#             solfiles.append(solfile)
+#             display = Show(solfile)
+#             ColorBy(display, ('POINTS', 'err'))
+#             minVal, maxVal = minMaxRangeVals[ idx ]
+#             colorMap = GetColorTransferFunction('err')
+#             colorMap.RescaleTransferFunction( minVal, maxVal )        
 
-            gmshfile = OpenDataFile( meshvtkName )
-            gmshfiles.append(gmshfile)
-            dpGmsh = GetDisplayProperties( gmshfile )
-            dpGmsh.Representation = 'Wireframe'
-            gmshdisplay = Show(gmshfile)
+#             gmshfile = OpenDataFile( meshvtkName )
+#             gmshfiles.append(gmshfile)
+#             dpGmsh = GetDisplayProperties( gmshfile )
+#             dpGmsh.Representation = 'Wireframe'
+#             gmshdisplay = Show(gmshfile)
             
-            dpSol = GetDisplayProperties(solfile, myview)
-            # # to show the color legend
-            dpSol.SetScalarBarVisibility(myview, True)
-            myview.Update()
+#             dpSol = GetDisplayProperties(solfile, myview)
+#             # # to show the color legend
+#             dpSol.SetScalarBarVisibility(myview, True)
+#             myview.Update()
 
-        Render()
-        plotfilename = curPlotFolderName + "paraview_error_comparison.png" 
-        SaveScreenshot( plotfilename, layout)        
+#         Render()
+#         plotfilename = curPlotFolderName + "paraview_error_comparison.png" 
+#         SaveScreenshot( plotfilename, layout)        
 
-        for regexIdx, regexVal in enumerate( regexVals ):
+#         for regexIdx, regexVal in enumerate( regexVals ):
 
-            SetActiveView( allViews[regexVal] )
-            Hide( solfiles[regexIdx] )
-            Hide( gmshfiles[regexIdx] )
+#             SetActiveView( allViews[regexVal] )
+#             Hide( solfiles[regexIdx] )
+#             Hide( gmshfiles[regexIdx] )
 
-    return
+#     return
 
 if __name__ == "__main__":
 
-    simPlotFolderName = gmshImageFolderName + "Plot13_3pi/"
-    gmshFileCmdNames = ["regularMeshv3", "triangleMeshv1"]
-    regexVals = ["regular", "triangle"]
+    simPlotFolderName = gmshImageFolderName + "Plot15_2pi/"
+    # gmshFileCmdNames = ["regularMeshv3", "triangleMeshv1"]
+    gmshFileCmdNames = ["triangleMeshv1", "triangleMeshv2"]
+    regexVals = ["triangleMeshStruct", "triangleMeshUnstruct"]
     # runSim( simPlotFolderName, gmshFileCmdNames, regexVals )
 
-    showParaviewPlot( simPlotFolderName, regexVals )
-    # showplot( simPlotFolderName, regexVals )
-    compareParaview( simPlotFolderName, regexVals )
+    # showParaviewPlot( simPlotFolderName, regexVals )
+    showplot( simPlotFolderName, regexVals )
+    # compareParaview( simPlotFolderName, regexVals )
 
