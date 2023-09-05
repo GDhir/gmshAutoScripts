@@ -256,7 +256,7 @@ def buildMesh( gmshfilecmd, gmshfileargs ):
 def runJulia( exefilename ):
 
     # juliapath = "/home/gaurav/Downloads/julia-1.9.2-linux-x86_64/julia-1.9.2/bin/julia"
-    juliapath = "/home/gaurav/julia-1.8.5/bin/julia"
+    juliapath = "/home/gaurav/julia-1.9.2-linux-x86_64/julia-1.9.2/bin/julia"
     finchPath = "/home/gaurav/Finch/src/examples/"
     julialstcmd = [juliapath, exefilename]
 
@@ -285,7 +285,7 @@ def runDealiiSim():
     exefilename = "step-5.debug"
     dealiiPath = "/home/gaurav/dealii-9.5.1/build/bin/"
 
-    subprocess.run( [exefilename], cwd = dealiiPath )
+    subprocess.run( [dealiiPath + exefilename], cwd = dealiiPath )
 
 def runSim( simPlotFolderName, gmshFileCmdNames, regexVals ):
 
@@ -293,10 +293,10 @@ def runSim( simPlotFolderName, gmshFileCmdNames, regexVals ):
     removeFiles( gmshfileArgs )
 
     buildAllMeshes( gmshFileCmdNames, gmshfileArgs )
-    runFinchSim() 
+    # runFinchSim() 
     runDealiiSim()   
 
-    showFinchPlot( simPlotFolderName, regexVals )
+    # showFinchPlot( simPlotFolderName, regexVals )
     # showParaviewPlot( simPlotFolderName, regexVals )
     # removeFiles( gmshfileargs )
 
@@ -968,17 +968,21 @@ def compareDealiiFinch( simPlotFolderName, regexVals ):
 
 if __name__ == "__main__":
 
-    simPlotFolderName = gmshImageFolderName + "Plot16_2pi/Dealii/"
     # gmshFileCmdNames = ["regularMeshv3", "triangleMeshv1"]
     gmshFileCmdNames = ["triangleMeshv1", "triangleMeshv2"]
-    # regexVals = ["triangleMeshStruct", "triangleMeshUnstruct"]
-    regexVals = ["triangle", "regular"]
-    # runSim( simPlotFolderName, gmshFileCmdNames, regexVals )
+    regexVals = ["triangleMeshStruct", "triangleMeshUnstruct"]
+    # regexVals = ["triangle", "regular"]
 
-    folderName = "/home/gaurav/gmshAutoScripts/aval/bval/"
-    # showDealiiPlot( simPlotFolderName, regexVals )
-    compareDealiiFinch( simPlotFolderName, regexVals )
-    # checkAndCreateFolder( folderName )
+    simPlotRootFolderName = gmshImageFolderName + "Plot17_2pi/"
+    runSim( simPlotRootFolderName, gmshFileCmdNames, regexVals )
+    compareDealiiFinch( simPlotRootFolderName, regexVals )
+
+    simPlotFolderName = simPlotRootFolderName + "Dealii/"
+    showDealiiPlot( simPlotFolderName, regexVals )
+
+    simPlotFolderName = simPlotRootFolderName + "Finch/"
+    showFinchPlot( simPlotFolderName, regexVals )    
+
     # showParaviewPlot( simPlotFolderName, regexVals )
     # showplot( simPlotFolderName, regexVals )
     # compareParaview( simPlotFolderName, regexVals )
