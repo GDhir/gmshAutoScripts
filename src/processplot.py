@@ -4,19 +4,44 @@ import matplotlib as m
 import re
 from os import listdir
 from os.path import isfile, join
+from math import sin, cos, pi
 import os
 import subprocess
 # from paraview.simple import *
 # import meshio
 import pdb
 import time
-
+import h5py
 # paraview.simple._DisableFirstRenderCameraReset()
 
-rootfoldername = "/media/gaurav/easystore/Finch/MixedElement/"
-textfoldername = rootfoldername + "TextFiles/"
-plotfoldername = rootfoldername + "PlotFiles/SimPlots/"
+finchRootfoldername = "/media/gaurav/easystore/Finch/MixedElement/"
+dealiiRootfoldername = "/media/gaurav/easystore/dealii/MixedElement/"
+
+finchTextfoldername = finchRootfoldername + "TextFiles/"
+finchPlotfoldername = finchRootfoldername + "PlotFiles/SimPlots/"
+
+dealiiTextfoldername = dealiiRootfoldername + "TextFiles/"
+dealiiPlotfoldername = dealiiRootfoldername + "PlotFiles/SimPlots/"
 gmshImageFolderName = "/home/gaurav/gmshAutoScripts/Images/"
+
+def checkAndCreateFolder( folderName ):
+
+    if not os.path.exists( folderName ):
+
+        folderSplit = folderName.split( "/" )
+
+        folderStr = ""
+
+        for folderName in folderSplit:
+
+            if not folderName:
+                continue
+            
+            folderStr = folderStr + "/" + folderName
+
+            if not os.path.exists( folderStr ):
+                os.mkdir( folderStr )        
+
 
 def getSortedMeshVals( meshvals, regexVal ):
 
@@ -108,7 +133,7 @@ def getFileNameFromMeshName( meshval, folderName, varName, extension ):
 
     return fileName
 
-def getMinMaxRange( sortedMeshValsArr ):
+def getFinchMinMaxRange( sortedMeshValsArr ):
 
     meshValsLen = len( sortedMeshValsArr[0] )
     minVals = np.ones( meshValsLen )*100000
@@ -117,9 +142,75 @@ def getMinMaxRange( sortedMeshValsArr ):
     for sortedMeshVals in sortedMeshValsArr:
         for idx, meshval in enumerate( sortedMeshVals ):
 
-            textFile = getFileNameFromMeshName( meshval, textfoldername, "errorvalues_", ".txt" )
+            textFile = getFileNameFromMeshName( meshval, finchTextfoldername, "errorvalues_", ".txt" )
 
             errVals = getData( textFile )
+
+            minVals[idx] = np.min( [minVals[idx], np.min( errVals )] )
+            maxVals[idx] = np.max( [maxVals[idx], np.max( errVals )] )
+            # minMaxRangeVals.append( (minVal, maxVal) )
+
+    minMaxRangeVals = []
+
+    for idx in range(meshValsLen):
+        minMaxRangeVals.append( ( minVals[idx], maxVals[idx] ) )
+
+    return minMaxRangeVals
+
+def getDealiiData( h5FileName ):
+
+    f = h5py.File( h5FileName, 'r')
+    nodes = np.array( f["nodes"] )
+    solution = np.array( f["solution"] )
+
+    return (nodes, solution)
+
+def getExactSol( xval, yval ):
+
+    return -sin(2*pi*xval)*sin(2*pi*yval)
+
+def getDealiiError( nodes, solution ):
+
+    errVals = []
+    exactvals = []
+
+    for idx, node in enumerate( nodes ):
+
+        xval = node[0]
+        yval = node[1]
+        # print(xval, yval)
+        exactval = getExactSol( xval, yval )
+        exactvals.append( exactval )
+        solval = solution[ idx, 0 ]
+
+        errorval = np.abs( exactval - solval )
+        errVals.append( errorval )
+
+    # print(errVals)
+
+    exactvals = np.array(exactvals)
+
+    # plt.figure()
+    # plt.tricontourf( nodes[:, 0], nodes[:, 1], exactvals )
+
+    # plt.figure()
+    # plt.tricontourf( nodes[:, 0], nodes[:, 1], solution[:, 0] )
+
+    return np.array( errVals )
+
+
+def getDealiiMinMaxRange( sortedMeshValsArr ):
+
+    meshValsLen = len( sortedMeshValsArr[0] )
+    minVals = np.ones( meshValsLen )*100000
+    maxVals = np.ones( meshValsLen )*-1
+
+    for sortedMeshVals in sortedMeshValsArr:
+        for idx, meshval in enumerate( sortedMeshVals ):
+
+            h5FileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, "solutionvalues_", ".h5" )
+            nodes, solution = getDealiiData( h5FileName )
+            errVals = getDealiiError( nodes, solution )
 
             minVals[idx] = np.min( [minVals[idx], np.min( errVals )] )
             maxVals[idx] = np.max( [maxVals[idx], np.max( errVals )] )
@@ -166,8 +257,10 @@ def runJulia( exefilename ):
 
     # juliapath = "/home/gaurav/Downloads/julia-1.9.2-linux-x86_64/julia-1.9.2/bin/julia"
     juliapath = "/home/gaurav/julia-1.8.5/bin/julia"
+    finchPath = "/home/gaurav/Finch/src/examples/"
     julialstcmd = [juliapath, exefilename]
-    subprocess.run( julialstcmd )
+
+    subprocess.run( julialstcmd, cwd = finchPath )
 
 def removeFiles( dirval ):
 
@@ -177,18 +270,33 @@ def removeFiles( dirval ):
         cmdlist = [ "rm", meshfilename ]
         subprocess.run( cmdlist )
 
-def runSim( simPlotFolderName, gmshFileCmdNames, regexVals ):
-
-    gmshfileargs = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
-    removeFiles( gmshfileargs )
+def buildAllMeshes( gmshFileCmdNames, gmshfileArgs ):
 
     for gmshFileCmd in gmshFileCmdNames:
-        buildMesh( gmshFileCmd, gmshfileargs )
+        buildMesh( gmshFileCmd, gmshfileArgs )
+
+def runFinchSim():
 
     exefilename = "example-mixed-element-2d.jl"
     runJulia( exefilename )
 
-    showplot( simPlotFolderName, regexVals )
+def runDealiiSim():
+
+    exefilename = "step-5.debug"
+    dealiiPath = "/home/gaurav/dealii-9.5.1/build/bin/"
+
+    subprocess.run( [exefilename], cwd = dealiiPath )
+
+def runSim( simPlotFolderName, gmshFileCmdNames, regexVals ):
+
+    gmshfileArgs = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    removeFiles( gmshfileArgs )
+
+    buildAllMeshes( gmshFileCmdNames, gmshfileArgs )
+    runFinchSim() 
+    runDealiiSim()   
+
+    showFinchPlot( simPlotFolderName, regexVals )
     # showParaviewPlot( simPlotFolderName, regexVals )
     # removeFiles( gmshfileargs )
 
@@ -261,12 +369,11 @@ def runSim( simPlotFolderName, gmshFileCmdNames, regexVals ):
 #             Hide( gmshfile )
     
 
-def showplot( simPlotFolderName, regexVals ):
+def showFinchPlot( simPlotFolderName, regexVals ):
 
-    if not os.path.exists(simPlotFolderName):
-        os.mkdir( simPlotFolderName )
+    checkAndCreateFolder( simPlotFolderName )
 
-    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfileregular.txt"
+    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfiletrianglestruct.txt"
 
     dxvals = []
 
@@ -287,7 +394,7 @@ def showplot( simPlotFolderName, regexVals ):
         sortedMeshVals = getSortedMeshVals( meshvals, regexVal )
         allSortedMeshVals.append( sortedMeshVals )
 
-    minMaxRangeVals = getMinMaxRange( allSortedMeshVals )
+    minMaxRangeVals = getFinchMinMaxRange( allSortedMeshVals )
 
     cdict = {
         'red'  :  ( (0.0, 0.25, .25), (0.02, .59, .59), (1., 1., 1.)),
@@ -314,9 +421,9 @@ def showplot( simPlotFolderName, regexVals ):
 
         for index, meshval in enumerate( sortedMeshVals ):
 
-            xvalsFileName = getFileNameFromMeshName( meshval, textfoldername, "xvalues_", ".txt" )
-            yvalsFileName = getFileNameFromMeshName( meshval, textfoldername, "yvalues_", ".txt" )
-            errvalsFileName = getFileNameFromMeshName( meshval, textfoldername, "errorvalues_", ".txt" )
+            xvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "xvalues_", ".txt" )
+            yvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "yvalues_", ".txt" )
+            errvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "errorvalues_", ".txt" )
 
             xvals = getData( xvalsFileName )
             yvals = getData( yvalsFileName )
@@ -442,6 +549,324 @@ def showplot( simPlotFolderName, regexVals ):
 
     return
 
+def showDealiiPlot( simPlotFolderName, regexVals ):
+
+    checkAndCreateFolder( simPlotFolderName )
+
+    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfileregular.txt"
+
+    dxvals = []
+
+    with open( dxfilename ) as dxfilehandle:
+
+        dxvals = dxfilehandle.readlines()
+
+    dxvals = np.array([ float( dxval[ :-1 ] ) for dxval in dxvals ])
+
+    import matplotlib.ticker as ticker
+
+    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
+
+    allSortedMeshVals = []
+
+    for regexVal in regexVals:
+        sortedMeshVals = getSortedMeshVals( meshvals, regexVal )
+        allSortedMeshVals.append( sortedMeshVals )
+
+    minMaxRangeVals = getDealiiMinMaxRange( allSortedMeshVals )
+
+    cdict = {
+        'red'  :  ( (0.0, 0.25, .25), (0.02, .59, .59), (1., 1., 1.)),
+        'green':  ( (0.0, 0.0, 0.0), (0.02, .45, .45), (1., .97, .97)),
+        'blue' :  ( (0.0, 1.0, 1.0), (0.02, .75, .75), (1., 0.45, 0.45))
+    }
+ 
+    cm = m.colors.LinearSegmentedColormap('my_colormap', cdict, 1024)
+
+    allMaxErrorList = []
+    allL2ErrorList = []
+
+    figMaxError = plt.figure()
+    axMaxError = figMaxError.add_subplot(1, 1, 1)
+    figL2Error = plt.figure()
+    axL2Error = figL2Error.add_subplot(1, 1, 1)
+
+    # print(allSortedMeshVals)
+
+    for idx, sortedMeshVals in enumerate( allSortedMeshVals ):
+
+        curMaxErrorList = []
+        curL2ErrorList = []
+
+        for index, meshval in enumerate( sortedMeshVals ):
+
+            solvalsFileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, "solutionvalues_", ".h5" )
+            
+            (nodes, solution) = getDealiiData( solvalsFileName )
+            xvals = nodes[:, 0]
+            yvals = nodes[:, 1]
+            errvals = getDealiiError( nodes, solution )
+            # print(solvalsFileName)
+
+            curmaxval = np.max(errvals)
+            curminval = np.min(errvals)
+
+            curMaxErrorList.append( curmaxval )
+            curL2ErrorList.append( np.sum( np.array(errvals)**2 ) ) 
+
+            curPlotFolderName = simPlotFolderName + "Plot" + str(index) + "/"
+
+            checkAndCreateFolder( curPlotFolderName )
+
+            # uvals = getData( textfoldername + "uvalues_index=" + str(index) + ".txt" )
+            # uexactvals = getData( textfoldername + "uexactvalues_index=" + str(index) + ".txt" )        
+            # print( np.max(errvals) )
+
+            minVal, maxVal = minMaxRangeVals[ index ]
+
+            levels = np.linspace( minVal, maxVal, 40 )
+            plt.figure()
+            # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, levels = levels, vmin = levelsmin[-1], vmax = levelsmax[-1] )
+            plt.tricontourf( xvals, yvals, errvals, levels = levels, vmin = minVal, vmax = maxVal, cmap = cm )
+            plt.colorbar()
+            # plt.scatter( xvalsHanging, yvalsHanging )
+            # plt.show()
+            plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, "errorContour_", ".png" )
+            plt.savefig( plotfilename )
+            plt.close()
+
+            plt.figure()
+            # levels = np.linspace( levelsmin[indexval]*0.4 + levelsmax[indexval]*0.6, levelsmax[indexval], 40)
+            levels = np.linspace( curminval*0.4+ curmaxval*0.6, curmaxval, 40)
+            # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, vmin = levelsmin[-1]*0.2 + levelsmax[-1]*0.8, vmax = levelsmax[-1], colors='r')
+            # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, levels = levels, colors='r')
+            plt.tricontourf( xvals, yvals, errvals, levels = levels, colors = 'r')
+            plt.colorbar()
+            plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, "largeErrorContour_", ".png" )
+            plt.savefig( plotfilename )
+            plt.close()
+            # plt.figure()
+            # plt.tricontourf( xvals, yvals, uvals, levels = 20 )
+            # plt.colorbar()
+            # plt.scatter( xvals, yvals )
+            # plt.show()
+            # plt.savefig( plotfoldername + "ucontour_index=" + str(index) + ".png" )
+
+            # plt.figure()
+            # plt.tricontourf( xvals, yvals, uexactvals, levels = 20 )
+            # plt.colorbar()
+            # plt.scatter( xvals, yvals )
+            # plt.show()
+            # plt.savefig( plotfoldername + "uexactcontour_index=" + str(index) + ".png" )
+
+        allMaxErrorList.append( curMaxErrorList )
+        allL2ErrorList.append( curL2ErrorList )
+
+        labelName = regexVals[idx] + " $L^{\infty}$ Error_" + "2h"
+        axMaxError.loglog( dxvals[:-1], curMaxErrorList[:-1], "-o", label = labelName )
+
+        labelName = regexVals[idx] + " $L^{\infty}$ Error_" + "h"
+        axMaxError.loglog( dxvals[:-1], curMaxErrorList[1:], "-o", label = labelName )
+
+        labelName = regexVals[idx] + " $L^{2}$ Error_" + "2h"
+        axL2Error.loglog( dxvals[:-1], curL2ErrorList[:-1], "-o", label = labelName )
+
+        labelName = regexVals[idx] + " $L^{2}$ Error_" + "h"
+        axL2Error.loglog( dxvals[:-1], curL2ErrorList[1:], "-o", label = labelName )
+
+    h2vals = dxvals**2
+
+    axMaxError.loglog( dxvals[:-1], h2vals[:-1], "-x", label = "$h^2$" )
+    axL2Error.loglog( dxvals[:-1], h2vals[:-1], "-x", label = "$h^2$" )
+    # axMaxError.legend()
+    # axL2Error.legend()
+
+    box = axMaxError.get_position()
+    axMaxError.set_position([box.x0, box.y0 + box.height * 0.1,
+                    box.width, box.height * 0.9])
+
+    # Put a legend below current axis
+    maxLgd = axMaxError.legend(loc=9, bbox_to_anchor=(0.5, -0.05),
+            fancybox=True, shadow=True, ncol=5)  
+    
+    textMaxError = axMaxError.text(-0.2,1.05, "         ", transform=axMaxError.transAxes)
+    
+    box = axL2Error.get_position()
+    axL2Error.set_position([box.x0, box.y0 + box.height * 0.1,
+                        box.width, box.height * 0.9])
+
+    # Put a legend below current axis
+    l2Lgd = axL2Error.legend(loc=9, bbox_to_anchor=(0.5, -0.05),
+            fancybox=True, shadow=True, ncol=5)
+    
+    textL2Error = axL2Error.text(-0.2,1.05, "         ", transform=axL2Error.transAxes)
+
+    figMaxError.savefig( simPlotFolderName + "maxError" + ".png", bbox_extra_artists=(maxLgd, textMaxError), bbox_inches = 'tight' )
+    figL2Error.savefig( simPlotFolderName + "l2Error" + ".png", bbox_extra_artists=(l2Lgd, textL2Error), bbox_inches = 'tight' )
+
+    errorDiffMax = [ allMaxErrorList[1][idx] - allMaxErrorList[0][idx] for idx in range( len(allMaxErrorList[0]) ) ]
+    errorDiffL2 = [ allL2ErrorList[1][idx] - allL2ErrorList[0][idx] for idx in range( len(allL2ErrorList[0]) ) ]
+
+    plt.figure()
+    plt.plot( dxvals, errorDiffMax, "-o" )
+    titleval = regexVals[1] + " - " + regexVals[0] + " Max Error Plot"
+    plt.xlabel( "h" )
+    plt.ylabel( "Error" )
+    plt.title( titleval )
+
+    plt.figure()
+    titleval = regexVals[1] + " - " + regexVals[0] + " L2 Error Plot"
+    plt.plot( dxvals, errorDiffL2, "-o" )
+    plt.xlabel( "h" )
+    plt.ylabel( "Error" )
+    plt.title( titleval )
+
+    plt.show()
+
+    return
+
+def compareDealiiFinch( simPlotFolderName, regexVals ):
+
+    checkAndCreateFolder( simPlotFolderName )
+
+    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfiletrianglestruct.txt"
+
+    dxvals = []
+
+    with open( dxfilename ) as dxfilehandle:
+
+        dxvals = dxfilehandle.readlines()
+
+    dxvals = np.array([ float( dxval[ :-1 ] ) for dxval in dxvals ])
+
+    import matplotlib.ticker as ticker
+
+    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
+
+    allSortedMeshVals = []
+
+    for regexVal in regexVals:
+        sortedMeshVals = getSortedMeshVals( meshvals, regexVal )
+        allSortedMeshVals.append( sortedMeshVals )
+
+    # minMaxRangeVals = getDealiiMinMaxRange( allSortedMeshVals )
+
+    cdict = {
+        'red'  :  ( (0.0, 0.25, .25), (0.02, .59, .59), (1., 1., 1.)),
+        'green':  ( (0.0, 0.0, 0.0), (0.02, .45, .45), (1., .97, .97)),
+        'blue' :  ( (0.0, 1.0, 1.0), (0.02, .75, .75), (1., 0.45, 0.45))
+    }
+ 
+    cm = m.colors.LinearSegmentedColormap('my_colormap', cdict, 1024)
+
+    dealiiAllMaxErrorList = []
+    dealiiAllL2ErrorList = []
+
+    finchAllMaxErrorList = []
+    finchAllL2ErrorList = []
+
+    # print(allSortedMeshVals)
+
+    h2vals = dxvals**2
+
+    for idx, sortedMeshVals in enumerate( allSortedMeshVals ):
+
+        dealiiCurMaxErrorList = []
+        dealiiCurL2ErrorList = []
+
+        regexVal = regexVals[idx]
+
+        finchCurMaxErrorList = []
+        finchCurL2ErrorList = []
+
+        figMaxError = plt.figure()
+        axMaxError = figMaxError.add_subplot(1, 1, 1)
+        figL2Error = plt.figure()
+        axL2Error = figL2Error.add_subplot(1, 1, 1)
+
+        for index, meshval in enumerate( sortedMeshVals ):
+
+            dealiiSolvalsFileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, "solutionvalues_", ".h5" )
+            
+            (nodes, solution) = getDealiiData( dealiiSolvalsFileName )
+            dealiiErrvals = getDealiiError( nodes, solution )
+            # print(solvalsFileName)
+
+            dealiiCurmaxval = np.max(dealiiErrvals)
+
+            dealiiCurMaxErrorList.append( dealiiCurmaxval )
+            dealiiCurL2ErrorList.append( np.sum( np.array( dealiiErrvals )**2 ) ) 
+
+            # Finch data
+            finchXvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "xvalues_", ".txt" )
+            finchYvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "yvalues_", ".txt" )
+            finchErrvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "errorvalues_", ".txt" )
+
+            finchXvals = getData( finchXvalsFileName )
+            finchYvals = getData( finchYvalsFileName )
+            finchErrvals = getData( finchErrvalsFileName )
+
+            # print(errvalsFileName)
+
+            finchCurmaxval = np.max( finchErrvals )
+            finchCurMaxErrorList.append( finchCurmaxval )
+            finchCurL2ErrorList.append( np.sum( np.array( finchErrvals )**2 ) ) 
+
+            # uvals = getData( textfoldername + "uvalues_index=" + str(index) + ".txt" )
+            # uexactvals = getData( textfoldername + "uexactvalues_index=" + str(index) + ".txt" )        
+            # print( np.max(errvals) )
+
+        dealiiAllMaxErrorList.append( dealiiCurMaxErrorList )
+        dealiiAllL2ErrorList.append( dealiiCurL2ErrorList )
+
+        finchAllMaxErrorList.append( finchCurMaxErrorList )
+        finchAllL2ErrorList.append( finchCurL2ErrorList )
+
+        labelName = regexVals[idx] + " Dealii $L^{\infty}$ Error_" + "h"
+        axMaxError.loglog( dxvals[:], dealiiCurMaxErrorList[:], "-o", label = labelName )
+        labelName = regexVals[idx] + " Finch $L^{\infty}$ Error_" + "h"
+        axMaxError.loglog( dxvals[:], finchCurMaxErrorList[:], "-o", label = labelName )
+
+        labelName = regexVals[idx] + " Dealii $L^{2}$ Error_" + "h"
+        axL2Error.loglog( dxvals[:], dealiiCurL2ErrorList[:], "-o", label = labelName )
+        labelName = regexVals[idx] + " Finch $L^{2}$ Error_" + "h"
+        axL2Error.loglog( dxvals[:], finchCurL2ErrorList[:], "-o", label = labelName )
+
+        axMaxError.loglog( dxvals[:], h2vals[:], "-x", label = "$h^2$" )
+        axL2Error.loglog( dxvals[:], h2vals[:], "-x", label = "$h^2$" )
+
+        box = axMaxError.get_position()
+        axMaxError.set_position([box.x0, box.y0 + box.height * 0.1,
+                        box.width, box.height * 0.9])
+
+        # Put a legend below current axis
+        maxLgd = axMaxError.legend(loc=9, bbox_to_anchor=(0.5, -0.05),
+                fancybox=True, shadow=True, ncol=5)  
+        
+        textMaxError = axMaxError.text(-0.2,1.05, "         ", transform=axMaxError.transAxes)
+        
+        box = axL2Error.get_position()
+        axL2Error.set_position([box.x0, box.y0 + box.height * 0.1,
+                            box.width, box.height * 0.9])
+
+        # Put a legend below current axis
+        l2Lgd = axL2Error.legend(loc=9, bbox_to_anchor=(0.5, -0.05),
+                fancybox=True, shadow=True, ncol=5)
+        
+        textL2Error = axL2Error.text(-0.2,1.05, "         ", transform=axL2Error.transAxes)
+
+        curPlotFolderName = simPlotFolderName + "Finch_Dealii_Comparison" + "/"
+        checkAndCreateFolder( curPlotFolderName )
+
+        figMaxError.savefig( curPlotFolderName + regexVal + "_maxError" + ".png", bbox_extra_artists=(maxLgd, textMaxError), bbox_inches = 'tight' )
+        figL2Error.savefig( curPlotFolderName + regexVal + "_l2Error" + ".png", bbox_extra_artists=(l2Lgd, textL2Error), bbox_inches = 'tight' )
+    
+    plt.show()
+
+    return
+
 # def compareParaview( simPlotFolderName, regexVals ):
 
 #     assert( len(regexVals) == 2 )
@@ -543,13 +968,18 @@ def showplot( simPlotFolderName, regexVals ):
 
 if __name__ == "__main__":
 
-    simPlotFolderName = gmshImageFolderName + "Plot15_2pi/"
+    simPlotFolderName = gmshImageFolderName + "Plot16_2pi/Dealii/"
     # gmshFileCmdNames = ["regularMeshv3", "triangleMeshv1"]
     gmshFileCmdNames = ["triangleMeshv1", "triangleMeshv2"]
-    regexVals = ["triangleMeshStruct", "triangleMeshUnstruct"]
+    # regexVals = ["triangleMeshStruct", "triangleMeshUnstruct"]
+    regexVals = ["triangle", "regular"]
     # runSim( simPlotFolderName, gmshFileCmdNames, regexVals )
 
+    folderName = "/home/gaurav/gmshAutoScripts/aval/bval/"
+    # showDealiiPlot( simPlotFolderName, regexVals )
+    compareDealiiFinch( simPlotFolderName, regexVals )
+    # checkAndCreateFolder( folderName )
     # showParaviewPlot( simPlotFolderName, regexVals )
-    showplot( simPlotFolderName, regexVals )
+    # showplot( simPlotFolderName, regexVals )
     # compareParaview( simPlotFolderName, regexVals )
 
