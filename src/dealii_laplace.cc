@@ -122,7 +122,7 @@ template <int dim>
 class Step5
 {
 public:
-  Step5( FiniteElement<dim>& finiteElement );
+  Step5( FiniteElement<dim>& finiteElement, const Quadrature<dim>& quadObj );
   void run( std::string filename );
 
 private:
@@ -135,7 +135,7 @@ private:
   // FE_Q<dim>          fe;
   const MappingFE<2>     mapping;
   FiniteElement<2>&   fe;
-  const Quadrature<2> quadrature_formula;
+  const Quadrature<2>& quadrature_formula;
   DoFHandler<dim>    dof_handler;
 
   SparsityPattern      sparsity_pattern;
@@ -183,10 +183,10 @@ double BoundaryValues<dim>::value(const Point<dim> &p,
 //   , dof_handler(triangulation)
 // {}
 template <int dim>
-Step5<dim>::Step5( FiniteElement<dim>& finiteElement )
+Step5<dim>::Step5( FiniteElement<dim>& finiteElement, const Quadrature<dim>& quadObj )
   : mapping( finiteElement )
   , fe( finiteElement )
-  , quadrature_formula( finiteElement.degree + 1 )
+  , quadrature_formula( quadObj )
   , dof_handler(triangulation)
 {}
  
@@ -229,7 +229,7 @@ void Step5<dim>::setup_system()
 template <int dim>
 void Step5<dim>::assemble_system()
 {
-  QGauss<dim> quadrature_formula(fe.degree + 1);
+  // QGauss<dim> quadrature_formula(fe.degree + 1);
   RightHandSide<dim> right_hand_side;
 
   FEValues<dim> fe_values(mapping,
@@ -388,7 +388,7 @@ void Step5<dim>::output_results( std::string meshFileName ) const
 
     prefixVal = prefixVal + "_";
 
-    solutionFileName = textfoldername + prefixVal  + "solutionvalues_N=" + Nval;
+    solutionFileName = textfoldername + prefixVal  + "solutionvaluesGaussModified_N=" + Nval;
     std::cout << solutionFileName << std::endl;
 
   }
@@ -537,9 +537,9 @@ void Step5<dim>::run( std::string filename )
 }
 
 // template<typename dim>
-void runFEM( FiniteElement<2>& fem, std::string filename ) {
+void runFEM( FiniteElement<2>& fem, const Quadrature<2>& quadObj, std::string filename ) {
 
-  Step5<2> laplace_problem_2d( fem );
+  Step5<2> laplace_problem_2d( fem, quadObj );
   laplace_problem_2d.run( filename );
 
 }
@@ -568,12 +568,14 @@ int main( int argc, char* argv[])
 
     if (std::regex_search(filename, tri_regex)) {
       FE_SimplexP<2> fem( 1 );
-      runFEM( fem, filename );
+      const QGaussSimplex<2> quadrature_formula( fem.degree + 1 );
+      runFEM( fem, quadrature_formula, filename );
 
     }
     else if (std::regex_search(filename, quad_regex)) {
         FE_Q<2> fem( 1 );
-        runFEM( fem, filename );
+        const QGauss<2> quadrature_formula( fem.degree + 1 );
+        runFEM( fem, quadrature_formula, filename );
     }
 
 

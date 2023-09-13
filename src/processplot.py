@@ -8,7 +8,7 @@ from math import sin, cos, pi
 import os
 import subprocess
 # from paraview.simple import *
-# import meshio
+import meshio
 import pdb
 import time
 import h5py
@@ -208,7 +208,7 @@ def getDealiiMinMaxRange( sortedMeshValsArr ):
     for sortedMeshVals in sortedMeshValsArr:
         for idx, meshval in enumerate( sortedMeshVals ):
 
-            h5FileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, "solutionvalues_", ".h5" )
+            h5FileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, "solutionvaluesGaussModified_", ".h5" )
             nodes, solution = getDealiiData( h5FileName )
             errVals = getDealiiError( nodes, solution )
 
@@ -293,12 +293,83 @@ def runSim( simPlotFolderName, gmshFileCmdNames, regexVals ):
     removeFiles( gmshfileArgs )
 
     buildAllMeshes( gmshFileCmdNames, gmshfileArgs )
-    # runFinchSim() 
+    runFinchSim() 
     runDealiiSim()   
 
     # showFinchPlot( simPlotFolderName, regexVals )
     # showParaviewPlot( simPlotFolderName, regexVals )
     # removeFiles( gmshfileargs )
+
+def createMeshVTU( simPlotFolderName, regexVals ):
+
+    checkAndCreateFolder( simPlotFolderName )
+    
+    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
+
+    allSortedMeshVals = []
+
+    for regexVal in regexVals:
+        sortedMeshVals = getSortedMeshVals( meshvals, regexVal )
+        allSortedMeshVals.append( sortedMeshVals )
+
+    meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
+
+    for sortedMeshVals in allSortedMeshVals:
+        for index, meshval in enumerate( sortedMeshVals ):
+            mesh = meshio.read( meshpath + meshval )
+            meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
+
+# def showMeshes( simPlotFolderName, regexVals ):
+
+#     checkAndCreateFolder( simPlotFolderName )
+    
+#     meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+#     meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
+
+#     allSortedMeshVals = []
+
+#     for regexVal in regexVals:
+#         sortedMeshVals = getSortedMeshVals( meshvals, regexVal )
+#         allSortedMeshVals.append( sortedMeshVals )
+
+#     meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
+
+#     for sortedMeshVals in allSortedMeshVals:
+#         for index, meshval in enumerate( sortedMeshVals ):
+#             mesh = meshio.read( meshpath + meshval )
+#             meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
+
+#     for sortedMeshVals in allSortedMeshVals:
+#         for index, meshval in enumerate(sortedMeshVals):
+
+#             meshvtkName = meshVizPath + meshval[:-4] + ".vtu"
+
+#             gmshfile = OpenDataFile( meshvtkName )
+#             dpGmsh = GetDisplayProperties( gmshfile )
+#             dpGmsh.Representation = 'Wireframe'
+#             gmshdisplay = Show(gmshfile)
+            
+#             myview = GetActiveView()
+#             myview.ViewSize = [1920, 1080]
+#             myview.InteractionMode = '2D'
+#             myview.AxesGrid = 'Grid Axes 3D Actor'
+#             myview.CenterOfRotation = [0.5, 0.5, 0.0]
+#             myview.StereoType = 'Crystal Eyes'
+#             myview.CameraPosition = [0.5, 0.5, 3.0349403797187358]
+#             myview.CameraFocalPoint = [0.5, 0.5, 0.0]
+#             myview.CameraFocalDisk = 1.0
+#             myview.CameraParallelScale = 0.7908298380174797
+#             myview.LegendGrid = 'Legend Grid Actor'
+
+#             Render()
+
+#             curPlotFolderName = simPlotFolderName + "Plot" + str(index) + "/"  
+#             checkAndCreateFolder( curPlotFolderName )
+#             plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, "paraview_error", ".png" )
+#             SaveScreenshot( plotfilename, myview)
+
+#             Hide( gmshfile )
 
 # def showParaviewPlot( simPlotFolderName, regexVals ):
 
@@ -553,7 +624,7 @@ def showDealiiPlot( simPlotFolderName, regexVals ):
 
     checkAndCreateFolder( simPlotFolderName )
 
-    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfileregular.txt"
+    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfiletrianglestruct.txt"
 
     dxvals = []
 
@@ -601,7 +672,7 @@ def showDealiiPlot( simPlotFolderName, regexVals ):
 
         for index, meshval in enumerate( sortedMeshVals ):
 
-            solvalsFileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, "solutionvalues_", ".h5" )
+            solvalsFileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, "solutionvaluesGaussModified_", ".h5" )
             
             (nodes, solution) = getDealiiData( solvalsFileName )
             xvals = nodes[:, 0]
@@ -788,7 +859,7 @@ def compareDealiiFinch( simPlotFolderName, regexVals ):
 
         for index, meshval in enumerate( sortedMeshVals ):
 
-            dealiiSolvalsFileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, "solutionvalues_", ".h5" )
+            dealiiSolvalsFileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, "solutionvaluesGaussModified_", ".h5" )
             
             (nodes, solution) = getDealiiData( dealiiSolvalsFileName )
             dealiiErrvals = getDealiiError( nodes, solution )
@@ -968,13 +1039,18 @@ def compareDealiiFinch( simPlotFolderName, regexVals ):
 
 if __name__ == "__main__":
 
-    # gmshFileCmdNames = ["regularMeshv3", "triangleMeshv1"]
-    gmshFileCmdNames = ["triangleMeshv1", "triangleMeshv2"]
-    regexVals = ["triangleMeshStruct", "triangleMeshUnstruct"]
-    # regexVals = ["triangle", "regular"]
+    # gmshFileCmdNames = ["triangleMeshv1", "triangleMeshv2"]
+    # regexVals = ["triangleMeshStruct", "triangleMeshUnstruct"]
+    regexVals = ["triangleMeshUnstruct", "triangleMeshStruct"]
+    gmshFileCmdNames = ["triangleMeshv2", "triangleMeshv1"]
 
-    simPlotRootFolderName = gmshImageFolderName + "Plot17_2pi/"
+    simPlotRootFolderName = gmshImageFolderName + "Plot23_2pi/"
+    meshPlotRootFolderName = gmshImageFolderName + "MeshPlots23_2pi/"
+
+    # showMeshes( meshPlotRootFolderName, regexVals )
+
     runSim( simPlotRootFolderName, gmshFileCmdNames, regexVals )
+    createMeshVTU( meshPlotRootFolderName, regexVals )
     compareDealiiFinch( simPlotRootFolderName, regexVals )
 
     simPlotFolderName = simPlotRootFolderName + "Dealii/"
