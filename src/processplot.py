@@ -320,56 +320,56 @@ def createMeshVTU( simPlotFolderName, regexVals ):
             mesh = meshio.read( meshpath + meshval )
             meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
 
-# def showMeshes( simPlotFolderName, regexVals ):
+def showMeshes( simPlotFolderName, regexVals ):
 
-#     checkAndCreateFolder( simPlotFolderName )
+    checkAndCreateFolder( simPlotFolderName )
     
-#     meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
-#     meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
+    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
 
-#     allSortedMeshVals = []
+    allSortedMeshVals = []
 
-#     for regexVal in regexVals:
-#         sortedMeshVals = getSortedMeshVals( meshvals, regexVal )
-#         allSortedMeshVals.append( sortedMeshVals )
+    for regexVal in regexVals:
+        sortedMeshVals = getSortedMeshVals( meshvals, regexVal )
+        allSortedMeshVals.append( sortedMeshVals )
 
-#     meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
+    meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
 
-#     for sortedMeshVals in allSortedMeshVals:
-#         for index, meshval in enumerate( sortedMeshVals ):
-#             mesh = meshio.read( meshpath + meshval )
-#             meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
+    for sortedMeshVals in allSortedMeshVals:
+        for index, meshval in enumerate( sortedMeshVals ):
+            mesh = meshio.read( meshpath + meshval )
+            meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
 
-#     for sortedMeshVals in allSortedMeshVals:
-#         for index, meshval in enumerate(sortedMeshVals):
+    for sortedMeshVals in allSortedMeshVals:
+        for index, meshval in enumerate(sortedMeshVals):
 
-#             meshvtkName = meshVizPath + meshval[:-4] + ".vtu"
+            meshvtkName = meshVizPath + meshval[:-4] + ".vtu"
 
-#             gmshfile = OpenDataFile( meshvtkName )
-#             dpGmsh = GetDisplayProperties( gmshfile )
-#             dpGmsh.Representation = 'Wireframe'
-#             gmshdisplay = Show(gmshfile)
+            gmshfile = OpenDataFile( meshvtkName )
+            dpGmsh = GetDisplayProperties( gmshfile )
+            dpGmsh.Representation = 'Wireframe'
+            gmshdisplay = Show(gmshfile)
             
-#             myview = GetActiveView()
-#             myview.ViewSize = [1920, 1080]
-#             myview.InteractionMode = '2D'
-#             myview.AxesGrid = 'Grid Axes 3D Actor'
-#             myview.CenterOfRotation = [0.5, 0.5, 0.0]
-#             myview.StereoType = 'Crystal Eyes'
-#             myview.CameraPosition = [0.5, 0.5, 3.0349403797187358]
-#             myview.CameraFocalPoint = [0.5, 0.5, 0.0]
-#             myview.CameraFocalDisk = 1.0
-#             myview.CameraParallelScale = 0.7908298380174797
-#             myview.LegendGrid = 'Legend Grid Actor'
+            myview = GetActiveView()
+            myview.ViewSize = [1920, 1080]
+            myview.InteractionMode = '2D'
+            myview.AxesGrid = 'Grid Axes 3D Actor'
+            myview.CenterOfRotation = [0.5, 0.5, 0.0]
+            myview.StereoType = 'Crystal Eyes'
+            myview.CameraPosition = [0.5, 0.5, 3.0349403797187358]
+            myview.CameraFocalPoint = [0.5, 0.5, 0.0]
+            myview.CameraFocalDisk = 1.0
+            myview.CameraParallelScale = 0.7908298380174797
+            myview.LegendGrid = 'Legend Grid Actor'
 
-#             Render()
+            Render()
 
-#             curPlotFolderName = simPlotFolderName + "Plot" + str(index) + "/"  
-#             checkAndCreateFolder( curPlotFolderName )
-#             plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, "paraview_error", ".png" )
-#             SaveScreenshot( plotfilename, myview)
+            curPlotFolderName = simPlotFolderName + "Plot" + str(index) + "/"  
+            checkAndCreateFolder( curPlotFolderName )
+            plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, "paraview_error", ".png" )
+            SaveScreenshot( plotfilename, myview)
 
-#             Hide( gmshfile )
+            Hide( gmshfile )
 
 # def showParaviewPlot( simPlotFolderName, regexVals ):
 
@@ -438,13 +438,166 @@ def createMeshVTU( simPlotFolderName, regexVals ):
 
 #             Hide( solfile )
 #             Hide( gmshfile )
+
+def getNumNodes( gmshFileName ):
+
+    numNodes = 0
+
+    with open( gmshFileName ) as filehandle:
+
+        idx = 0
+
+        for line in filehandle.readlines():
+
+            if idx == 4:
+
+                numNodes = int( line )
+
+                break
+
+            idx += 1
+
+    return numNodes
+
+def getAllNodes( gmshFileName ):
+
+    allNodes = []
+
+    with open( gmshFileName ) as filehandle:
+
+        idxStart = 0
+        idxEnd = 0
+
+        idx = 0
+
+        allLines = filehandle.readlines()
+
+        for lineval in allLines:
+
+            if lineval == "$Nodes\n":
+
+                idxStart = idx + 2
+
+            if lineval == "$EndNodes\n":
+
+                idxEnd = idx
+                break
+
+            idx += 1
+            
+        nodeLines = allLines[ idxStart : idxEnd ]
+
+        for nodeLine in nodeLines:
+
+            nodeLine = [ float(node) for node in nodeLine.split() ]
+            allNodes.append( nodeLine[ 1: ] )
+
+    return allNodes
+
+def getElementNodeIndices( gmshFileName, regexVal ):
+
+    if regexVal == "regular":
+        types = ["3"]
+
+    if re.search( "triangle", regexVal ):
+        types = ["2"]
+
+    if re.search( "hanging", regexVal ):
+        types = [ "2", "3" ]
+
+    elementNodeIndices = []
+
+    with open( gmshFileName ) as filehandle:
+
+        idxStart = 0
+        idxEnd = 0
+
+        idx = 0
+
+        allLines = filehandle.readlines()
+
+        for lineval in allLines:
+
+            if lineval == "$Elements\n":
+
+                idxStart = idx + 2
+
+            if lineval == "$EndElements\n":
+
+                idxEnd = idx
+                break
+
+            idx += 1        
+
+        elementLines = allLines[ idxStart : idxEnd ]
+
+    for lineval in elementLines:
+
+        lineval = lineval.split()
+
+        if lineval[1] in types:
+
+            ntags = lineval[2]
+            indices = lineval[ 3 + int( ntags ): ]
+            indices = [ int(index) for index in indices ]
+
+            elementNodeIndices.append( indices )
+
+    return elementNodeIndices
+
+def get2DAreaFromNodes( coords ):
+
+    nnodes = len( coords[0] )
+
+    area = 0
+
+    for idx in range(nnodes):
+
+        area = area + coords[ idx ][0] * coords[ ( idx + 1 ) % nnodes ][1] - coords[ (idx + 1)%nnodes ][ 0 ] * coords[ idx ][1]
+
+    return abs( area/2 )
+
+
+def getAverage2DArea( gmshFileName, regexVal ):
+
+    allNodes = getAllNodes( gmshFileName )
+    elementNodeIndices = getElementNodeIndices( gmshFileName, regexVal )
+
+    averageArea = 0
+
+    nElements = len( elementNodeIndices )
+
+    for element in elementNodeIndices:
+
+        coords = []
+
+        for indexVal in element:
+            coords.append( allNodes[ indexVal - 1 ][:2] )
+
+        averageArea += get2DAreaFromNodes( coords )
+
+    return averageArea/nElements
+
+
+def makePlotAdjustmentsAndSave( axHandle, figHandle, plotFileName ):
+
+    box = axHandle.get_position()
+    axHandle.set_position([box.x0, box.y0 + box.height * 0.1,
+                    box.width, box.height * 0.9])
+
+    # Put a legend below current axis
+    lgd = axHandle.legend(loc=9, bbox_to_anchor=(0.5, -0.05),
+            fancybox=True, shadow=True, ncol=5)  
     
+    text = axHandle.text(-0.2,1.05, "         ", transform=axHandle.transAxes)
+
+    figHandle.savefig( plotFileName, bbox_extra_artists=( lgd, text ), bbox_inches = 'tight' )
 
 def showFinchPlot( simPlotFolderName, regexVals ):
 
     checkAndCreateFolder( simPlotFolderName )
 
-    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfiletrianglestruct.txt"
+    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfiletriangleunstruct.txt"
 
     dxvals = []
 
@@ -478,10 +631,15 @@ def showFinchPlot( simPlotFolderName, regexVals ):
     allMaxErrorList = []
     allL2ErrorList = []
 
-    figMaxError = plt.figure()
-    axMaxError = figMaxError.add_subplot(1, 1, 1)
-    figL2Error = plt.figure()
-    axL2Error = figL2Error.add_subplot(1, 1, 1)
+    figMaxErrorNumNodes = plt.figure()
+    axMaxErrorNumNodes = figMaxErrorNumNodes.add_subplot(1, 1, 1)
+    figL2ErrorNumNodes = plt.figure()
+    axL2ErrorNumNodes = figL2ErrorNumNodes.add_subplot(1, 1, 1)
+
+    figMaxErrorArea = plt.figure()
+    axMaxErrorArea = figMaxErrorArea.add_subplot(1, 1, 1)
+    figL2ErrorArea = plt.figure()
+    axL2ErrorArea = figL2ErrorArea.add_subplot(1, 1, 1)
 
     # print(allSortedMeshVals)
 
@@ -489,8 +647,14 @@ def showFinchPlot( simPlotFolderName, regexVals ):
 
         curMaxErrorList = []
         curL2ErrorList = []
+        numNodeVals = []
+        areaVals = []
+        regexVal = regexVals[idx]
 
         for index, meshval in enumerate( sortedMeshVals ):
+
+            numNodeVals.append( getNumNodes( meshpath + meshval ) )
+            areaVals.append( getAverage2DArea( meshpath + meshval, regexVal ) )
 
             xvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "xvalues_", ".txt" )
             yvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "yvalues_", ".txt" )
@@ -558,46 +722,36 @@ def showFinchPlot( simPlotFolderName, regexVals ):
         allL2ErrorList.append( curL2ErrorList )
 
         labelName = regexVals[idx] + " $L^{\infty}$ Error_" + "2h"
-        axMaxError.loglog( dxvals[:-1], curMaxErrorList[:-1], "-o", label = labelName )
+        axMaxErrorNumNodes.loglog( numNodeVals[:-1], curMaxErrorList[:-1], "-o", label = labelName )
+        axMaxErrorArea.loglog( areaVals[:-1], curMaxErrorList[:-1], "-o", label = labelName )
 
         labelName = regexVals[idx] + " $L^{\infty}$ Error_" + "h"
-        axMaxError.loglog( dxvals[:-1], curMaxErrorList[1:], "-o", label = labelName )
+        axMaxErrorNumNodes.loglog( numNodeVals[:-1], curMaxErrorList[1:], "-o", label = labelName )
+        axMaxErrorArea.loglog( areaVals[:-1], curMaxErrorList[1:], "-o", label = labelName )
 
         labelName = regexVals[idx] + " $L^{2}$ Error_" + "2h"
-        axL2Error.loglog( dxvals[:-1], curL2ErrorList[:-1], "-o", label = labelName )
+        axL2ErrorNumNodes.loglog( numNodeVals[:-1], curL2ErrorList[:-1], "-o", label = labelName )
+        axL2ErrorArea.loglog( areaVals[:-1], curL2ErrorList[:-1], "-o", label = labelName )
 
         labelName = regexVals[idx] + " $L^{2}$ Error_" + "h"
-        axL2Error.loglog( dxvals[:-1], curL2ErrorList[1:], "-o", label = labelName )
+        axL2ErrorNumNodes.loglog( numNodeVals[:-1], curL2ErrorList[1:], "-o", label = labelName )
+        axL2ErrorArea.loglog( areaVals[:-1], curL2ErrorList[1:], "-o", label = labelName )        
 
     h2vals = dxvals**2
 
-    axMaxError.loglog( dxvals[:-1], h2vals[:-1], "-x", label = "$h^2$" )
-    axL2Error.loglog( dxvals[:-1], h2vals[:-1], "-x", label = "$h^2$" )
+    axMaxErrorNumNodes.loglog( numNodeVals[:-1], h2vals[:-1], "-x", label = "$h^2$" )
+    axL2ErrorNumNodes.loglog( areaVals[:-1], h2vals[:-1], "-x", label = "$h^2$" )
+
+    axMaxErrorArea.loglog( numNodeVals[:-1], h2vals[:-1], "-x", label = "$h^2$" )
+    axL2ErrorArea.loglog( areaVals[:-1], h2vals[:-1], "-x", label = "$h^2$" )
     # axMaxError.legend()
     # axL2Error.legend()
 
-    box = axMaxError.get_position()
-    axMaxError.set_position([box.x0, box.y0 + box.height * 0.1,
-                    box.width, box.height * 0.9])
+    makePlotAdjustmentsAndSave( axMaxErrorNumNodes, figMaxErrorNumNodes, simPlotFolderName + "maxErrorNumNodes" + ".png" )
+    makePlotAdjustmentsAndSave( axL2ErrorNumNodes, figL2ErrorNumNodes, simPlotFolderName + "l2ErrorNumNodes" + ".png" )
 
-    # Put a legend below current axis
-    maxLgd = axMaxError.legend(loc=9, bbox_to_anchor=(0.5, -0.05),
-            fancybox=True, shadow=True, ncol=5)  
-    
-    textMaxError = axMaxError.text(-0.2,1.05, "         ", transform=axMaxError.transAxes)
-    
-    box = axL2Error.get_position()
-    axL2Error.set_position([box.x0, box.y0 + box.height * 0.1,
-                        box.width, box.height * 0.9])
-
-    # Put a legend below current axis
-    l2Lgd = axL2Error.legend(loc=9, bbox_to_anchor=(0.5, -0.05),
-            fancybox=True, shadow=True, ncol=5)
-    
-    textL2Error = axL2Error.text(-0.2,1.05, "         ", transform=axL2Error.transAxes)
-
-    figMaxError.savefig( simPlotFolderName + "maxError" + ".png", bbox_extra_artists=(maxLgd, textMaxError), bbox_inches = 'tight' )
-    figL2Error.savefig( simPlotFolderName + "l2Error" + ".png", bbox_extra_artists=(l2Lgd, textL2Error), bbox_inches = 'tight' )
+    makePlotAdjustmentsAndSave( axMaxErrorArea, figMaxErrorArea, simPlotFolderName + "maxErrorArea" + ".png" )
+    makePlotAdjustmentsAndSave( axL2ErrorArea, figL2ErrorArea, simPlotFolderName + "l2ErrorArea" + ".png" )
 
     errorDiffMax = [ allMaxErrorList[1][idx] - allMaxErrorList[0][idx] for idx in range( len(allMaxErrorList[0]) ) ]
     errorDiffL2 = [ allL2ErrorList[1][idx] - allL2ErrorList[0][idx] for idx in range( len(allL2ErrorList[0]) ) ]
@@ -620,11 +774,25 @@ def showFinchPlot( simPlotFolderName, regexVals ):
 
     return
 
+def plotMaxAndL2Error( axMaxErrorHandle, axL2ErrorHandle, xvals, maxError, l2Error, regexVal ):
+
+    labelName = regexVal + " $L^{\infty}$ Error_" + "2h"
+    axMaxErrorHandle.loglog( xvals[:-1], maxError[:-1], "-o", label = labelName )
+
+    labelName = regexVal + " $L^{\infty}$ Error_" + "h"
+    axMaxErrorHandle.loglog( xvals[:-1], maxError[1:], "-o", label = labelName )
+
+    labelName = regexVal + " $L^{2}$ Error_" + "2h"
+    axL2ErrorHandle.loglog( xvals, l2Error[:-1], "-o", label = labelName )
+
+    labelName = regexVal + " $L^{2}$ Error_" + "h"
+    axL2ErrorHandle.loglog( xvals, l2Error[1:], "-o", label = labelName )
+
 def showDealiiPlot( simPlotFolderName, regexVals ):
 
     checkAndCreateFolder( simPlotFolderName )
 
-    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfiletrianglestruct.txt"
+    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfiletriangleunstruct.txt"
 
     dxvals = []
 
@@ -658,10 +826,15 @@ def showDealiiPlot( simPlotFolderName, regexVals ):
     allMaxErrorList = []
     allL2ErrorList = []
 
-    figMaxError = plt.figure()
-    axMaxError = figMaxError.add_subplot(1, 1, 1)
-    figL2Error = plt.figure()
-    axL2Error = figL2Error.add_subplot(1, 1, 1)
+    figMaxErrorNumNodes = plt.figure()
+    axMaxErrorNumNodes = figMaxErrorNumNodes.add_subplot(1, 1, 1)
+    figL2ErrorNumNodes = plt.figure()
+    axL2ErrorNumNodes = figL2ErrorNumNodes.add_subplot(1, 1, 1)
+
+    figMaxErrorArea = plt.figure()
+    axMaxErrorArea = figMaxErrorArea.add_subplot(1, 1, 1)
+    figL2ErrorArea = plt.figure()
+    axL2ErrorArea = figL2ErrorArea.add_subplot(1, 1, 1)
 
     # print(allSortedMeshVals)
 
@@ -669,8 +842,14 @@ def showDealiiPlot( simPlotFolderName, regexVals ):
 
         curMaxErrorList = []
         curL2ErrorList = []
+        numNodeVals = []
+        areaVals = []
+        regexVal = regexVals[idx]
 
         for index, meshval in enumerate( sortedMeshVals ):
+
+            numNodeVals.append( getNumNodes( meshpath + meshval ) )
+            areaVals.append( getAverage2DArea( meshpath + meshval, regexVal ) )
 
             solvalsFileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, "solutionvaluesGaussModified_", ".h5" )
             
@@ -734,47 +913,17 @@ def showDealiiPlot( simPlotFolderName, regexVals ):
         allMaxErrorList.append( curMaxErrorList )
         allL2ErrorList.append( curL2ErrorList )
 
-        labelName = regexVals[idx] + " $L^{\infty}$ Error_" + "2h"
-        axMaxError.loglog( dxvals[:-1], curMaxErrorList[:-1], "-o", label = labelName )
-
-        labelName = regexVals[idx] + " $L^{\infty}$ Error_" + "h"
-        axMaxError.loglog( dxvals[:-1], curMaxErrorList[1:], "-o", label = labelName )
-
-        labelName = regexVals[idx] + " $L^{2}$ Error_" + "2h"
-        axL2Error.loglog( dxvals[:-1], curL2ErrorList[:-1], "-o", label = labelName )
-
-        labelName = regexVals[idx] + " $L^{2}$ Error_" + "h"
-        axL2Error.loglog( dxvals[:-1], curL2ErrorList[1:], "-o", label = labelName )
+        plotMaxAndL2Error( axMaxErrorNumNodes, axL2ErrorNumNodes, xvals, curMaxErrorList, curL2ErrorList, regexVal )
+        plotMaxAndL2Error( axMaxErrorArea, axL2ErrorArea, xvals, curMaxErrorList, curL2ErrorList, regexVal ) 
 
     h2vals = dxvals**2
 
-    axMaxError.loglog( dxvals[:-1], h2vals[:-1], "-x", label = "$h^2$" )
-    axL2Error.loglog( dxvals[:-1], h2vals[:-1], "-x", label = "$h^2$" )
-    # axMaxError.legend()
-    # axL2Error.legend()
+    print( areaVals )
+    makePlotAdjustmentsAndSave( axMaxErrorNumNodes, figMaxErrorNumNodes, simPlotFolderName + "maxErrorNumNodes" + ".png" )
+    makePlotAdjustmentsAndSave( axL2ErrorNumNodes, figL2ErrorNumNodes, simPlotFolderName + "l2ErrorNumNodes" + ".png" )
 
-    box = axMaxError.get_position()
-    axMaxError.set_position([box.x0, box.y0 + box.height * 0.1,
-                    box.width, box.height * 0.9])
-
-    # Put a legend below current axis
-    maxLgd = axMaxError.legend(loc=9, bbox_to_anchor=(0.5, -0.05),
-            fancybox=True, shadow=True, ncol=5)  
-    
-    textMaxError = axMaxError.text(-0.2,1.05, "         ", transform=axMaxError.transAxes)
-    
-    box = axL2Error.get_position()
-    axL2Error.set_position([box.x0, box.y0 + box.height * 0.1,
-                        box.width, box.height * 0.9])
-
-    # Put a legend below current axis
-    l2Lgd = axL2Error.legend(loc=9, bbox_to_anchor=(0.5, -0.05),
-            fancybox=True, shadow=True, ncol=5)
-    
-    textL2Error = axL2Error.text(-0.2,1.05, "         ", transform=axL2Error.transAxes)
-
-    figMaxError.savefig( simPlotFolderName + "maxError" + ".png", bbox_extra_artists=(maxLgd, textMaxError), bbox_inches = 'tight' )
-    figL2Error.savefig( simPlotFolderName + "l2Error" + ".png", bbox_extra_artists=(l2Lgd, textL2Error), bbox_inches = 'tight' )
+    makePlotAdjustmentsAndSave( axMaxErrorArea, figMaxErrorArea, simPlotFolderName + "maxErrorArea" + ".png" )
+    makePlotAdjustmentsAndSave( axL2ErrorArea, figL2ErrorArea, simPlotFolderName + "l2ErrorArea" + ".png" )
 
     errorDiffMax = [ allMaxErrorList[1][idx] - allMaxErrorList[0][idx] for idx in range( len(allMaxErrorList[0]) ) ]
     errorDiffL2 = [ allL2ErrorList[1][idx] - allL2ErrorList[0][idx] for idx in range( len(allL2ErrorList[0]) ) ]
@@ -797,11 +946,34 @@ def showDealiiPlot( simPlotFolderName, regexVals ):
 
     return
 
+def plotMaxAndL2ErrorComparison( axMaxErrorHandle, axL2ErrorHandle, xvals, maxError1,
+                                 maxError2, l2Error1, l2Error2, h2vals, label1, label2 ):
+
+
+    axMaxErrorHandle.loglog( xvals, maxError1, "-o", label = label1 + "$L^{\infty}$ Error_" + "h" )
+    axMaxErrorHandle.loglog( xvals, maxError2, "-o", label = label2 + "$L^{\infty}$ Error_" + "h" )
+
+    axL2ErrorHandle.loglog( xvals, l2Error1, "-o", label = label1 + "$L^{2}$ Error_" + "h" )
+    axL2ErrorHandle.loglog( xvals, l2Error2, "-o", label = label2 + "$L^{2}$ Error_" + "h" )
+
+    axMaxErrorHandle.loglog( xvals, h2vals, "-x", label = "$h^2$" )
+    axL2ErrorHandle.loglog( xvals, h2vals, "-x", label = "$h^2$" )
+
+def getMaxL2ErrorFigHandles():
+
+    figMaxError = plt.figure()
+    axMaxError = figMaxError.add_subplot(1, 1, 1)
+    figL2Error = plt.figure()
+    axL2Error = figL2Error.add_subplot(1, 1, 1)
+
+    return [ figMaxError, figL2Error, axMaxError, axL2Error ]
+
+
 def compareDealiiFinch( simPlotFolderName, regexVals ):
 
     checkAndCreateFolder( simPlotFolderName )
 
-    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfiletrianglestruct.txt"
+    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfiletriangleunstruct.txt"
 
     dxvals = []
 
@@ -851,13 +1023,19 @@ def compareDealiiFinch( simPlotFolderName, regexVals ):
 
         finchCurMaxErrorList = []
         finchCurL2ErrorList = []
+        numNodeVals = []
+        areaVals = []
 
-        figMaxError = plt.figure()
-        axMaxError = figMaxError.add_subplot(1, 1, 1)
-        figL2Error = plt.figure()
-        axL2Error = figL2Error.add_subplot(1, 1, 1)
+        [ figMaxErrorNumNodes, figL2ErrorNumNodes, axMaxErrorNumNodes, axL2ErrorNumNodes ] = \
+            getMaxL2ErrorFigHandles()
+
+        [ figMaxErrorArea, figL2ErrorArea, axMaxErrorArea, axL2ErrorArea ] = \
+            getMaxL2ErrorFigHandles()
 
         for index, meshval in enumerate( sortedMeshVals ):
+
+            numNodeVals.append( getNumNodes( meshpath + meshval ) )
+            areaVals.append( getAverage2DArea( meshpath + meshval, regexVal ) )
 
             dealiiSolvalsFileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, "solutionvaluesGaussModified_", ".h5" )
             
@@ -895,45 +1073,26 @@ def compareDealiiFinch( simPlotFolderName, regexVals ):
         finchAllMaxErrorList.append( finchCurMaxErrorList )
         finchAllL2ErrorList.append( finchCurL2ErrorList )
 
-        labelName = regexVals[idx] + " Dealii $L^{\infty}$ Error_" + "h"
-        axMaxError.loglog( dxvals[:], dealiiCurMaxErrorList[:], "-o", label = labelName )
-        labelName = regexVals[idx] + " Finch $L^{\infty}$ Error_" + "h"
-        axMaxError.loglog( dxvals[:], finchCurMaxErrorList[:], "-o", label = labelName )
+        label1 = regexVals[idx] + " Dealii "
+        label2 = regexVals[idx] + " Finch "
 
-        labelName = regexVals[idx] + " Dealii $L^{2}$ Error_" + "h"
-        axL2Error.loglog( dxvals[:], dealiiCurL2ErrorList[:], "-o", label = labelName )
-        labelName = regexVals[idx] + " Finch $L^{2}$ Error_" + "h"
-        axL2Error.loglog( dxvals[:], finchCurL2ErrorList[:], "-o", label = labelName )
-
-        axMaxError.loglog( dxvals[:], h2vals[:], "-x", label = "$h^2$" )
-        axL2Error.loglog( dxvals[:], h2vals[:], "-x", label = "$h^2$" )
-
-        box = axMaxError.get_position()
-        axMaxError.set_position([box.x0, box.y0 + box.height * 0.1,
-                        box.width, box.height * 0.9])
-
-        # Put a legend below current axis
-        maxLgd = axMaxError.legend(loc=9, bbox_to_anchor=(0.5, -0.05),
-                fancybox=True, shadow=True, ncol=5)  
+        plotMaxAndL2ErrorComparison( axMaxErrorNumNodes, axL2ErrorNumNodes, numNodeVals,
+                                     dealiiCurMaxErrorList, finchCurMaxErrorList, dealiiCurL2ErrorList,
+                                       finchCurL2ErrorList, h2vals, label1, label2 )
         
-        textMaxError = axMaxError.text(-0.2,1.05, "         ", transform=axMaxError.transAxes)
-        
-        box = axL2Error.get_position()
-        axL2Error.set_position([box.x0, box.y0 + box.height * 0.1,
-                            box.width, box.height * 0.9])
+        plotMaxAndL2ErrorComparison( axMaxErrorArea, axL2ErrorArea, areaVals, 
+                                    dealiiCurMaxErrorList, finchCurMaxErrorList, dealiiCurL2ErrorList, 
+                                    finchCurL2ErrorList, h2vals, label1, label2 )
 
-        # Put a legend below current axis
-        l2Lgd = axL2Error.legend(loc=9, bbox_to_anchor=(0.5, -0.05),
-                fancybox=True, shadow=True, ncol=5)
-        
-        textL2Error = axL2Error.text(-0.2,1.05, "         ", transform=axL2Error.transAxes)
 
         curPlotFolderName = simPlotFolderName + "Finch_Dealii_Comparison" + "/"
         checkAndCreateFolder( curPlotFolderName )
 
-        figMaxError.savefig( curPlotFolderName + regexVal + "_maxError" + ".png", bbox_extra_artists=(maxLgd, textMaxError), bbox_inches = 'tight' )
-        figL2Error.savefig( curPlotFolderName + regexVal + "_l2Error" + ".png", bbox_extra_artists=(l2Lgd, textL2Error), bbox_inches = 'tight' )
-    
+        makePlotAdjustmentsAndSave( axMaxErrorNumNodes, figMaxErrorNumNodes,
+                                    curPlotFolderName + regexVal + "_maxErrorNumNodes" + ".png" )
+        makePlotAdjustmentsAndSave( axMaxErrorArea, figMaxErrorArea,
+                                    curPlotFolderName + regexVal + "_l2Error" + ".png" )
+        
     plt.show()
 
     return
@@ -1041,16 +1200,18 @@ if __name__ == "__main__":
 
     # gmshFileCmdNames = ["triangleMeshv1", "triangleMeshv2"]
     # regexVals = ["triangleMeshStruct", "triangleMeshUnstruct"]
-    regexVals = ["triangleMeshUnstruct", "triangleMeshStruct"]
-    gmshFileCmdNames = ["triangleMeshv2", "triangleMeshv1"]
+    regexVals = ["triangleMeshUnstruct", "regular"]
+    gmshFileCmdNames = ["triangleMeshv2", "regularMeshv3"]
+    # gmshFileCmdNames = ["hangingMeshv8"]
+    # regexVals = ["hanging"]
 
-    simPlotRootFolderName = gmshImageFolderName + "Plot23_2pi/"
-    meshPlotRootFolderName = gmshImageFolderName + "MeshPlots23_2pi/"
+    simPlotRootFolderName = gmshImageFolderName + "PlotNumNodes_2pi/"
+    # meshPlotRootFolderName = gmshImageFolderName + "MeshPlots28_2pi/"
 
     # showMeshes( meshPlotRootFolderName, regexVals )
 
-    runSim( simPlotRootFolderName, gmshFileCmdNames, regexVals )
-    createMeshVTU( meshPlotRootFolderName, regexVals )
+    # runSim( simPlotRootFolderName, gmshFileCmdNames, regexVals )
+    # createMeshVTU( meshPlotRootFolderName, regexVals )
     compareDealiiFinch( simPlotRootFolderName, regexVals )
 
     simPlotFolderName = simPlotRootFolderName + "Dealii/"
@@ -1062,4 +1223,8 @@ if __name__ == "__main__":
     # showParaviewPlot( simPlotFolderName, regexVals )
     # showplot( simPlotFolderName, regexVals )
     # compareParaview( simPlotFolderName, regexVals )
+
+    # fileval = "/home/gaurav/gmshAutoScripts/build/triangleMeshStructN=25.msh"
+
+    # getNumNodes( fileval )
 

@@ -17,7 +17,6 @@
  * Author: Wolfgang Bangerth, University of Heidelberg, 1999
  */
 
-
 // @sect3{Include files}
 
 // Again, the first few include files are already known, so we won't comment
@@ -67,48 +66,46 @@ template <int dim>
 class RightHandSide : public Function<dim>
 {
 public:
-  virtual double value(const Point<dim> & p,
-                        const unsigned int component = 0) const override;
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
 };
-
-
 
 template <int dim>
 class BoundaryValues : public Function<dim>
 {
 public:
-  virtual double value(const Point<dim> & p,
-                        const unsigned int component = 0) const override;
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
 };
-
 
 template <int dim>
 void print_mesh_info(const Triangulation<dim> &triangulation,
-                     const std::string &       filename)
+                     const std::string &filename)
 {
   std::cout << "Mesh info:" << std::endl
             << " dimension: " << dim << std::endl
             << " no. of cells: " << triangulation.n_active_cells() << std::endl;
- 
+
   {
     std::map<types::boundary_id, unsigned int> boundary_count;
     for (const auto &face : triangulation.active_face_iterators())
       if (face->at_boundary())
         boundary_count[face->boundary_id()]++;
- 
+
     std::cout << " boundary indicators: ";
     for (const std::pair<const types::boundary_id, unsigned int> &pair :
          boundary_count)
-      {
-        std::cout << pair.first << '(' << pair.second << " times) ";
-      }
+    {
+      std::cout << pair.first << '(' << pair.second << " times) ";
+    }
     std::cout << std::endl;
   }
- 
+
   std::ofstream out(filename);
-  GridOut       grid_out;
+  GridOut grid_out;
   grid_out.write_vtu(triangulation, out);
-  std::cout << " written to " << filename << std::endl << std::endl;
+  std::cout << " written to " << filename << std::endl
+            << std::endl;
 }
 
 // @sect3{The <code>Step5</code> class template}
@@ -122,23 +119,23 @@ template <int dim>
 class Step5
 {
 public:
-  Step5( FiniteElement<dim>& finiteElement, const Quadrature<dim>& quadObj );
-  void run( std::string filename );
+  Step5(FiniteElement<dim> &finiteElement, const Quadrature<dim> &quadObj);
+  void run(std::string filename);
 
 private:
   void setup_system();
   void assemble_system();
   void solve();
-  void output_results( std::string meshFileName ) const;
+  void output_results(std::string meshFileName) const;
 
   Triangulation<dim> triangulation;
   // FE_Q<dim>          fe;
-  const MappingFE<2>     mapping;
-  FiniteElement<2>&   fe;
-  const Quadrature<2>& quadrature_formula;
-  DoFHandler<dim>    dof_handler;
+  const MappingFE<2> mapping;
+  FiniteElement<2> &fe;
+  const Quadrature<2> &quadrature_formula;
+  DoFHandler<dim> dof_handler;
 
-  SparsityPattern      sparsity_pattern;
+  SparsityPattern sparsity_pattern;
   SparseMatrix<double> system_matrix;
 
   Vector<double> solution;
@@ -147,12 +144,13 @@ private:
 
 template <int dim>
 double RightHandSide<dim>::value(const Point<dim> &p,
-                                  const unsigned int /*component*/) const
+                                 const unsigned int /*component*/) const
 {
   double return_value = 0.0;
-  
-  if( dim == 2 ) {
-    return_value = -8*std::pow( PI, 2 )*sin( 2*PI*p[0] )*sin( 2*PI*p[1] );
+
+  if (dim == 2)
+  {
+    return_value = -8 * std::pow(PI, 2) * sin(2 * PI * p[0]) * sin(2 * PI * p[1]);
   }
 
   return return_value;
@@ -165,8 +163,9 @@ double BoundaryValues<dim>::value(const Point<dim> &p,
 
   double return_value = 0.0;
 
-  if( dim == 2 ) {
-    return_value = sin( 2*PI*p[0] )*sin( 2*PI*p[1] );
+  if (dim == 2)
+  {
+    return_value = sin(2 * PI * p[0]) * sin(2 * PI * p[1]);
   }
 
   return return_value;
@@ -183,14 +182,10 @@ double BoundaryValues<dim>::value(const Point<dim> &p,
 //   , dof_handler(triangulation)
 // {}
 template <int dim>
-Step5<dim>::Step5( FiniteElement<dim>& finiteElement, const Quadrature<dim>& quadObj )
-  : mapping( finiteElement )
-  , fe( finiteElement )
-  , quadrature_formula( quadObj )
-  , dof_handler(triangulation)
-{}
- 
-
+Step5<dim>::Step5(FiniteElement<dim> &finiteElement, const Quadrature<dim> &quadObj)
+    : mapping(finiteElement), fe(finiteElement), quadrature_formula(quadObj), dof_handler(triangulation)
+{
+}
 
 // @sect4{Step5::setup_system}
 
@@ -214,8 +209,6 @@ void Step5<dim>::setup_system()
   system_rhs.reinit(dof_handler.n_dofs());
 }
 
-
-
 // @sect4{Step5::assemble_system}
 
 // As in the previous examples, this function is not changed much with regard
@@ -236,12 +229,12 @@ void Step5<dim>::assemble_system()
                           fe,
                           quadrature_formula,
                           update_values | update_gradients |
-                            update_quadrature_points | update_JxW_values);
+                              update_quadrature_points | update_JxW_values);
 
   const unsigned int dofs_per_cell = fe.n_dofs_per_cell();
 
   FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
-  Vector<double>     cell_rhs(dofs_per_cell);
+  Vector<double> cell_rhs(dofs_per_cell);
 
   std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
@@ -251,58 +244,56 @@ void Step5<dim>::assemble_system()
   // <code>coefficient()</code> function defined above to compute the
   // coefficient value at each quadrature point.
   for (const auto &cell : dof_handler.active_cell_iterators())
+  {
+    cell_matrix = 0.;
+    cell_rhs = 0.;
+
+    fe_values.reinit(cell);
+
+    for (const unsigned int q_index : fe_values.quadrature_point_indices())
     {
-      cell_matrix = 0.;
-      cell_rhs    = 0.;
 
-      fe_values.reinit(cell);
-
-      for (const unsigned int q_index : fe_values.quadrature_point_indices())
-        {
-
-          for (const unsigned int i : fe_values.dof_indices())
-            {
-              for (const unsigned int j : fe_values.dof_indices())
-                cell_matrix(i, j) +=
-                  (fe_values.shape_grad(i, q_index) * // grad phi_i(x_q)
-                   fe_values.shape_grad(j, q_index) * // grad phi_j(x_q)
-                   fe_values.JxW(q_index));           // dx
-
-              const auto &x_q = fe_values.quadrature_point(q_index);
-              cell_rhs(i) += (fe_values.shape_value(i, q_index) * // phi_i(x_q)
-                              right_hand_side.value( x_q ) *                               // f(x_q)
-                              fe_values.JxW(q_index));            // dx
-            }
-        }
-
-
-      cell->get_dof_indices(local_dof_indices);
       for (const unsigned int i : fe_values.dof_indices())
-        {
-          for (const unsigned int j : fe_values.dof_indices())
-            system_matrix.add(local_dof_indices[i],
-                              local_dof_indices[j],
-                              cell_matrix(i, j));
+      {
+        for (const unsigned int j : fe_values.dof_indices())
+          cell_matrix(i, j) +=
+              (fe_values.shape_grad(i, q_index) * // grad phi_i(x_q)
+               fe_values.shape_grad(j, q_index) * // grad phi_j(x_q)
+               fe_values.JxW(q_index));           // dx
 
-          system_rhs(local_dof_indices[i]) += cell_rhs(i);
-        }
+        const auto &x_q = fe_values.quadrature_point(q_index);
+        cell_rhs(i) += (fe_values.shape_value(i, q_index) * // phi_i(x_q)
+                        right_hand_side.value(x_q) *        // f(x_q)
+                        fe_values.JxW(q_index));            // dx
+      }
     }
+
+    cell->get_dof_indices(local_dof_indices);
+    for (const unsigned int i : fe_values.dof_indices())
+    {
+      for (const unsigned int j : fe_values.dof_indices())
+        system_matrix.add(local_dof_indices[i],
+                          local_dof_indices[j],
+                          cell_matrix(i, j));
+
+      system_rhs(local_dof_indices[i]) += cell_rhs(i);
+    }
+  }
 
   // With the matrix so built, we use zero boundary values again:
   std::map<types::global_dof_index, double> boundary_values;
   VectorTools::interpolate_boundary_values(mapping,
-                                          dof_handler,
+                                           dof_handler,
                                            0,
                                            BoundaryValues<dim>(),
                                            boundary_values);
-                                           
-  MatrixTools::apply_boundary_values(
-                                     boundary_values,
-                                     system_matrix,
-                                     solution,
-                                     system_rhs);
-}
 
+  MatrixTools::apply_boundary_values(
+      boundary_values,
+      system_matrix,
+      solution,
+      system_rhs);
+}
 
 // @sect4{Step5::solve}
 
@@ -334,7 +325,7 @@ void Step5<dim>::assemble_system()
 template <int dim>
 void Step5<dim>::solve()
 {
-  SolverControl            solver_control(1000, 1e-12);
+  SolverControl solver_control(1000, 1e-12);
   SolverCG<Vector<double>> solver(solver_control);
 
   PreconditionSSOR<SparseMatrix<double>> preconditioner;
@@ -345,7 +336,6 @@ void Step5<dim>::solve()
   std::cout << "   " << solver_control.last_step()
             << " CG iterations needed to obtain convergence." << std::endl;
 }
-
 
 // @sect4{Step5::output_results and setting output flags}
 
@@ -359,13 +349,13 @@ void Step5<dim>::solve()
 // desire to use a program for visualization that doesn't understand
 // VTK or VTU.
 template <int dim>
-void Step5<dim>::output_results( std::string meshFileName ) const
+void Step5<dim>::output_results(std::string meshFileName) const
 {
 
   std::string textfoldername{"/media/gaurav/easystore/dealii/MixedElement/TextFiles/"};
 
   std::regex regexVal("triangleMeshStruct|triangleMeshUnstruct|triangle|regular|mixed",
-            std::regex_constants::ECMAScript | std::regex_constants::icase);
+                      std::regex_constants::ECMAScript | std::regex_constants::icase);
 
   std::smatch meshTypeMatch;
   std::regex_search(meshFileName, meshTypeMatch, regexVal);
@@ -373,9 +363,10 @@ void Step5<dim>::output_results( std::string meshFileName ) const
   std::string prefixVal = meshTypeMatch.str();
   std::string solutionFileName;
 
-  std::vector<std::string> regularMeshTypes{ "triangleMeshStruct", "triangleMeshUnstruct", "triangle", "regular" };
+  std::vector<std::string> regularMeshTypes{"triangleMeshStruct", "triangleMeshUnstruct", "triangle", "regular"};
 
-  if( std::find( regularMeshTypes.begin(), regularMeshTypes.end(), prefixVal ) != regularMeshTypes.end() ) {
+  if (std::find(regularMeshTypes.begin(), regularMeshTypes.end(), prefixVal) != regularMeshTypes.end())
+  {
 
     std::regex re("N=");
     std::smatch m;
@@ -388,14 +379,13 @@ void Step5<dim>::output_results( std::string meshFileName ) const
 
     prefixVal = prefixVal + "_";
 
-    solutionFileName = textfoldername + prefixVal  + "solutionvaluesGaussModified_N=" + Nval;
+    solutionFileName = textfoldername + prefixVal + "solutionvaluesGaussModified_N=" + Nval;
     std::cout << solutionFileName << std::endl;
-
   }
-  else if( prefixVal == "mixed" ) {
+  else if (prefixVal == "mixed")
+  {
 
     /* To be implemented later */
-
   }
 
   DataOut<dim> data_out;
@@ -404,7 +394,7 @@ void Step5<dim>::output_results( std::string meshFileName ) const
   data_out.add_data_vector(solution, "solution");
   data_out.build_patches(mapping);
 
-  std::ofstream output( solutionFileName + ".vtu" );
+  std::ofstream output(solutionFileName + ".vtu");
   data_out.write_vtu(output);
 
   const std::string filename_h5 = solutionFileName + ".h5";
@@ -412,10 +402,7 @@ void Step5<dim>::output_results( std::string meshFileName ) const
   DataOutBase::DataOutFilter data_filter(flags);
   data_out.write_filtered_data(data_filter);
   data_out.write_hdf5_parallel(data_filter, filename_h5, MPI_COMM_WORLD);
-
 }
-
-
 
 // @sect4{Step5::run}
 
@@ -438,117 +425,116 @@ void Step5<dim>::output_results( std::string meshFileName ) const
 // triangulation object when we ask it to read the file). Then we open the
 // respective file and initialize the triangulation with the data in the file:
 template <int dim>
-void Step5<dim>::run( std::string filename )
+void Step5<dim>::run(std::string filename)
 {
   GridIn<dim> grid_in;
   grid_in.attach_triangulation(triangulation);
 
-    std::ifstream input_file( filename );
-    // We would now like to read the file. However, the input file is only for a
-    // two-dimensional triangulation, while this function is a template for
-    // arbitrary dimension. Since this is only a demonstration program, we will
-    // not use different input files for the different dimensions, but rather
-    // quickly kill the whole program if we are not in 2d. Of course, since the
-    // main function below assumes that we are working in two dimensions we
-    // could skip this check, in this version of the program, without any ill
-    // effects.
-    //
-    // It turns out that more than 90 per cent of programming errors are invalid
-    // function parameters such as invalid array sizes, etc, so we use
-    // assertions heavily throughout deal.II to catch such mistakes. For this,
-    // the <code>Assert</code> macro is a good choice, since it makes sure that
-    // the condition which is given as first argument is valid, and if not
-    // throws an exception (its second argument) which will usually terminate
-    // the program giving information where the error occurred and what the
-    // reason was. (A longer discussion of what exactly the @p Assert macro
-    // does can be found in the @ref Exceptions "exception documentation module".)
-    // This generally reduces the time to find programming errors
-    // dramatically and we have found assertions an invaluable means to program
-    // fast.
-    //
-    // On the other hand, all these checks (there are over 10,000 of them in the
-    // library at present) should not slow down the program too much if you want
-    // to do large computations. To this end, the <code>Assert</code> macro is
-    // only used in debug mode and expands to nothing if in optimized
-    // mode. Therefore, while you test your program on small problems and debug
-    // it, the assertions will tell you where the problems are. Once your
-    // program is stable, you can switch off debugging and the program will run
-    // your real computations without the assertions and at maximum speed. More
-    // precisely: turning off all the checks in the library (which prevent you
-    // from calling functions with wrong arguments, walking off of arrays, etc.)
-    // by compiling your program in optimized mode usually makes things run
-    // about four times faster. Even though optimized programs are more
-    // performant, we still recommend developing in debug mode since it allows
-    // the library to find lots of common programming errors automatically. For
-    // those who want to try: The way to switch from debug mode to optimized
-    // mode is to recompile your program with the command <code>make
-    // release</code>. The output of the <code>make</code> program should now
-    // indicate to you that the program is now compiled in optimized mode, and
-    // it will later also be linked to libraries that have been compiled for
-    // optimized mode. In order to switch back to debug mode, simply recompile
-    // with the command <code>make debug</code>.
-    Assert(dim == 2, ExcInternalError());
-    // ExcInternalError is a globally defined exception, which may be thrown
-    // whenever something is terribly wrong. Usually, one would like to use more
-    // specific exceptions, and particular in this case one would of course try
-    // to do something else if <code>dim</code> is not equal to two, e.g. create
-    // a grid using library functions. Aborting a program is usually not a good
-    // idea and assertions should really only be used for exceptional cases
-    // which should not occur, but might due to stupidity of the programmer,
-    // user, or someone else. The situation above is not a very clever use of
-    // Assert, but again: this is a tutorial and it might be worth to show what
-    // not to do, after all.
+  std::ifstream input_file(filename);
+  // We would now like to read the file. However, the input file is only for a
+  // two-dimensional triangulation, while this function is a template for
+  // arbitrary dimension. Since this is only a demonstration program, we will
+  // not use different input files for the different dimensions, but rather
+  // quickly kill the whole program if we are not in 2d. Of course, since the
+  // main function below assumes that we are working in two dimensions we
+  // could skip this check, in this version of the program, without any ill
+  // effects.
+  //
+  // It turns out that more than 90 per cent of programming errors are invalid
+  // function parameters such as invalid array sizes, etc, so we use
+  // assertions heavily throughout deal.II to catch such mistakes. For this,
+  // the <code>Assert</code> macro is a good choice, since it makes sure that
+  // the condition which is given as first argument is valid, and if not
+  // throws an exception (its second argument) which will usually terminate
+  // the program giving information where the error occurred and what the
+  // reason was. (A longer discussion of what exactly the @p Assert macro
+  // does can be found in the @ref Exceptions "exception documentation module".)
+  // This generally reduces the time to find programming errors
+  // dramatically and we have found assertions an invaluable means to program
+  // fast.
+  //
+  // On the other hand, all these checks (there are over 10,000 of them in the
+  // library at present) should not slow down the program too much if you want
+  // to do large computations. To this end, the <code>Assert</code> macro is
+  // only used in debug mode and expands to nothing if in optimized
+  // mode. Therefore, while you test your program on small problems and debug
+  // it, the assertions will tell you where the problems are. Once your
+  // program is stable, you can switch off debugging and the program will run
+  // your real computations without the assertions and at maximum speed. More
+  // precisely: turning off all the checks in the library (which prevent you
+  // from calling functions with wrong arguments, walking off of arrays, etc.)
+  // by compiling your program in optimized mode usually makes things run
+  // about four times faster. Even though optimized programs are more
+  // performant, we still recommend developing in debug mode since it allows
+  // the library to find lots of common programming errors automatically. For
+  // those who want to try: The way to switch from debug mode to optimized
+  // mode is to recompile your program with the command <code>make
+  // release</code>. The output of the <code>make</code> program should now
+  // indicate to you that the program is now compiled in optimized mode, and
+  // it will later also be linked to libraries that have been compiled for
+  // optimized mode. In order to switch back to debug mode, simply recompile
+  // with the command <code>make debug</code>.
+  Assert(dim == 2, ExcInternalError());
+  // ExcInternalError is a globally defined exception, which may be thrown
+  // whenever something is terribly wrong. Usually, one would like to use more
+  // specific exceptions, and particular in this case one would of course try
+  // to do something else if <code>dim</code> is not equal to two, e.g. create
+  // a grid using library functions. Aborting a program is usually not a good
+  // idea and assertions should really only be used for exceptional cases
+  // which should not occur, but might due to stupidity of the programmer,
+  // user, or someone else. The situation above is not a very clever use of
+  // Assert, but again: this is a tutorial and it might be worth to show what
+  // not to do, after all.
 
-    // So if we got past the assertion, we know that dim==2, and we can now
-    // actually read the grid. It is in UCD (unstructured cell data) format
-    // (though the convention is to use the suffix <code>inp</code> for UCD
-    // files):
-    grid_in.read_msh( input_file );
-    // grid_in.read_ucd(input_file);
-    // If you like to use another input format, you have to use one of the other
-    // <code>grid_in.read_xxx</code> function. (See the documentation of the
-    // <code>GridIn</code> class to find out what input formats are presently
-    // supported.)
+  // So if we got past the assertion, we know that dim==2, and we can now
+  // actually read the grid. It is in UCD (unstructured cell data) format
+  // (though the convention is to use the suffix <code>inp</code> for UCD
+  // files):
+  grid_in.read_msh(input_file);
+  // grid_in.read_ucd(input_file);
+  // If you like to use another input format, you have to use one of the other
+  // <code>grid_in.read_xxx</code> function. (See the documentation of the
+  // <code>GridIn</code> class to find out what input formats are presently
+  // supported.)
 
-    // The grid in the file describes a circle. Therefore we have to use a
-    // manifold object which tells the triangulation where to put new points on
-    // the boundary when the grid is refined. Unlike step-1, since GridIn does
-    // not know that the domain has a circular boundary (unlike
-    // GridGenerator::hyper_shell) we have to explicitly attach a manifold to
-    // the boundary after creating the triangulation to get the correct result
-    // when we refine the mesh.
-    // const SphericalManifold<dim> boundary;
-    // triangulation.set_all_manifold_ids_on_boundary(0);
-    // triangulation.set_manifold(0, boundary);
+  // The grid in the file describes a circle. Therefore we have to use a
+  // manifold object which tells the triangulation where to put new points on
+  // the boundary when the grid is refined. Unlike step-1, since GridIn does
+  // not know that the domain has a circular boundary (unlike
+  // GridGenerator::hyper_shell) we have to explicitly attach a manifold to
+  // the boundary after creating the triangulation to get the correct result
+  // when we refine the mesh.
+  // const SphericalManifold<dim> boundary;
+  // triangulation.set_all_manifold_ids_on_boundary(0);
+  // triangulation.set_manifold(0, boundary);
 
-    print_mesh_info( triangulation, "grid.vtu" );
-    // std::cout << "   Number of active cells: "  //
-    //           << triangulation.n_active_cells() //
-    //           << std::endl                      //
-    //           << "   Total number of cells: "   //
-    //           << triangulation.n_cells()        //
-    //           << std::endl;
+  print_mesh_info(triangulation, "grid.vtu");
+  // std::cout << "   Number of active cells: "  //
+  //           << triangulation.n_active_cells() //
+  //           << std::endl                      //
+  //           << "   Total number of cells: "   //
+  //           << triangulation.n_cells()        //
+  //           << std::endl;
 
-    setup_system();
-    assemble_system();
-    solve();
-    output_results( filename );
-  
+  setup_system();
+  assemble_system();
+  solve();
+  output_results(filename);
 }
 
 // template<typename dim>
-void runFEM( FiniteElement<2>& fem, const Quadrature<2>& quadObj, std::string filename ) {
+void runFEM(FiniteElement<2> &fem, const Quadrature<2> &quadObj, std::string filename)
+{
 
-  Step5<2> laplace_problem_2d( fem, quadObj );
-  laplace_problem_2d.run( filename );
-
+  Step5<2> laplace_problem_2d(fem, quadObj);
+  laplace_problem_2d.run(filename);
 }
 
 // @sect3{The <code>main</code> function}
 
 // The main function looks mostly like the one in the previous example, so we
 // won't comment on it further:
-int main( int argc, char* argv[])
+int main(int argc, char *argv[])
 {
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
@@ -556,33 +542,92 @@ int main( int argc, char* argv[])
   std::string filename = "/home/gaurav/gmshAutoScripts/build/triangleMeshStructN=25.msh";
 
   std::regex tri_regex("triangle",
-            std::regex_constants::ECMAScript | std::regex_constants::icase);
+                       std::regex_constants::ECMAScript | std::regex_constants::icase);
 
   std::regex quad_regex("regular",
-            std::regex_constants::ECMAScript | std::regex_constants::icase);
+                        std::regex_constants::ECMAScript | std::regex_constants::icase);
 
+  int idx = 0
 
-  for (const auto & filenameObj : fs::directory_iterator(path)) {
+      for (const auto &filenameObj : fs::directory_iterator(path))
+  {
 
     filename = filenameObj.path();
 
-    if (std::regex_search(filename, tri_regex)) {
-      FE_SimplexP<2> fem( 1 );
-      const QGaussSimplex<2> quadrature_formula( fem.degree + 1 );
-      runFEM( fem, quadrature_formula, filename );
+    if (std::regex_search(filename, tri_regex))
+    {
+      FE_SimplexP<2> fem(1);
+      const QGaussSimplex<2> quadrature_formula(fem.degree + 1);
 
+      runFEM(fem, quadrature_formula, filename);
+
+      const std::vector<Point<dim>> quadraturePoints = quadrature_formula.get_points();
+      const std::vector<double> quadratureWeights = quadrature_formula.get_weights();
+
+      std::cout << "idx = " << idx << " filename = " + filename << "\n";
+
+      std::ofstream fileHandle("pointValuesTriangle_idx=" + std::to_string(idx) + ".txt", std::ios::out);
+
+      fileHandle << filename << "\n";
+      fileHandle << "Points Start Here \n";
+
+      for (auto &pt : quadraturePoints)
+      {
+
+        fileHandle << pt[0] << "\t" << pt[1] << "\n";
+      }
+
+      fileHandle << "Points End Here \n";
+
+      fileHandle << "Weights Start Here \n";
+
+      for (auto &wt : quadratureWeights)
+      {
+
+        fileHandle << wt << "\n";
+      }
+
+      fileHandle << "Weights End Here \n";
     }
-    else if (std::regex_search(filename, quad_regex)) {
-        FE_Q<2> fem( 1 );
-        const QGauss<2> quadrature_formula( fem.degree + 1 );
-        runFEM( fem, quadrature_formula, filename );
+    else if (std::regex_search(filename, quad_regex))
+    {
+      FE_Q<2> fem(1);
+      const QGauss<2> quadrature_formula(fem.degree + 1);
+      runFEM(fem, quadrature_formula, filename);
+
+      const std::vector<Point<dim>> quadraturePoints = quadrature_formula.get_points();
+      const std::vector<double> quadratureWeights = quadrature_formula.get_weights();
+
+      std::cout << "idx = " << idx << " filename = " + filename << "\n";
+
+      std::ofstream fileHandle("pointValuesQuad_idx=" + std::to_string(idx) + ".txt", std::ios::out);
+
+      fileHandle << filename << "\n";
+      fileHandle << "Points Start Here \n";
+
+      for (auto &pt : quadraturePoints)
+      {
+
+        fileHandle << pt[0] << "\t" << pt[1] << "\n";
+      }
+
+      fileHandle << "Points End Here \n";
+
+      fileHandle << "Weights Start Here \n";
+
+      for (auto &wt : quadratureWeights)
+      {
+
+        fileHandle << wt << "\n";
+      }
+
+      fileHandle << "Weights End Here \n";
     }
 
-
+    idx += 1;
 
     // std::cout << filename << std::endl;
     // laplace_problem_2d.run( filename );
-
   }
   return 0;
 }
