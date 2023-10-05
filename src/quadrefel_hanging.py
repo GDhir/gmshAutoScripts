@@ -1,58 +1,49 @@
 import numpy as np
 from scipy.linalg import solve
 
-def runconf1():
+def runconf():
 
     A = np.zeros( [5, 5] )
 
-    zetavals = [ -1, 0, 1, 1, -1 ]
-    etavals = [ -1, -1, -1, 1, 1 ]
+    hangingNodeLocs = [ (0, -1), (1, 0), (0, 1), (-1, 0) ]
+    basisvals = [ "zetavals[idx]**2", "etavals[idx]**2",  "( zetavals[idx]**2 )*( etavals[idx] )",  "zetavals[idx]*( etavals[idx]**2 )" ]
 
-    for idx in range(5):
-        A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], zetavals[idx]**2 ]
+    for locIdx in range(4):
 
-    for idx in range(5):
+        zetavals = [ -1, 1, 1, -1 ]
+        etavals = [ -1, -1, 1, 1 ]
 
-        b = np.zeros( [5, 1] )
-        b[idx, 0] = 1
-        c = solve( A, b )
+        zetavals.insert( locIdx + 1, hangingNodeLocs[locIdx][0] )
+        etavals.insert( locIdx + 1, hangingNodeLocs[locIdx][1] )
 
-        print(np.transpose(c))
+        print( "Starting Hanging Node Location " + str( hangingNodeLocs[locIdx] ) + "\n" )
+        print( "**********************************************************************" )
 
-    # for idx in range(5):
-    #     A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], etavals[idx]**2 ]
+        for basisval in basisvals:
 
-    # for idx in range(5):
+            print("Starting Basis " + basisval + "\n" )
 
-    #     b = np.zeros( [5, 1] )
-    #     b[idx, 0] = 1
-    #     c = solve( A, b )
+            for idx in range(5):
+                A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], eval( basisval ) ]
 
-    #     print(np.transpose(c))
+            for idx in range(5):
 
-    print("end")
+                b = np.zeros( [5, 1] )
+                b[idx, 0] = 1
 
-    for idx in range(5):
-        A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], ( zetavals[idx]**2 )*( etavals[idx] ) ]
+                try:
+                    c = solve( A, b )
+                except np.linalg.LinAlgError:
 
-    for idx in range(5):
+                    print( "Configuration with hanging node loc " + str( hangingNodeLocs[locIdx] ) + " and basis value " + basisval + " is singular \n" )
+                    break
 
-        b = np.zeros( [5, 1] )
-        b[idx, 0] = 1
-        c = solve( A, b )
+                print(np.transpose(c))
 
-        print(np.transpose(c))
+            print("Ending Basis " + basisval + "\n" )
 
-    # for idx in range(5):
-    #     A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], zetavals[idx]*( etavals[idx]**2 ) ]
-
-    # for idx in range(5):
-
-    #     b = np.zeros( [5, 1] )
-    #     b[idx, 0] = 1
-    #     c = solve( A, b )
-
-    #     print(np.transpose(c))
+        print( "**********************************************************************" )
+        print( "Ending Hanging Node Location " + str( hangingNodeLocs[locIdx] ) + "\n" )
 
     # A[ 0, : ] = [ 1, -1, -1, 1, 1 ]
     # A[ 1, : ] = [ 1, 0, -1, 0, 0 ]
@@ -61,173 +52,7 @@ def runconf1():
     # A[ 4, : ] = [ 1, -1, 1, -1, 1 ]
     
 
-def runconf2():
-
-    A = np.zeros( [5, 5] )
-
-    zetavals = [ -1, 1, 1, 1, -1 ]
-    etavals = [ -1, -1, 0, 1, 1 ]
-
-    # for idx in range(5):
-    #     A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], zetavals[idx]**2 ]
-
-    # for idx in range(5):
-
-    #     b = np.zeros( [5, 1] )
-    #     b[idx, 0] = 1
-    #     c = solve( A, b )
-
-    #     print(np.transpose(c))
-
-    for idx in range(5):
-        A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], etavals[idx]**2 ]
-
-    for idx in range(5):
-
-        b = np.zeros( [5, 1] )
-        b[idx, 0] = 1
-        c = solve( A, b )
-
-        print(np.transpose(c))
-
-    print("end")
-
-    # for idx in range(5):
-    #     A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], ( zetavals[idx]**2 )*( etavals[idx] ) ]
-
-    # for idx in range(5):
-
-    #     b = np.zeros( [5, 1] )
-    #     b[idx, 0] = 1
-    #     c = solve( A, b )
-
-    #     print(np.transpose(c))
-
-    for idx in range(5):
-        A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], zetavals[idx]*( etavals[idx]**2 ) ]
-
-    for idx in range(5):
-
-        b = np.zeros( [5, 1] )
-        b[idx, 0] = 1
-        c = solve( A, b )
-
-        print(np.transpose(c))
-
-def runconf3():
-
-    A = np.zeros( [5, 5] )
-
-    zetavals = [ -1, 1, 1, 0, -1 ]
-    etavals = [ -1, -1, 1, 1, 1 ]
-
-    for idx in range(5):
-        A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], zetavals[idx]**2 ]
-
-    for idx in range(5):
-
-        b = np.zeros( [5, 1] )
-        b[idx, 0] = 1
-        c = solve( A, b )
-
-        print(np.transpose(c))
-
-    # for idx in range(5):
-    #     A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], etavals[idx]**2 ]
-
-    # for idx in range(5):
-
-    #     b = np.zeros( [5, 1] )
-    #     b[idx, 0] = 1
-    #     c = solve( A, b )
-
-    #     print(np.transpose(c))
-
-    print("end")
-
-    for idx in range(5):
-        A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], ( zetavals[idx]**2 )*( etavals[idx] ) ]
-
-    for idx in range(5):
-
-        b = np.zeros( [5, 1] )
-        b[idx, 0] = 1
-        c = solve( A, b )
-
-        print(np.transpose(c))
-
-    # for idx in range(5):
-    #     A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], zetavals[idx]*( etavals[idx]**2 ) ]
-
-    # for idx in range(5):
-
-    #     b = np.zeros( [5, 1] )
-    #     b[idx, 0] = 1
-    #     c = solve( A, b )
-
-    #     print(np.transpose(c))
-
-def runconf4():
-    A = np.zeros( [5, 5] )
-
-    zetavals = [ -1, 1, 1, -1, -1 ]
-    etavals = [ -1, -1, 1, 1, 0 ]
-
-    # for idx in range(5):
-    #     A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], zetavals[idx]**2 ]
-
-    # for idx in range(5):
-
-    #     b = np.zeros( [5, 1] )
-    #     b[idx, 0] = 1
-    #     c = solve( A, b )
-
-    #     print(np.transpose(c))
-
-    for idx in range(5):
-        A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], etavals[idx]**2 ]
-
-    for idx in range(5):
-
-        b = np.zeros( [5, 1] )
-        b[idx, 0] = 1
-        c = solve( A, b )
-
-        print(np.transpose(c))
-
-    print("end")
-
-    # for idx in range(5):
-    #     A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], ( zetavals[idx]**2 )*( etavals[idx] ) ]
-
-    # for idx in range(5):
-
-    #     b = np.zeros( [5, 1] )
-    #     b[idx, 0] = 1
-    #     c = solve( A, b )
-
-    #     print(np.transpose(c))
-
-    for idx in range(5):
-        A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx], zetavals[idx]*( etavals[idx]**2 ) ]
-
-    for idx in range(5):
-
-        b = np.zeros( [5, 1] )
-        b[idx, 0] = 1
-        c = solve( A, b )
-
-        print(np.transpose(c))
-
-
-
 
 if __name__ == "__main__":
 
-    runconf1()
-    print("end")
-    runconf2()
-    print("end")
-    runconf3()
-    print("end")
-    runconf4()
+    runconf()
