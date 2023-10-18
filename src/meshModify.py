@@ -157,7 +157,65 @@ def modifyMeshFile( filename ):
 
     return 0
 
+def modifyMixMeshFile( filename ):
+
+    elementStart = False
+    newLines = []
+
+    with open(filename) as filehandle:
+
+        allLines = filehandle.readlines()
+        for lineval in allLines:
+
+            newLines.append( lineval.split() )
+            # print(lineval)
+            if lineval == "$Elements\n":
+                print("found")
+                break
+
+        newLines.append(["1130"])
+
+        newsize = len(newLines)
+        print(newsize)
+
+    # with open( filename ) as filehandle:
+
+        
+        # print(allLines)
+        
+        for idx, lineval in enumerate(allLines[newsize:]):
+            
+            if lineval == "$EndElements\n":
+                break
+
+            allvals = lineval.split()
+            
+            if int(allvals[0]) < 2:
+                newLines.append( allvals )
+                continue
+
+            if int(allvals[0]) == 2:
+                continue
+
+            if int(allvals[0]) > 2:
+                newLines.append( allvals )
+                newLines[-1][0] = str( int( allvals[0] ) - 1 )
+                continue
+
+        newLines.append( ["$EndElements"] )
+
+        for idx, lineval in enumerate(newLines):
+            newLines[idx] = " ".join(lineval) + '\n'
+
+    newMeshFileName = filename
+        
+    with open(newMeshFileName, "+w") as filehandle:
+        filehandle.writelines( newLines )
+
+    return 0
+
 if __name__ == "__main__":
 
-    filename = "/home/gaurav/gmshAutoScripts/build/importMesh.msh"
-    modifyMeshFile(filename)
+    filename = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/mix_mesh/mesh_lvl4.msh"
+    # modifyMeshFile(filename)
+    modifyMixMeshFile( filename )

@@ -50,6 +50,7 @@ int main(int argc, char **argv)
     int N, Nx1, Nx3, Ny4, Ny5, Nx2{0}, Nx4{0}, Nx5{0};
     std::ofstream outhandle;
     std::string foldername{ argv[1] };
+    int lvl{0};
 
     for( auto& Ny: Nyvals ) {
         gmsh::initialize();
@@ -565,9 +566,10 @@ int main(int argc, char **argv)
         // gmsh::option::setNumber("Mesh.SubdivisionAlgorithm", 1);
         // gmsh::model::mesh::refine();
         gmsh::option::setNumber("Mesh.MshFileVersion", 2);
-        std::string meshfilename = foldername + "hangingMeshv8Nx=" + std::to_string( Nx2 ) + "Ny=" + std::to_string( Ny ) + ".msh";
+        std::string meshfilename = foldername + "hangingMeshv8lvl=" + std::to_string( lvl ) + ".msh";
         gmsh::write(meshfilename);
 
+        lvl += 1;
         // Launch the GUI to see the results:
         // std::set<std::string> args(argv, argv + argc);
         // if (!args.count("-nopopup"))

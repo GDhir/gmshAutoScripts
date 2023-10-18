@@ -28,7 +28,11 @@ int main(int argc, char **argv)
     std::string foldername{ argv[1] };
     std::ofstream outhandle{ "outfileregular.txt" };
 
+    int lvl{0};
+
     for( auto&Ndash: Ndashvals ) {
+
+        lvl += 1;
         
         Nval = (Ndash + 5)/2;
         double lc = 1/( Ndash + 2*Nval + 1 );
@@ -113,10 +117,10 @@ int main(int argc, char **argv)
 
         // Launch the GUI to see the results:
         gmsh::option::setNumber("Mesh.MshFileVersion", 2);
-        std::string regMeshFileName = foldername + "regularMeshN=" + std::to_string(N) + ".msh";
+        std::string regMeshFileName = foldername + "regularMeshlvl=" + std::to_string(lvl) + ".msh";
         gmsh::write( regMeshFileName );
         // gmsh::view::write(t1, "TextFiles/hangingMeshv1.msh");
-
+        lvl += 1;
         // std::set<std::string> args(argv, argv + argc);
         // if (!args.count("-nopopup"))
         //     gmsh::fltk::run();

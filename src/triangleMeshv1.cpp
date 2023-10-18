@@ -28,6 +28,8 @@ int main(int argc, char **argv)
     std::string foldername{ argv[1] };
     std::ofstream outhandle{ "outfiletrianglestruct.txt" };
 
+    int lvl{0};
+
     for( auto&Ndash: Ndashvals ) {
         
         Nval = (Ndash + 5)/2;
@@ -110,8 +112,10 @@ int main(int argc, char **argv)
 
         // Launch the GUI to see the results:
         gmsh::option::setNumber("Mesh.MshFileVersion", 2);
-        std::string triMeshFileName = foldername + "triangleMeshStructN=" + std::to_string(N) + ".msh";
+        std::string triMeshFileName = foldername + "triangleMeshStructlvl=" + std::to_string(lvl) + ".msh";
         gmsh::write( triMeshFileName );
+
+        lvl += 1;
         // gmsh::view::write(t1, "TextFiles/hangingMeshv1.msh");
 
         // std::set<std::string> args(argv, argv + argc);
