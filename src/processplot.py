@@ -699,7 +699,7 @@ def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, 
             xvals = getData( xvalsFileName )
             yvals = getData( yvalsFileName )
             uvals = getData( uvalsFileName )
-            errvals = getFinchError( xvals, yvals, uvals )
+            errvals = getFinchError( xvals, yvals, uvals, int( optionsParam[ "sin(kpix)" ] )*pi )
 
             # print(errvalsFileName)
 
@@ -728,7 +728,7 @@ def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, 
             # plt.scatter( xvalsHanging, yvalsHanging )
             # plt.show()
             plotVarName = "errorvaluesContour"
-            plotfilename = getTextFileName( folderUtils.finchPlotfoldername, pythonVarName, plotVarName, criteriaValsStr, "png" )
+            plotfilename = getTextFileName( curPlotFolderName, pythonVarName, plotVarName, criteriaValsStr, "png" )
             plt.savefig( plotfilename )
             plt.close()
 
@@ -740,7 +740,7 @@ def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, 
             plt.tricontourf( xvals, yvals, errvals, levels = contourLevels, colors = 'r')
             plt.colorbar()
             plotVarName = "large" + "errorvalues" + "Contour"
-            plotfilename = getTextFileName( folderUtils.finchPlotfoldername, pythonVarName, plotVarName, criteriaValsStr, ".png" )
+            plotfilename = getTextFileName( curPlotFolderName, pythonVarName, plotVarName, criteriaValsStr, ".png" )
             plt.savefig( plotfilename )
             plt.close()
             # plt.figure()
@@ -1333,9 +1333,9 @@ if __name__ == "__main__":
 
     simPlotFolderName = simPlotRootFolderName + "Finch/"
     print( "Finch" )
-    buildAllMeshes( gmshFileCmdNames, meshPath )
+    # buildAllMeshes( gmshFileCmdNames, meshPath )
     meshArr = getMeshFilesFromFolder( meshPath )
-    runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams )
+    # runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams )
     showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
 
     # fileName = folderUtils.textFolderNames["Dealii"] + "Mesh_solutionvalues_lvl=7.vtu"
