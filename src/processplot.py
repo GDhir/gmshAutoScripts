@@ -7,49 +7,11 @@ from os.path import isfile, join
 from math import sin, cos, pi
 import os
 import subprocess
-from paraview.simple import *
 import meshio
 import pdb
 import time
 import h5py
-paraview.simple._DisableFirstRenderCameraReset()
-
-finchRootfoldername = "/media/gaurav/easystore/Finch/MixedElement/"
-dealiiRootfoldername = "/media/gaurav/easystore/dealii/MixedElement/"
-
-finchTextfoldername = finchRootfoldername + "TextFiles/"
-finchPlotfoldername = finchRootfoldername + "PlotFiles/SimPlots/"
-
-dealiiTextfoldername = dealiiRootfoldername + "TextFiles/"
-dealiiPlotfoldername = dealiiRootfoldername + "PlotFiles/SimPlots/"
-gmshImageFolderName = "/home/gaurav/gmshAutoScripts/Images/"
-
-textFolderNames = dict()
-textFolderNames["Finch"] = finchTextfoldername
-textFolderNames["Dealii"] = dealiiTextfoldername
-
-plotFolderNames = dict()
-plotFolderNames["Finch"] = finchPlotfoldername
-plotFolderNames["Dealii"] = dealiiPlotfoldername
-
-def checkAndCreateFolder( folderName ):
-
-    if not os.path.exists( folderName ):
-
-        folderSplit = folderName.split( "/" )
-
-        folderStr = ""
-
-        for folderName in folderSplit:
-
-            if not folderName:
-                continue
-            
-            folderStr = folderStr + "/" + folderName
-
-            if not os.path.exists( folderStr ):
-                os.mkdir( folderStr )        
-
+import folderUtils
 
 def getSortedMeshVals( meshvals, regexVal, regexCriterias ):
 
@@ -115,29 +77,34 @@ def getFileNameFromMeshName( meshval, folderName, varName, regexTypeVal, regexCr
 
     return fileName
 
-def getFinchMinMaxRange( sortedMeshValsArr, regexVals, varName = "errorvalues" ):
+def getFinchMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, juliaVarName ):
 
-    meshValsLen = len( sortedMeshValsArr[0] )
-    minVals = np.ones( meshValsLen )*100000
-    maxVals = np.ones( meshValsLen )*-1
+    nLevels = len( levelsArr )
+    minVals = np.ones( nLevels )*100000
+    maxVals = np.ones( nLevels )*-1
 
-    for typeIdx, sortedMeshVals in enumerate( sortedMeshValsArr ):
+    for optionIdx, option in enumerate( allParams[ comparisonParam ] ):
 
-        regexVal = regexVals[ typeIdx ]
-        regexCriterias = getRegexCriterias( regexVal )
-        for idx, meshval in enumerate( sortedMeshVals ):
+        optionsParam[ comparisonParam ] = option
+        criterias = getRegexCriterias( "lvl" )
 
-            textFile = getFileNameFromMeshName( meshval, finchTextfoldername, varName, regexVal, regexCriterias, ".txt" )
+        for idx, level in enumerate( levelsArr ):
+
+            # optionsParam[ "level" ] = str( level )
+            criteriaVals = [ str( level ) ]
+            criteriaValsStr = getCriteriaValsString( criterias, criteriaVals )
+
+            pythonVarName = getPythonVarName( optionsParam )
+            textFile = getTextFileName( folderUtils.finchTextfoldername, pythonVarName, juliaVarName, criteriaValsStr )
 
             errVals = getData( textFile )
 
             minVals[idx] = np.min( [minVals[idx], np.min( errVals )] )
             maxVals[idx] = np.max( [maxVals[idx], np.max( errVals )] )
             # minMaxRangeVals.append( (minVal, maxVal) )
-
     minMaxRangeVals = []
 
-    for idx in range(meshValsLen):
+    for idx in range( nLevels ):
         minMaxRangeVals.append( ( minVals[idx], maxVals[idx] ) )
 
     return minMaxRangeVals
@@ -195,6 +162,12 @@ def getDealiiError( nodes, solution, negative = 1, pival = 2*pi ):
 
     return np.array( errVals )
 
+def getMeshFileName( optionsParam, criterias, criteriaVals, meshPath ):
+
+    criteriaStr = getCriteriaValsString( criterias, criteriaVals )
+    fileName = meshPath + optionsParam[ "meshRegexVal" ] + criteriaStr + ".msh"
+
+    return fileName
 
 def getDealiiMinMaxRange( sortedMeshValsArr, regexVals, varName = "solutionvaluesGaussModified", format = "h5", negative = 1, pival = 2*pi ):
 
@@ -208,7 +181,7 @@ def getDealiiMinMaxRange( sortedMeshValsArr, regexVals, varName = "solutionvalue
         regexCriterias = getRegexCriterias( regexVal )
         for idx, meshval in enumerate( sortedMeshVals ):
 
-            h5FileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, varName,
+            h5FileName = getFileNameFromMeshName( meshval, folderUtils.dealiiTextfoldername, varName,
                                                 regexVal, regexCriterias, "." + format )
             
             nodes, solution = getDealiiData( h5FileName, format )
@@ -285,7 +258,7 @@ def buildMesh( gmshfilecmd, gmshfileargs ):
 
 def setFinchTriangleQuadrature( quadratureValue ):
 
-    statement = "xyw = triangle_quadrature_nodes_weights(" +  quadratureValue + ");"
+    statement = "xyw = triangle_quadrature_nodes_weights(" +  str( quadratureValue ) + ");\n"
     filename = "/home/gaurav/.julia/packages/Finch/ECEMc/src/triangle_nodes.jl"
     pattern = "triangle_quadrature_nodes_weights"
 
@@ -300,18 +273,36 @@ def setFinchTriangleQuadrature( quadratureValue ):
                 allLines[idx] = statement
                 break
 
-    with open( filename ) as fileHandle:
+    with open( filename, "w" ) as fileHandle:
 
         fileHandle.writelines( allLines )
 
-def runFinchSimWithOptions( optionsParam ):
+def getRegexVal( fileName, allRegexes ):
 
-    exefilename = "example-mixed-element-2d.jl"
+    for regexVal in allRegexes:
+        if re.search( regexVal, fileName ):
+
+            return regexVal
+
+
+def runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams ):
+    
+    for meshval in meshArr:
+
+        regexVal = getRegexVal( meshval, allParams[ "meshRegexVal" ] )
+        optionsParam[ "meshRegexVal" ] = regexVal
+        print( regexVal )
+        runFinchSimWithOptions( optionsParam, meshval )
+
+def runFinchSimWithOptions( optionsParam, meshval ):
+
+    exefilename = "/home/gaurav/Finch/src/examples/example-mixed-element-2d.jl"
     setFinchTriangleQuadrature( optionsParam[ "quadratureOrder" ] )
     pythonVarName = getPythonVarName( optionsParam )
-    allFinchOptions = [ optionsParam["sin(k*pi*x)"], optionsParam["coeff_F"], pythonVarName ]
+    allFinchOptions = [ optionsParam["sin(kpix)"], optionsParam["coeff_F"], meshval, pythonVarName ]
 
     runJulia( exefilename, allFinchOptions )
+    # runJulia( exefilename )
 
 def runJulia( exefilename, options = [] ):
 
@@ -323,7 +314,7 @@ def runJulia( exefilename, options = [] ):
     for option in options:
         julialstcmd.append( option )
 
-    subprocess.run( julialstcmd, cwd = finchPath )
+    subprocess.run( julialstcmd, cwd = finchPath, env = os.environ.copy() )
 
 def removeFiles( dirval ):
 
@@ -380,164 +371,6 @@ def getRegexCriterias( regexVal ):
     regexCriterias = ["lvl"]
     
     return regexCriterias
-
-def createMeshVTU( simPlotFolderName, regexVals ):
-
-    checkAndCreateFolder( simPlotFolderName )
-    
-    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
-    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
-
-    allSortedMeshVals = []
-
-    for regexVal in regexVals:
-
-        regexCriterias = getRegexCriterias( regexVal )
-
-        sortedMeshVals = getSortedMeshVals( meshvals, regexVal, regexCriterias )
-        allSortedMeshVals.append( sortedMeshVals )
-
-    meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
-
-    for sortedMeshVals in allSortedMeshVals:
-        for index, meshval in enumerate( sortedMeshVals ):
-            mesh = meshio.read( meshpath + meshval )
-            meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
-
-def showMeshes( simPlotFolderName, regexVals ):
-
-    checkAndCreateFolder( simPlotFolderName )
-    
-    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
-    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
-
-    allSortedMeshVals = []
-
-    for regexVal in regexVals:
-
-        regexCriterias = getRegexCriterias( regexVal )
-        sortedMeshVals = getSortedMeshVals( meshvals, regexVal, regexCriterias )
-        allSortedMeshVals.append( sortedMeshVals )
-
-    meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
-
-    for sortedMeshVals in allSortedMeshVals:
-        for index, meshval in enumerate( sortedMeshVals ):
-            mesh = meshio.read( meshpath + meshval )
-            meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
-
-    for typeIdx, sortedMeshVals in enumerate( allSortedMeshVals ):
-        
-        regexVal = regexVals[typeIdx]
-        regexCriterias = getRegexCriterias( regexVal )
-
-        for index, meshval in enumerate(sortedMeshVals):
-
-            meshvtkName = meshVizPath + meshval[:-4] + ".vtu"
-
-            gmshfile = OpenDataFile( meshvtkName )
-            dpGmsh = GetDisplayProperties( gmshfile )
-            dpGmsh.Representation = 'Wireframe'
-            gmshdisplay = Show(gmshfile)
-            
-            myview = GetActiveView()
-            myview.ViewSize = [1920, 1080]
-            myview.InteractionMode = '2D'
-            myview.AxesGrid = 'Grid Axes 3D Actor'
-            myview.CenterOfRotation = [0.5, 0.5, 0.0]
-            myview.StereoType = 'Crystal Eyes'
-            myview.CameraPosition = [0.5, 0.5, 3.0349403797187358]
-            myview.CameraFocalPoint = [0.5, 0.5, 0.0]
-            myview.CameraFocalDisk = 1.0
-            myview.CameraParallelScale = 0.7908298380174797
-            myview.LegendGrid = 'Legend Grid Actor'
-
-            Render()
-
-            curPlotFolderName = simPlotFolderName + "Plot" + str(index) + "/"  
-            checkAndCreateFolder( curPlotFolderName )
-            plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, 
-                                                   "paraview_error", regexVal, 
-                                                   regexCriterias, ".png" )
-            SaveScreenshot( plotfilename, myview)
-
-            Hide( gmshfile )
-
-def showParaviewPlot( simPlotFolderName, regexVals, getMinMaxRangeFunc, 
-                     meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/",
-                      meshVizPath =  "/home/gaurav/Finch/src/examples/Mesh/MeshViz/", 
-                      software = "Finch" ):
-
-    if not os.path.exists(simPlotFolderName):
-        os.mkdir( simPlotFolderName )
-
-    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
-
-    allSortedMeshVals = []
-
-    for regexVal in regexVals:
-        regexCriterias = getRegexCriterias( regexVal )
-        sortedMeshVals = getSortedMeshVals( meshvals, regexVal, regexCriterias )
-        allSortedMeshVals.append( sortedMeshVals )
-
-    minMaxRangeVals = getMinMaxRangeFunc[software]( allSortedMeshVals, regexVals )
-
-    for sortedMeshVals in allSortedMeshVals:
-        for index, meshval in enumerate( sortedMeshVals ):
-            mesh = meshio.read( meshpath + meshval )
-            meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
-
-    for idx, sortedMeshVals in enumerate( allSortedMeshVals ):
-
-        regexVal = regexVals[idx]
-        regexCriterias = getRegexCriterias( regexVal )
-
-        for index, meshval in enumerate(sortedMeshVals):
-
-            meshvtkName = meshVizPath + meshval[:-4] + ".vtu"
-            hangingfilename = getFileNameFromMeshName( meshval, textFolderNames[ software ],
-                                                    "errorAndu", regexVal, regexCriterias, ".vtu" )
-
-            solfile = OpenDataFile( hangingfilename )
-            display = Show(solfile)
-            ColorBy(display, ('POINTS', 'err'))
-            minVal, maxVal = minMaxRangeVals[ index ]
-            colorMap = GetColorTransferFunction('err')
-            colorMap.RescaleTransferFunction( minVal, maxVal )        
-
-            gmshfile = OpenDataFile( meshvtkName )
-            dpGmsh = GetDisplayProperties( gmshfile )
-            dpGmsh.Representation = 'Wireframe'
-            gmshdisplay = Show(gmshfile)
-            
-            myview = GetActiveView()
-            myview.ViewSize = [1920, 1080]
-            myview.InteractionMode = '2D'
-            # myview.AxesGrid = 'Grid Axes 3D Actor'
-            myview.CenterOfRotation = [0.5, 0.5, 0.0]
-            myview.StereoType = 'Crystal Eyes'
-            myview.CameraPosition = [0.5, 0.5, 3.0349403797187358]
-            myview.CameraFocalPoint = [0.5, 0.5, 0.0]
-            myview.CameraFocalDisk = 1.0
-            myview.CameraParallelScale = 0.7908298380174797
-            # myview.LegendGrid = 'Legend Grid Actor'
-
-            Render()
-            
-            dpSol = GetDisplayProperties(solfile, myview)
-            # to show the color legend
-            dpSol.SetScalarBarVisibility(myview, True)
-
-            curPlotFolderName = simPlotFolderName + "Plot" + str(index) + "/"   
-            if not os.path.exists( curPlotFolderName ):
-                os.mkdir( curPlotFolderName )
-
-            plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, "paraview_error",
-                                                   regexVal, regexCriterias, ".png" )
-            SaveScreenshot( plotfilename, myview)
-
-            Hide( solfile )
-            Hide( gmshfile )
 
 def getNumNodes( gmshFileName ):
 
@@ -734,7 +567,7 @@ def makePlotAdjustmentsAndSave( axHandle, figHandle, plotFileName ):
 
 def showFinchDerivPlot( simPlotFolderName, regexVals ):
 
-    checkAndCreateFolder( simPlotFolderName )
+    folderUtils.checkAndCreateFolder( simPlotFolderName )
 
     import matplotlib.ticker as ticker
 
@@ -772,14 +605,14 @@ def showFinchDerivPlot( simPlotFolderName, regexVals ):
             numNodeVals.append( getNumNodes( meshpath + meshval ) )
             areaVals.append( getAverage2DArea( meshpath + meshval, regexVal ) )
 
-            xvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "centroid_xvalues",
+            xvalsFileName = getFileNameFromMeshName( meshval, folderUtils.finchTextfoldername, "centroid_xvalues",
                                                      regexVal, regexCriterias, ".txt" )
-            yvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "centroid_yvalues",
+            yvalsFileName = getFileNameFromMeshName( meshval, folderUtils.finchTextfoldername, "centroid_yvalues",
                                                     regexVal, regexCriterias, ".txt" )
 
-            deriv_xvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "deriv_xvalues",
+            deriv_xvalsFileName = getFileNameFromMeshName( meshval, folderUtils.finchTextfoldername, "deriv_xvalues",
                                                           regexVal, regexCriterias, ".txt" )
-            deriv_yvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "deriv_yvalues",
+            deriv_yvalsFileName = getFileNameFromMeshName( meshval, folderUtils.finchTextfoldername, "deriv_yvalues",
                                                           regexVal, regexCriterias, ".txt" )
             # errvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "errorvalues_", ".txt" )
 
@@ -808,24 +641,16 @@ def makeMultiplePlotAdjustmentsAndSave( axisArray, figureArray, fileNames ):
     for idx, axVal in enumerate( axisArray ):
         makePlotAdjustmentsAndSave( axisArray[idx], figureArray[idx], fileNames[idx] )
 
-def showFinchPlot( simPlotFolderName, regexVals, 
-                meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/", 
-                varName = "errorvalues" ):
-
-    checkAndCreateFolder( simPlotFolderName )
+def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshvals, meshPath):
+    
+    folderUtils.checkAndCreateFolder( simPlotFolderName )
 
     import matplotlib.ticker as ticker
 
-    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
+    levelsArr = getAllLevels( meshvals )
 
-    allSortedMeshVals = []
-
-    for regexVal in regexVals:
-        regexCriterias = getRegexCriterias( regexVal )
-        sortedMeshVals = getSortedMeshVals( meshvals, regexVal, regexCriterias )
-        allSortedMeshVals.append( sortedMeshVals )
-
-    minMaxRangeVals = getFinchMinMaxRange( allSortedMeshVals, regexVals, varName )
+    juliaVarName = "errorvalues"
+    minMaxRangeVals = getFinchMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, juliaVarName )
 
     cdict = {
         'red'  :  ( (0.0, 0.25, .25), (0.02, .59, .59), (1., 1., 1.)),
@@ -844,32 +669,33 @@ def showFinchPlot( simPlotFolderName, regexVals,
 
     # print(allSortedMeshVals)
 
-    for idx, sortedMeshVals in enumerate( allSortedMeshVals ):
+    for idx, paramValue in enumerate( allParams[ comparisonParam ] ):
 
         curMaxErrorList = []
         curL2ErrorList = []
         numNodeVals = []
         areaVals = []
-        regexVal = regexVals[idx]
-        regexCriterias = getRegexCriterias( regexVal )
+        regexCriterias = getRegexCriterias( "lvl" )
         dxVals = []
+        optionsParam[ comparisonParam ] = paramValue
 
-        for index, meshval in enumerate( sortedMeshVals ):
+        for index, level in enumerate( levelsArr ):
 
-            meshFileName = meshPath + meshval
+            # optionsParam[ "level" ] = str( level )
+            pythonVarName = getPythonVarName( optionsParam )
+            regexCriteriaVals = [level]
+            criteriaValsStr = getCriteriaValsString( regexCriterias, regexCriteriaVals )
+
+            meshFileName = getMeshFileName( optionsParam, regexCriterias, regexCriteriaVals, meshPath )
 
             numNodeVals.append( getNumNodes( meshFileName ) )
-            dxVals.append( getMaxH( meshFileName, regexVal ) )
-            areaVals.append( getAverage2DArea( meshFileName, regexVal ) )
+            dxVals.append( getMaxH( meshFileName, optionsParam[ "meshRegexVal" ] ) )
+            areaVals.append( getAverage2DArea( meshFileName, optionsParam[ "meshRegexVal" ] ) )
 
-            xvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "xvalues", 
-                                                    regexVal, regexCriterias, ".txt" )
-            yvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "yvalues", 
-                                                    regexVal, regexCriterias, ".txt" )
-            # errvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "errorvalues_", ".txt" )
-            uvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "uvalues",
-                                                    regexVal, regexCriterias, ".txt" )
-
+            xvalsFileName = getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "xvalues", criteriaValsStr )
+            yvalsFileName = getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "yvalues", criteriaValsStr )
+            uvalsFileName = getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "uvalues", criteriaValsStr )
+            
             xvals = getData( xvalsFileName )
             yvals = getData( yvalsFileName )
             uvals = getData( uvalsFileName )
@@ -894,29 +720,27 @@ def showFinchPlot( simPlotFolderName, regexVals,
 
             minVal, maxVal = minMaxRangeVals[ index ]
 
-            levels = np.linspace( minVal, maxVal, 40 )
+            contourLevels = np.linspace( minVal, maxVal, 40 )
             plt.figure()
             # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, levels = levels, vmin = levelsmin[-1], vmax = levelsmax[-1] )
-            plt.tricontourf( xvals, yvals, errvals, levels = levels, vmin = minVal, vmax = maxVal, cmap = cm )
+            plt.tricontourf( xvals, yvals, errvals, levels = contourLevels, vmin = minVal, vmax = maxVal, cmap = cm )
             plt.colorbar()
             # plt.scatter( xvalsHanging, yvalsHanging )
             # plt.show()
-            fileVarName = varName + "Contour"
-            plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, fileVarName, 
-                                                   regexVal, regexCriterias, ".png" )
+            plotVarName = "errorvaluesContour"
+            plotfilename = getTextFileName( folderUtils.finchPlotfoldername, pythonVarName, plotVarName, criteriaValsStr, "png" )
             plt.savefig( plotfilename )
             plt.close()
 
             plt.figure()
             # levels = np.linspace( levelsmin[indexval]*0.4 + levelsmax[indexval]*0.6, levelsmax[indexval], 40)
-            levels = np.linspace( curminval*0.4+ curmaxval*0.6, curmaxval, 40)
+            contourLevels = np.linspace( curminval*0.4+ curmaxval*0.6, curmaxval, 40)
             # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, vmin = levelsmin[-1]*0.2 + levelsmax[-1]*0.8, vmax = levelsmax[-1], colors='r')
             # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, levels = levels, colors='r')
-            plt.tricontourf( xvals, yvals, errvals, levels = levels, colors = 'r')
+            plt.tricontourf( xvals, yvals, errvals, levels = contourLevels, colors = 'r')
             plt.colorbar()
-            fileVarName = "large" + varName + "Contour"
-            plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, fileVarName,
-                                                    regexVal, regexCriterias, ".png" )
+            plotVarName = "large" + "errorvalues" + "Contour"
+            plotfilename = getTextFileName( folderUtils.finchPlotfoldername, pythonVarName, plotVarName, criteriaValsStr, ".png" )
             plt.savefig( plotfilename )
             plt.close()
             # plt.figure()
@@ -936,13 +760,13 @@ def showFinchPlot( simPlotFolderName, regexVals,
         allMaxErrorList.append( curMaxErrorList )
         allL2ErrorList.append( curL2ErrorList )
 
-        plotMaxAndL2Error( axisArrayNumNodes, numNodeVals, curMaxErrorList, curL2ErrorList, regexVal )
-        plotMaxAndL2Error( axisArrayArea, areaVals, curMaxErrorList, curL2ErrorList, regexVal ) 
-        plotMaxAndL2Error( axisArrayDx, dxVals, curMaxErrorList, curL2ErrorList, regexVal )      
+        plotMaxAndL2Error( axisArrayNumNodes, numNodeVals, curMaxErrorList, curL2ErrorList, comparisonParam, paramValue )
+        plotMaxAndL2Error( axisArrayArea, areaVals, curMaxErrorList, curL2ErrorList, comparisonParam, paramValue ) 
+        plotMaxAndL2Error( axisArrayDx, dxVals, curMaxErrorList, curL2ErrorList, comparisonParam, paramValue )      
 
         h2Vals = [ dxVal**2 for dxVal in dxVals ]
 
-        print( regexVal )
+        print( comparisonParam + "=" + paramValue )
         print( dxVals )
         print( curMaxErrorList )
         print( curL2ErrorList )
@@ -975,23 +799,23 @@ def showFinchPlot( simPlotFolderName, regexVals,
 
     makeMultiplePlotAdjustmentsAndSave( axisArray, figArray, fileNameArray )
 
-    if len( regexVals ) > 1:
-        errorDiffMax = [ allMaxErrorList[1][idx] - allMaxErrorList[0][idx] for idx in range( len(allMaxErrorList[0]) ) ]
-        errorDiffL2 = [ allL2ErrorList[1][idx] - allL2ErrorList[0][idx] for idx in range( len(allL2ErrorList[0]) ) ]
+    # if len( regexVals ) > 1:
+    #     errorDiffMax = [ allMaxErrorList[1][idx] - allMaxErrorList[0][idx] for idx in range( len(allMaxErrorList[0]) ) ]
+    #     errorDiffL2 = [ allL2ErrorList[1][idx] - allL2ErrorList[0][idx] for idx in range( len(allL2ErrorList[0]) ) ]
 
-        plt.figure()
-        plt.plot( dxVals, errorDiffMax, "-o" )
-        titleval = regexVals[1] + " - " + regexVals[0] + " Max Error Plot"
-        plt.xlabel( "h" )
-        plt.ylabel( "Error" )
-        plt.title( titleval )
+    #     plt.figure()
+    #     plt.plot( dxVals, errorDiffMax, "-o" )
+    #     titleval = regexVals[1] + " - " + regexVals[0] + " Max Error Plot"
+    #     plt.xlabel( "h" )
+    #     plt.ylabel( "Error" )
+    #     plt.title( titleval )
 
-        plt.figure()
-        titleval = regexVals[1] + " - " + regexVals[0] + " L2 Error Plot"
-        plt.plot( dxVals, errorDiffL2, "-o" )
-        plt.xlabel( "h" )
-        plt.ylabel( "Error" )
-        plt.title( titleval )
+    #     plt.figure()
+    #     titleval = regexVals[1] + " - " + regexVals[0] + " L2 Error Plot"
+    #     plt.plot( dxVals, errorDiffL2, "-o" )
+    #     plt.xlabel( "h" )
+    #     plt.ylabel( "Error" )
+    #     plt.title( titleval )
 
     plt.show()
 
@@ -1003,9 +827,10 @@ def plotMultipleAxis( axisArray, xvalsArray, yvalsArray, labelNameArray, markerV
 
         ax.loglog( xvalsArray[i], yvalsArray[i], markerVal, label = labelNameArray[i] )
 
-def plotMaxAndL2Error( axisArray, xvals, maxError, l2Error, regexVal ):
+def plotMaxAndL2Error( axisArray, xvals, maxError, l2Error, param, paramValue ):
 
-    labelNameArray = [ regexVal + " $L^{\infty}$ Error_" + "h", regexVal + " $L^{2}$ Error_" + "h" ]
+    labelNameArray = [ param + "=" + paramValue + " $L^{\infty}$ Error_" + "h",
+                       param + "=" + paramValue + " $L^{2}$ Error_" + "h" ]
     xvalsArray = [ xvals, xvals ]
     yvalsArray = [ maxError, l2Error ]
 
@@ -1027,7 +852,7 @@ def showDealiiPlot( simPlotFolderName, regexVals, varName,
                    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/", 
                    negative = 1, pival = 2*pi ):
 
-    checkAndCreateFolder( simPlotFolderName )
+    folderUtils.checkAndCreateFolder( simPlotFolderName )
 
     dxfilename = "/home/gaurav/gmshAutoScripts/build/outfiletriangleunstruct.txt"
 
@@ -1088,7 +913,7 @@ def showDealiiPlot( simPlotFolderName, regexVals, varName,
             dxVals.append( getMaxH( meshFileName, regexVal ) )
             areaVals.append( getAverage2DArea( meshFileName, regexVal ) )
 
-            solvalsFileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, varName,
+            solvalsFileName = getFileNameFromMeshName( meshval, folderUtils.dealiiTextfoldername, varName,
                                                       regexVal, regexCriterias, ".vtu" )
             
             (nodes, solution) = getDealiiData( solvalsFileName, "vtu" )
@@ -1106,7 +931,7 @@ def showDealiiPlot( simPlotFolderName, regexVals, varName,
 
             curPlotFolderName = simPlotFolderName + "Plot" + str(index) + "/"
 
-            checkAndCreateFolder( curPlotFolderName )
+            folderUtils.checkAndCreateFolder( curPlotFolderName )
 
             # uvals = getData( textfoldername + "uvalues_index=" + str(index) + ".txt" )
             # uexactvals = getData( textfoldername + "uexactvalues_index=" + str(index) + ".txt" )        
@@ -1114,10 +939,10 @@ def showDealiiPlot( simPlotFolderName, regexVals, varName,
 
             minVal, maxVal = minMaxRangeVals[ index ]
 
-            levels = np.linspace( minVal, maxVal, 40 )
+            contourLevels = np.linspace( minVal, maxVal, 40 )
             plt.figure()
             # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, levels = levels, vmin = levelsmin[-1], vmax = levelsmax[-1] )
-            plt.tricontourf( xvals, yvals, errvals, levels = levels, vmin = minVal, vmax = maxVal, cmap = cm )
+            plt.tricontourf( xvals, yvals, errvals, levels = contourLevels, vmin = minVal, vmax = maxVal, cmap = cm )
             plt.colorbar()
             # plt.scatter( xvalsHanging, yvalsHanging )
             # plt.show()
@@ -1128,10 +953,10 @@ def showDealiiPlot( simPlotFolderName, regexVals, varName,
 
             plt.figure()
             # levels = np.linspace( levelsmin[indexval]*0.4 + levelsmax[indexval]*0.6, levelsmax[indexval], 40)
-            levels = np.linspace( curminval*0.4+ curmaxval*0.6, curmaxval, 40)
+            contourLevels = np.linspace( curminval*0.4+ curmaxval*0.6, curmaxval, 40)
             # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, vmin = levelsmin[-1]*0.2 + levelsmax[-1]*0.8, vmax = levelsmax[-1], colors='r')
             # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, levels = levels, colors='r')
-            plt.tricontourf( xvals, yvals, errvals, levels = levels, colors = 'r')
+            plt.tricontourf( xvals, yvals, errvals, levels = contourLevels, colors = 'r')
             plt.colorbar()
             plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, "largeErrorContour_", regexVal, regexCriterias, ".png" )
             plt.savefig( plotfilename )
@@ -1239,7 +1064,7 @@ def getMaxL2ErrorFigHandles():
 def compareDealiiFinch( simPlotFolderName, regexVals, varName,
                        meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/" ):
 
-    checkAndCreateFolder( simPlotFolderName )
+    folderUtils.checkAndCreateFolder( simPlotFolderName )
 
     import matplotlib.ticker as ticker
 
@@ -1296,7 +1121,7 @@ def compareDealiiFinch( simPlotFolderName, regexVals, varName,
             dxVals.append( getMaxH( meshFileName, regexVal ) )
             areaVals.append( getAverage2DArea( meshFileName, regexVal ) )
 
-            dealiiSolvalsFileName = getFileNameFromMeshName( meshval, dealiiTextfoldername, varName,
+            dealiiSolvalsFileName = getFileNameFromMeshName( meshval, folderUtils.dealiiTextfoldername, varName,
                                                             regexVal, regexCriterias,  ".vtu" )
             
             (nodes, solution) = getDealiiData( dealiiSolvalsFileName, format = "vtu" )
@@ -1309,11 +1134,11 @@ def compareDealiiFinch( simPlotFolderName, regexVals, varName,
             dealiiCurL2ErrorList.append( np.sqrt( np.sum( np.array( dealiiErrvals )**2 ) / numNodeVals[ -1 ] ) ) 
 
             # Finch data
-            finchXvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "xvalues",
+            finchXvalsFileName = getFileNameFromMeshName( meshval, folderUtils.finchTextfoldername, "xvalues",
                                                          regexVal, regexCriterias, ".txt" )
-            finchYvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "yvalues",
+            finchYvalsFileName = getFileNameFromMeshName( meshval, folderUtils.finchTextfoldername, "yvalues",
                                                          regexVal, regexCriterias, ".txt" )
-            finchErrvalsFileName = getFileNameFromMeshName( meshval, finchTextfoldername, "errorvalues",
+            finchErrvalsFileName = getFileNameFromMeshName( meshval, folderUtils.finchTextfoldername, "errorvalues",
                                                            regexVal, regexCriterias, ".txt" )
 
             finchXvals = getData( finchXvalsFileName )
@@ -1355,7 +1180,7 @@ def compareDealiiFinch( simPlotFolderName, regexVals, varName,
 
 
         curPlotFolderName = simPlotFolderName + "Finch_Dealii_Comparison" + "/"
-        checkAndCreateFolder( curPlotFolderName )
+        folderUtils.checkAndCreateFolder( curPlotFolderName )
 
         axisArray = [ axisArrayNumNodes[0], axisArrayNumNodes[1],
                     axisArrayArea[0],
@@ -1382,110 +1207,6 @@ def compareDealiiFinch( simPlotFolderName, regexVals, varName,
 
     return
 
-def compareParaview( simPlotFolderName, regexVals, getMinMaxRangeFunc,
-                    meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/", 
-                     software = "Finch" ):
-
-    assert( len(regexVals) == 2 )
-
-    if not os.path.exists(simPlotFolderName):
-        os.mkdir( simPlotFolderName )
-
-    meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
-    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
-
-    allSortedMeshVals = []
-
-    for regexVal in regexVals:
-        regexCriterias = getRegexCriterias( regexVal )
-        sortedMeshVals = getSortedMeshVals( meshvals, regexVal, regexCriterias )
-        allSortedMeshVals.append( sortedMeshVals )
-
-    minMaxRangeVals = getMinMaxRangeFunc[software]( allSortedMeshVals )
-
-    for sortedMeshVals in allSortedMeshVals:
-        for index, meshval in enumerate( sortedMeshVals ):
-            mesh = meshio.read( meshpath + meshval )
-            meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
-
-    meshValsLen = len( allSortedMeshVals[0] )
-
-    allViews = dict()
-    for regexVal in regexVals:
-        allViews[regexVal] = CreateRenderView()
-        renderView = allViews[regexVal]
-        renderView.ViewSize = [701, 784]
-        renderView.InteractionMode = '2D'
-        renderView.AxesGrid = 'Grid Axes 3D Actor'
-        renderView.CenterOfRotation = [0.5, 0.5, 0.0]
-        renderView.StereoType = 'Crystal Eyes'
-        renderView.CameraPosition = [0.5, 0.5, 3.0349403797187358]
-        renderView.CameraFocalPoint = [0.5, 0.5, 0.0]
-        renderView.CameraFocalDisk = 1.0
-        renderView.CameraParallelScale = 0.7908298380174797
-        renderView.LegendGrid = 'Legend Grid Actor'
-
-    layout = CreateLayout(name='Layout #1')
-    layout.SplitHorizontal(0, 0.500000)
-
-    for idx, regexVal in enumerate(regexVals):
-        layout.AssignView( idx + 1, allViews[regexVal] )
-
-    layout.SetSize(1403, 784)
-    # layout.SetSize(1920, 1080)
-
-    for idx in range(meshValsLen):
-
-        curPlotFolderName = simPlotFolderName + "Plot" + str(idx) + "/"   
-        if not os.path.exists( curPlotFolderName ):
-            os.mkdir( curPlotFolderName )
-
-        solfiles = []
-        gmshfiles = []
-
-        for regexIdx, regexVal in enumerate( regexVals ):
-            
-            SetActiveView( allViews[regexVal] )
-            myview = GetActiveView()
-
-            regexCriterias = getRegexCriterias[ regexVal ]
-
-            meshval = allSortedMeshVals[regexIdx][idx]
-            meshvtkName = meshVizPath + meshval[:-4] + ".vtu"
-            filename = getFileNameFromMeshName( meshval, textFolderNames[software],
-                                             "errorAndu", regexVal, regexCriterias, ".vtu" )
-
-            solfile = OpenDataFile( filename )
-            solfiles.append(solfile)
-            display = Show(solfile)
-            ColorBy(display, ('POINTS', 'err'))
-            minVal, maxVal = minMaxRangeVals[ idx ]
-            colorMap = GetColorTransferFunction('err')
-            colorMap.RescaleTransferFunction( minVal, maxVal )        
-
-            gmshfile = OpenDataFile( meshvtkName )
-            gmshfiles.append(gmshfile)
-            dpGmsh = GetDisplayProperties( gmshfile )
-            dpGmsh.Representation = 'Wireframe'
-            gmshdisplay = Show(gmshfile)
-            
-            dpSol = GetDisplayProperties(solfile, myview)
-            # # to show the color legend
-            dpSol.SetScalarBarVisibility(myview, True)
-            myview.Update()
-
-        Render()
-        plotfilename = curPlotFolderName + "paraview_error_comparison.png" 
-        SaveScreenshot( plotfilename, layout)        
-
-        for regexIdx, regexVal in enumerate( regexVals ):
-
-            SetActiveView( allViews[regexVal] )
-            Hide( solfiles[regexIdx] )
-            Hide( gmshfiles[regexIdx] )
-
-    return
-
 def getPythonVarName( optionsParam ):
 
     pythonVarName = ""
@@ -1505,12 +1226,12 @@ def getFileNameFromMeshName( folderName, meshFileName, pythonVarName, juliaVarNa
 
     return filename
 
-def getTextFileName( folderName, pythonVarName, juliaVarName, criteriaVals, criteria = "lvl", extension = "txt" ):
+def getTextFileName( folderName, pythonVarName, juliaVarName, criteriaVals, extension = "txt" ):
 
-    filename = folderName + pythonVarName + "_" + juliaVarName + "_" + \
-        criteria + "=" + criteriaVals + "." + extension
+    filename = folderName + pythonVarName + juliaVarName + "_" + criteriaVals + "." + extension
 
     return filename
+
 
 def getCriteriasFromFileName( meshval, regexCriterias ):
 
@@ -1524,9 +1245,45 @@ def getCriteriasFromFileName( meshval, regexCriterias ):
             rval = re.search( "[0-9]+", meshval[offset:] )
             rval = rval.group(0)
 
-            regexCriteriaVals += rval + "_"
+            regexCriteriaVals += regexCriteria + "=" + rval
 
     return regexCriteriaVals[:-1]
+
+def getCriteriaValsString( regexCriterias, criteriaVals ):
+
+    regexCriteriaVals = ""
+
+    for idx, regexCriteria in enumerate( regexCriterias ):
+        regexCriteriaVals += regexCriteria + "=" + criteriaVals[idx]
+
+    return regexCriteriaVals    
+
+def getLevelFromFileName( meshval ):
+
+    rval = re.search( "lvl", meshval )
+
+    if rval:
+        offset = rval.start() + len( "lvl" )
+        rval = re.search( "[0-9]+", meshval[offset:] )
+        rval = rval.group(0)
+
+    return rval
+
+def getAllLevels( meshFileNameArr ):
+
+    levelsSet = set()
+
+    for fileName in meshFileNameArr:
+
+        level = getLevelFromFileName( fileName )
+        levelsSet.add( level )
+
+    return list( levelsSet )
+
+def getMeshFilesFromFolder( meshpath ):
+    
+    meshvals = [ join( meshpath, f ) for f in listdir(meshpath) if isfile(join(meshpath, f))]
+    return meshvals
 
 if __name__ == "__main__":
 
@@ -1536,52 +1293,58 @@ if __name__ == "__main__":
 
     # gmshFileCmdNames = ["triangleMeshv1", "triangleMeshv2"]
     # regexVals = ["triangleMeshStruct", "triangleMeshUnstruct"]
-    regexVals = ["triangleMeshUnstruct", "triangleMeshStruct", "regular"]
+    regexVals = ["triangleMeshUnstruct", "triangleMeshStruct", "regularMesh"]
     gmshFileCmdNames = ["triangleMeshv2", "triangleMeshv1", "regularMeshv3"]
     # gmshFileCmdNames = ["hangingMeshv8"]
     # regexVals = ["hanging"]
 
     allParams = dict()
-    allParams["softwares"] = ["Finch", "Dealii"]
-    allParams["meshRegexVals"] = regexVals
-    allParams["gmshFileCmdNames"] = gmshFileCmdNames
-    allParams["quadratureOrders"] = [ 2, 3, 4, 5, 6, 7 ]
-    allParams["sin(k*pi*x)s"] = [ 1, 2, 4 ]
-    allParams["coeff_Fs"] = [ -2, -8, -32 ]
+    allParams["software"] = ["Finch", "Dealii"]
+    allParams["meshRegexVal"] = regexVals
+    allParams["gmshFileCmdName"] = gmshFileCmdNames
+    allParams["quadratureOrder"] = [ "2", "3", "4" ]
+    allParams["sin(kpix)"] = [ "1", "2", "4" ]
+    allParams["coeff_F"] = [ "-2", "-8", "-32" ]
 
     optionsParam = dict()
-    optionsParam["quadratureOrder"] = 2
-    optionsParam["sin(k*pi*x)"] = 1
-    optionsParam["coeff_F"] = -2
+    optionsParam["quadratureOrder"] = "2"
+    optionsParam["sin(kpix)"] = "1"
+    optionsParam["coeff_F"] = "-2"
     optionsParam["software"] = "Finch"
     optionsParam["meshRegexVal"] = regexVals[0]
+    optionsParam["level"] = "0"
 
-    comparisonParam = "meshRegexVals"
+    comparisonParam = "meshRegexVal"
 
-    simPlotRootFolderName = gmshImageFolderName + "PlotRegularMeshFinchTriPoints3_2pi/"
-    meshPlotRootFolderName = gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=2_2pi/"
+    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotNewSetup_2pi/"
+    meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=2_2pi/"
 
     # regexVals = [ "mesh" ]
     meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
-    # showMeshes( meshPlotRootFolderName, regexVals )
+    # showMeshes( folderUtils.meshPlotRootFolderName, regexVals )
 
     # runSim( simPlotRootFolderName, gmshFileCmdNames, regexVals )
     # createMeshVTU( meshPlotRootFolderName, regexVals )
     # compareDealiiFinch( simPlotRootFolderName, regexVals, "solutionvalues", meshPath )
 
-    simPlotFolderName = simPlotRootFolderName + "Dealii/"
-    print( "Dealii" )
+    # simPlotFolderName = simPlotRootFolderName + "Dealii/"
+    # print( "Dealii" )
     # showDealiiPlot( simPlotFolderName, regexVals, meshpath= meshPath, varName = "solutionvalues", negative = -1, pival = 2*pi )
 
     simPlotFolderName = simPlotRootFolderName + "Finch/"
     print( "Finch" )
-    showFinchPlot( simPlotFolderName, regexVals, meshPath )
+    buildAllMeshes( gmshFileCmdNames, meshPath )
+    meshArr = getMeshFilesFromFolder( meshPath )
+    runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams )
+    showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
 
-    # fileName = textFolderNames["Dealii"] + "Mesh_solutionvalues_lvl=7.vtu"
+    # fileName = folderUtils.textFolderNames["Dealii"] + "Mesh_solutionvalues_lvl=7.vtu"
     # getDealiiData( fileName, "vtu" )
     
     # showFinchDerivPlot( simPlotFolderName, ["regular"] )
     # showParaviewPlot( simPlotFolderName, regexVals, getMinMaxRangeFunc, meshPath )
     # showplot( simPlotFolderName, regexVals )
     # compareParaview( simPlotFolderName, regexVals, meshPath )
+
+    # setFinchTriangleQuadrature( 2 )
 

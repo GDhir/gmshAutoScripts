@@ -31,8 +31,6 @@ int main(int argc, char **argv)
     int lvl{0};
 
     for( auto&Ndash: Ndashvals ) {
-
-        lvl += 1;
         
         Nval = (Ndash + 5)/2;
         double lc = 1/( Ndash + 2*Nval + 1 );

@@ -566,7 +566,7 @@ int main(int argc, char **argv)
         // gmsh::option::setNumber("Mesh.SubdivisionAlgorithm", 1);
         // gmsh::model::mesh::refine();
         gmsh::option::setNumber("Mesh.MshFileVersion", 2);
-        std::string meshfilename = foldername + "hangingMeshv8lvl=" + std::to_string( lvl ) + ".msh";
+        std::string meshfilename = foldername + "hangingMeshlvl=" + std::to_string( lvl ) + ".msh";
         gmsh::write(meshfilename);
 
         lvl += 1;
