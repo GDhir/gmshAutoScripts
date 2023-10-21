@@ -86,16 +86,13 @@ def getFinchMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, ju
     for optionIdx, option in enumerate( allParams[ comparisonParam ] ):
 
         optionsParam[ comparisonParam ] = option
-        criterias = getRegexCriterias( "lvl" )
 
         for idx, level in enumerate( levelsArr ):
 
-            # optionsParam[ "level" ] = str( level )
-            criteriaVals = [ str( level ) ]
-            criteriaValsStr = getCriteriaValsString( criterias, criteriaVals )
+            optionsParam[ "level" ] = str( level )
 
             pythonVarName = getPythonVarName( optionsParam )
-            textFile = getTextFileName( folderUtils.finchTextfoldername, pythonVarName, juliaVarName, criteriaValsStr )
+            textFile = getTextFileName( folderUtils.finchTextfoldername, pythonVarName, juliaVarName )
 
             errVals = getData( textFile )
 
@@ -169,31 +166,34 @@ def getMeshFileName( optionsParam, criterias, criteriaVals, meshPath ):
 
     return fileName
 
-def getDealiiMinMaxRange( sortedMeshValsArr, regexVals, varName = "solutionvaluesGaussModified", format = "h5", negative = 1, pival = 2*pi ):
+def getDealiiMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, negative = 1, pival = 2*pi ):
 
-    meshValsLen = len( sortedMeshValsArr[0] )
-    minVals = np.ones( meshValsLen )*100000
-    maxVals = np.ones( meshValsLen )*-1
+    nLevels = len( levelsArr )
+    minVals = np.ones( nLevels )*100000
+    maxVals = np.ones( nLevels )*-1
 
-    for typeIdx, sortedMeshVals in enumerate( sortedMeshValsArr ):
+    dataFileFormat = "vtu"
 
-        regexVal = regexVals[typeIdx]
-        regexCriterias = getRegexCriterias( regexVal )
-        for idx, meshval in enumerate( sortedMeshVals ):
+    for optionIdx, option in enumerate( allParams[ comparisonParam ] ):
 
-            h5FileName = getFileNameFromMeshName( meshval, folderUtils.dealiiTextfoldername, varName,
-                                                regexVal, regexCriterias, "." + format )
-            
-            nodes, solution = getDealiiData( h5FileName, format )
+        optionsParam[ comparisonParam ] = option
+
+        for idx, level in enumerate( levelsArr ):
+
+            optionsParam[ "level" ] = str( level )
+
+            pythonVarName = getPythonVarName( optionsParam )
+            textFile = getTextFileName( folderUtils.dealiiTextfoldername, pythonVarName, "solutionvalues", dataFileFormat )
+
+            nodes, solution = getDealiiData( textFile, dataFileFormat )
             errVals = getDealiiError( nodes, solution, negative, pival )
 
             minVals[idx] = np.min( [minVals[idx], np.min( errVals )] )
             maxVals[idx] = np.max( [maxVals[idx], np.max( errVals )] )
-            # minMaxRangeVals.append( (minVal, maxVal) )
 
     minMaxRangeVals = []
 
-    for idx in range(meshValsLen):
+    for idx in range( nLevels ):
         minMaxRangeVals.append( ( minVals[idx], maxVals[idx] ) )
 
     return minMaxRangeVals
@@ -291,7 +291,11 @@ def runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams ):
 
         regexVal = getRegexVal( meshval, allParams[ "meshRegexVal" ] )
         optionsParam[ "meshRegexVal" ] = regexVal
-        print( regexVal )
+
+        levelVal = getLevelFromFileName( meshval )
+        optionsParam[ "level" ] = levelVal
+
+        print( regexVal, levelVal )
         runFinchSimWithOptions( optionsParam, meshval )
 
 def runFinchSimWithOptions( optionsParam, meshval ):
@@ -340,6 +344,68 @@ def runDealiiSim():
     dealiiPath = "/home/gaurav/dealii-9.5.1/build/bin/"
 
     subprocess.run( [dealiiPath + exefilename], cwd = dealiiPath )
+
+def setDealiiDefinition( srcFileName, patternStr, replacementStr ):
+
+    with open( srcFileName ) as fileHandle:
+
+        allLines = fileHandle.readlines()
+
+        for idx, lineVal in enumerate( allLines ):
+
+            if re.search( patternStr, lineVal ):
+
+                allLines[idx] = replacementStr
+                break
+
+    with open( srcFileName, "w" ) as fileHandle:
+
+        fileHandle.writelines( allLines )
+
+def setDealiiOptions( srcFileName, optionsParam ):
+
+    kval = optionsParam[ "sin(kpix)" ]
+    patternStr = "#define k"
+    replacementStr = patternStr + " " + kval + "\n"
+    setDealiiDefinition( srcFileName, patternStr, replacementStr )
+
+    cval = optionsParam[ "coeff_F" ]
+    patternStr = "#define c"
+    replacementStr = patternStr + " " + cval + "\n"
+    setDealiiDefinition( srcFileName, patternStr, replacementStr )
+
+def buildDealii( makeArg ):
+
+    makeCmd = [ "make", makeArg ]
+    dealiiBuildPath = "/home/gaurav/dealii-9.5.1/build/examples/"
+
+    subprocess.run( makeCmd, cwd = dealiiBuildPath )
+
+def runDealiiSimWithOptions( optionsParam, meshval, srcFileName, exefilename = "step-5.debug",
+                            makeArg = "example_step_5_debug"):
+
+    dealiiBinPath = "/home/gaurav/dealii-9.5.1/build/bin/"
+    # exefilename = "step-5.debug"
+
+    setDealiiOptions( srcFileName, optionsParam )
+
+    buildDealii( makeArg )
+
+    pythonVarName = getPythonVarName( optionsParam )
+    subprocess.run( [ dealiiBinPath + exefilename, meshval, pythonVarName,
+                      optionsParam["quadratureOrder"] ], cwd = dealiiBinPath )
+    
+def runDealiiSimWithOptionsVariousMeshes( optionsParam, meshArr, srcFileName, exefilename = "step-5.debug",
+                            makeArg = "example_step_5_debug" ):
+    
+    for meshval in meshArr:
+
+        meshRegexVal = getRegexVal( meshval, allParams["meshRegexVal"] )
+        levelVal = getLevelFromFileName( meshval )
+
+        optionsParam[ "meshRegexVal" ] = meshRegexVal
+        optionsParam[ "level" ] = levelVal
+        runDealiiSimWithOptions( optionsParam, meshval, srcFileName, exefilename, makeArg )
 
 def runSim( simPlotFolderName, gmshFileCmdNames, regexVals,
             gmshFolderPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/",
@@ -681,7 +747,7 @@ def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, 
 
         for index, level in enumerate( levelsArr ):
 
-            # optionsParam[ "level" ] = str( level )
+            optionsParam[ "level" ] = str( level )
             pythonVarName = getPythonVarName( optionsParam )
             regexCriteriaVals = [level]
             criteriaValsStr = getCriteriaValsString( regexCriterias, regexCriteriaVals )
@@ -692,9 +758,9 @@ def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, 
             dxVals.append( getMaxH( meshFileName, optionsParam[ "meshRegexVal" ] ) )
             areaVals.append( getAverage2DArea( meshFileName, optionsParam[ "meshRegexVal" ] ) )
 
-            xvalsFileName = getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "xvalues", criteriaValsStr )
-            yvalsFileName = getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "yvalues", criteriaValsStr )
-            uvalsFileName = getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "uvalues", criteriaValsStr )
+            xvalsFileName = getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "xvalues" )
+            yvalsFileName = getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "yvalues" )
+            uvalsFileName = getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "uvalues" )
             
             xvals = getData( xvalsFileName )
             yvals = getData( yvalsFileName )
@@ -722,41 +788,22 @@ def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, 
 
             contourLevels = np.linspace( minVal, maxVal, 40 )
             plt.figure()
-            # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, levels = levels, vmin = levelsmin[-1], vmax = levelsmax[-1] )
             plt.tricontourf( xvals, yvals, errvals, levels = contourLevels, vmin = minVal, vmax = maxVal, cmap = cm )
             plt.colorbar()
-            # plt.scatter( xvalsHanging, yvalsHanging )
-            # plt.show()
             plotVarName = "errorvaluesContour"
-            plotfilename = getTextFileName( curPlotFolderName, pythonVarName, plotVarName, criteriaValsStr, "png" )
+            plotfilename = getTextFileName( curPlotFolderName, pythonVarName, plotVarName, "png" )
             plt.savefig( plotfilename )
             plt.close()
 
             plt.figure()
-            # levels = np.linspace( levelsmin[indexval]*0.4 + levelsmax[indexval]*0.6, levelsmax[indexval], 40)
             contourLevels = np.linspace( curminval*0.4+ curmaxval*0.6, curmaxval, 40)
-            # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, vmin = levelsmin[-1]*0.2 + levelsmax[-1]*0.8, vmax = levelsmax[-1], colors='r')
-            # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, levels = levels, colors='r')
             plt.tricontourf( xvals, yvals, errvals, levels = contourLevels, colors = 'r')
             plt.colorbar()
             plotVarName = "large" + "errorvalues" + "Contour"
-            plotfilename = getTextFileName( curPlotFolderName, pythonVarName, plotVarName, criteriaValsStr, ".png" )
+            plotfilename = getTextFileName( curPlotFolderName, pythonVarName, plotVarName, ".png" )
             plt.savefig( plotfilename )
             plt.close()
-            # plt.figure()
-            # plt.tricontourf( xvals, yvals, uvals, levels = 20 )
-            # plt.colorbar()
-            # plt.scatter( xvals, yvals )
-            # plt.show()
-            # plt.savefig( plotfoldername + "ucontour_index=" + str(index) + ".png" )
-
-            # plt.figure()
-            # plt.tricontourf( xvals, yvals, uexactvals, levels = 20 )
-            # plt.colorbar()
-            # plt.scatter( xvals, yvals )
-            # plt.show()
-            # plt.savefig( plotfoldername + "uexactcontour_index=" + str(index) + ".png" )
-
+            
         allMaxErrorList.append( curMaxErrorList )
         allL2ErrorList.append( curL2ErrorList )
 
@@ -836,47 +883,19 @@ def plotMaxAndL2Error( axisArray, xvals, maxError, l2Error, param, paramValue ):
 
     plotMultipleAxis( axisArray, xvalsArray, yvalsArray, labelNameArray, "-o" )
 
-    # labelName = regexVal + " $L^{\infty}$ Error_" + "2h"
-    # axMaxErrorHandle.loglog( xvals[:-1], maxError[:-1], "-o", label = labelName )
-
-    # labelName = regexVal + " $L^{\infty}$ Error_" + "h"
-    # axMaxErrorHandle.loglog( xvals[:-1], maxError[1:], "-o", label = labelName )
-
-    # labelName = regexVal + " $L^{2}$ Error_" + "2h"
-    # axL2ErrorHandle.loglog( xvals[:-1], l2Error[:-1], "-o", label = labelName )
-
-    # labelName = regexVal + " $L^{2}$ Error_" + "h"
-    # axL2ErrorHandle.loglog( xvals[:-1], l2Error[1:], "-o", label = labelName )
-
-def showDealiiPlot( simPlotFolderName, regexVals, varName, 
-                   meshpath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/", 
+def showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshvals, meshPath, 
                    negative = 1, pival = 2*pi ):
 
     folderUtils.checkAndCreateFolder( simPlotFolderName )
 
-    dxfilename = "/home/gaurav/gmshAutoScripts/build/outfiletriangleunstruct.txt"
-
-    dxvals = []
-
-    with open( dxfilename ) as dxfilehandle:
-
-        dxvals = dxfilehandle.readlines()
-
-    dxvals = np.array([ float( dxval[ :-1 ] ) for dxval in dxvals ])
-
     import matplotlib.ticker as ticker
 
-    meshvals = [f for f in listdir(meshpath) if isfile(join(meshpath, f))]
+    levelsArr = getAllLevels( meshvals )
 
-    allSortedMeshVals = []
+    # dealiiVarName = "errorvalues"
+    # minMaxRangeVals = getFinchMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, juliaVarName )
 
-    for regexVal in regexVals:
-        regexCriterias = getRegexCriterias( regexVal )
-        sortedMeshVals = getSortedMeshVals( meshvals, regexVal, regexCriterias )
-        allSortedMeshVals.append( sortedMeshVals )
-
-    minMaxRangeVals = getDealiiMinMaxRange( allSortedMeshVals, regexVals, varName,
-                                        format = "vtu", negative = negative, pival =  pival )
+    minMaxRangeVals = getDealiiMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, negative, pival )
 
     cdict = {
         'red'  :  ( (0.0, 0.25, .25), (0.02, .59, .59), (1., 1., 1.)),
@@ -893,28 +912,31 @@ def showDealiiPlot( simPlotFolderName, regexVals, varName,
     figArrayArea, axisArrayArea = createMultipleFigureAxis( 2 )
     figArrayDx, axisArrayDx = createMultipleFigureAxis( 2 )
 
-    print(allSortedMeshVals)
-
-    for idx, sortedMeshVals in enumerate( allSortedMeshVals ):
+    for idx, paramValue in enumerate( allParams[ comparisonParam ] ):
 
         curMaxErrorList = []
         curL2ErrorList = []
         numNodeVals = []
         areaVals = []
+        regexCriterias = getRegexCriterias( "lvl" )
         dxVals = []
-        regexVal = regexVals[idx]
-        regexCriterias = getRegexCriterias( regexVal )
+        optionsParam[ comparisonParam ] = paramValue
 
-        for index, meshval in enumerate( sortedMeshVals ):
+        for index, level in enumerate( levelsArr ):
 
-            meshFileName = meshPath + meshval
+            optionsParam[ "level" ] = str( level )
+            pythonVarName = getPythonVarName( optionsParam )
+            regexCriteriaVals = [level]
+            criteriaValsStr = getCriteriaValsString( regexCriterias, regexCriteriaVals )
+
+            meshFileName = getMeshFileName( optionsParam, regexCriterias, regexCriteriaVals, meshPath )
 
             numNodeVals.append( getNumNodes( meshFileName ) )
-            dxVals.append( getMaxH( meshFileName, regexVal ) )
-            areaVals.append( getAverage2DArea( meshFileName, regexVal ) )
+            dxVals.append( getMaxH( meshFileName, optionsParam[ "meshRegexVal" ] ) )
+            areaVals.append( getAverage2DArea( meshFileName, optionsParam[ "meshRegexVal" ] ) )
 
-            solvalsFileName = getFileNameFromMeshName( meshval, folderUtils.dealiiTextfoldername, varName,
-                                                      regexVal, regexCriterias, ".vtu" )
+            dealiiVarName = "solutionvalues"
+            solvalsFileName = getTextFileName( folderUtils.dealiiTextfoldername, pythonVarName, dealiiVarName, "vtu" )
             
             (nodes, solution) = getDealiiData( solvalsFileName, "vtu" )
             xvals = nodes[:, 0]
@@ -933,21 +955,13 @@ def showDealiiPlot( simPlotFolderName, regexVals, varName,
 
             folderUtils.checkAndCreateFolder( curPlotFolderName )
 
-            # uvals = getData( textfoldername + "uvalues_index=" + str(index) + ".txt" )
-            # uexactvals = getData( textfoldername + "uexactvalues_index=" + str(index) + ".txt" )        
-            # print( np.max(errvals) )
-
             minVal, maxVal = minMaxRangeVals[ index ]
-
             contourLevels = np.linspace( minVal, maxVal, 40 )
             plt.figure()
-            # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, levels = levels, vmin = levelsmin[-1], vmax = levelsmax[-1] )
             plt.tricontourf( xvals, yvals, errvals, levels = contourLevels, vmin = minVal, vmax = maxVal, cmap = cm )
             plt.colorbar()
-            # plt.scatter( xvalsHanging, yvalsHanging )
-            # plt.show()
-            fileVarName = varName + "Contour"
-            plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, fileVarName, regexVal, regexCriterias, ".png" )
+            plotVarName = "errorvaluesContour"
+            plotfilename = getTextFileName( curPlotFolderName, pythonVarName, plotVarName, "png" )
             plt.savefig( plotfilename )
             plt.close()
 
@@ -958,42 +972,29 @@ def showDealiiPlot( simPlotFolderName, regexVals, varName,
             # plt.tricontourf( xvalsHanging, yvalsHanging, hangingErrvals, levels = levels, colors='r')
             plt.tricontourf( xvals, yvals, errvals, levels = contourLevels, colors = 'r')
             plt.colorbar()
-            plotfilename = getFileNameFromMeshName( meshval, curPlotFolderName, "largeErrorContour_", regexVal, regexCriterias, ".png" )
+            plotVarName = "large" + "errorvalues" + "Contour"
+            plotfilename = getTextFileName( curPlotFolderName, pythonVarName, plotVarName, ".png" )            
             plt.savefig( plotfilename )
             plt.close()
-            # plt.figure()
-            # plt.tricontourf( xvals, yvals, uvals, levels = 20 )
-            # plt.colorbar()
-            # plt.scatter( xvals, yvals )
-            # plt.show()
-            # plt.savefig( plotfoldername + "ucontour_index=" + str(index) + ".png" )
-
-            # plt.figure()
-            # plt.tricontourf( xvals, yvals, uexactvals, levels = 20 )
-            # plt.colorbar()
-            # plt.scatter( xvals, yvals )
-            # plt.show()
-            # plt.savefig( plotfoldername + "uexactcontour_index=" + str(index) + ".png" )
-
+            
         allMaxErrorList.append( curMaxErrorList )
         allL2ErrorList.append( curL2ErrorList )
 
-        plotMaxAndL2Error( axisArrayNumNodes, numNodeVals, curMaxErrorList, curL2ErrorList, regexVal )
-        plotMaxAndL2Error( axisArrayArea, areaVals, curMaxErrorList, curL2ErrorList, regexVal ) 
-        plotMaxAndL2Error( axisArrayDx, dxVals, curMaxErrorList, curL2ErrorList, regexVal )
+        plotMaxAndL2Error( axisArrayNumNodes, numNodeVals, curMaxErrorList, curL2ErrorList, comparisonParam, paramValue )
+        plotMaxAndL2Error( axisArrayArea, areaVals, curMaxErrorList, curL2ErrorList, comparisonParam, paramValue ) 
+        plotMaxAndL2Error( axisArrayDx, dxVals, curMaxErrorList, curL2ErrorList, comparisonParam, paramValue )      
 
-        print( regexVal )
+        print( comparisonParam + "=" + paramValue )
         print( dxVals )
         print( curMaxErrorList )
         print( curL2ErrorList )
 
     h2Vals = [ dxVal**2 for dxVal in dxVals ]
 
-    # print( areaVals )
     xValsArray = [ numNodeVals, numNodeVals, areaVals, areaVals, dxVals, dxVals ]
     yValsArray = [ h2Vals ]*len(xValsArray)
     labelNameArray = [ "$h^2$" ]*len(xValsArray)
-    
+
     axisArray = [ axisArrayNumNodes[0], axisArrayNumNodes[1],
                     axisArrayArea[0],
                     axisArrayArea[1],
@@ -1017,23 +1018,23 @@ def showDealiiPlot( simPlotFolderName, regexVals, varName,
 
     makeMultiplePlotAdjustmentsAndSave( axisArray, figArray, fileNameArray )
 
-    if len( regexVals ) > 1:
-        errorDiffMax = [ allMaxErrorList[1][idx] - allMaxErrorList[0][idx] for idx in range( len(allMaxErrorList[0]) ) ]
-        errorDiffL2 = [ allL2ErrorList[1][idx] - allL2ErrorList[0][idx] for idx in range( len(allL2ErrorList[0]) ) ]
+    # if len( regexVals ) > 1:
+    #     errorDiffMax = [ allMaxErrorList[1][idx] - allMaxErrorList[0][idx] for idx in range( len(allMaxErrorList[0]) ) ]
+    #     errorDiffL2 = [ allL2ErrorList[1][idx] - allL2ErrorList[0][idx] for idx in range( len(allL2ErrorList[0]) ) ]
 
-        plt.figure()
-        plt.plot( dxvals, errorDiffMax, "-o" )
-        titleval = regexVals[1] + " - " + regexVals[0] + " Max Error Plot"
-        plt.xlabel( "h" )
-        plt.ylabel( "Error" )
-        plt.title( titleval )
+    #     plt.figure()
+    #     plt.plot( dxvals, errorDiffMax, "-o" )
+    #     titleval = regexVals[1] + " - " + regexVals[0] + " Max Error Plot"
+    #     plt.xlabel( "h" )
+    #     plt.ylabel( "Error" )
+    #     plt.title( titleval )
 
-        plt.figure()
-        titleval = regexVals[1] + " - " + regexVals[0] + " L2 Error Plot"
-        plt.plot( dxvals, errorDiffL2, "-o" )
-        plt.xlabel( "h" )
-        plt.ylabel( "Error" )
-        plt.title( titleval )
+    #     plt.figure()
+    #     titleval = regexVals[1] + " - " + regexVals[0] + " L2 Error Plot"
+    #     plt.plot( dxvals, errorDiffL2, "-o" )
+    #     plt.xlabel( "h" )
+    #     plt.ylabel( "Error" )
+    #     plt.title( titleval )
 
     plt.show()
 
@@ -1217,21 +1218,11 @@ def getPythonVarName( optionsParam ):
 
     return pythonVarName
 
-def getFileNameFromMeshName( folderName, meshFileName, pythonVarName, juliaVarName, criteria = "lvl", extension = "txt" ):
+def getTextFileName( folderName, pythonVarName, juliaVarName, extension = "txt" ):
 
-    regexCriterias = getRegexCriterias( criteria )
-    criteriaVals = getCriteriasFromFileName( meshFileName, regexCriterias )
-
-    filename = getTextFileName( folderName, pythonVarName, juliaVarName, criteriaVals, criteria, extension )
+    filename = folderName + pythonVarName + juliaVarName + "." + extension
 
     return filename
-
-def getTextFileName( folderName, pythonVarName, juliaVarName, criteriaVals, extension = "txt" ):
-
-    filename = folderName + pythonVarName + juliaVarName + "_" + criteriaVals + "." + extension
-
-    return filename
-
 
 def getCriteriasFromFileName( meshval, regexCriterias ):
 
@@ -1314,6 +1305,11 @@ if __name__ == "__main__":
     optionsParam["meshRegexVal"] = regexVals[0]
     optionsParam["level"] = "0"
 
+    # pythonVarName = getPythonVarName( optionsParam )
+    # print(pythonVarName)
+    # filename = getTextFileName( folderUtils.dealiiTextfoldername, pythonVarName, "solutionValues", "vtu" )
+    # print(filename) 
+
     comparisonParam = "meshRegexVal"
 
     simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotNewSetup_2pi/"
@@ -1336,7 +1332,13 @@ if __name__ == "__main__":
     # buildAllMeshes( gmshFileCmdNames, meshPath )
     meshArr = getMeshFilesFromFolder( meshPath )
     # runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams )
-    showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
+    # showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
+
+    srcFileName = "/home/gaurav/dealii-9.5.1/examples/step-5/step-5.cc"
+    runDealiiSimWithOptionsVariousMeshes( optionsParam, meshArr, srcFileName )
+
+    simPlotFolderName = simPlotRootFolderName + "Dealii/"
+    showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, negative=-1, pival = pi )
 
     # fileName = folderUtils.textFolderNames["Dealii"] + "Mesh_solutionvalues_lvl=7.vtu"
     # getDealiiData( fileName, "vtu" )
