@@ -10,6 +10,7 @@
 # Precompiled Headers
 *.gch
 *.pch
+*.pyc
 
 # Compiled Dynamic libraries
 *.so
@@ -33,4 +34,5 @@
 
 # ignore folders
 build/
+src/__pycache__/
 *.log

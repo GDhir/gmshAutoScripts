@@ -62,6 +62,9 @@ using namespace dealii;
 using numbers::PI;
 namespace fs = std::filesystem;
 
+#define k 1
+#define c -2
+
 template <int dim>
 class RightHandSide : public Function<dim>
 {
@@ -120,13 +123,13 @@ class Step5
 {
 public:
   Step5(FiniteElement<dim> &finiteElement, const Quadrature<dim> &quadObj);
-  void run(std::string filename);
+  void run(std::string filename, std::string pythonVarName);
 
 private:
   void setup_system();
   void assemble_system();
   void solve();
-  void output_results(std::string meshFileName) const;
+  void output_results(std::string meshFileName, std::string pythonVarName) const;
 
   Triangulation<dim> triangulation;
   // FE_Q<dim>          fe;
@@ -150,7 +153,7 @@ double RightHandSide<dim>::value(const Point<dim> &p,
 
   if (dim == 2)
   {
-    return_value = -8 * std::pow(PI, 2) * sin(2 * PI * p[0]) * sin(2 * PI * p[1]);
+    return_value = c * std::pow(PI, 2) * sin(k * PI * p[0]) * sin(k * PI * p[1]);
   }
 
   return return_value;
@@ -165,7 +168,7 @@ double BoundaryValues<dim>::value(const Point<dim> &p,
 
   if (dim == 2)
   {
-    return_value = sin(2 * PI * p[0]) * sin(2 * PI * p[1]);
+    return_value = -sin(k * PI * p[0]) * sin(k * PI * p[1]);
   }
 
   return return_value;
@@ -349,7 +352,7 @@ void Step5<dim>::solve()
 // desire to use a program for visualization that doesn't understand
 // VTK or VTU.
 template <int dim>
-void Step5<dim>::output_results(std::string meshFileName) const
+void Step5<dim>::output_results(std::string meshFileName, std::string pythonVarName) const
 {
 
   std::string textfoldername{"/media/gaurav/easystore/dealii/MixedElement/TextFiles/"};
@@ -368,18 +371,8 @@ void Step5<dim>::output_results(std::string meshFileName) const
   if (std::find(regularMeshTypes.begin(), regularMeshTypes.end(), prefixVal) != regularMeshTypes.end())
   {
 
-    std::regex re("N=");
-    std::smatch m;
-    std::regex_search(meshFileName, m, re);
-    std::string suffixVal = m.suffix().str();
-
-    re = "[0-9]+";
-    std::regex_search(suffixVal, m, re);
-    auto Nval = m.str();
-
-    prefixVal = prefixVal + "_";
-
-    solutionFileName = textfoldername + prefixVal + "solutionvaluesGaussModified_N=" + Nval;
+    std::string dealiiVarName = "solutionvalues";
+    solutionFileName = textfoldername + pythonVarName + dealiiVarName;
     std::cout << solutionFileName << std::endl;
   }
   else if (prefixVal == "mixed")
@@ -425,7 +418,7 @@ void Step5<dim>::output_results(std::string meshFileName) const
 // triangulation object when we ask it to read the file). Then we open the
 // respective file and initialize the triangulation with the data in the file:
 template <int dim>
-void Step5<dim>::run(std::string filename)
+void Step5<dim>::run(std::string filename, std::string pythonVarName)
 {
   GridIn<dim> grid_in;
   grid_in.attach_triangulation(triangulation);
@@ -519,15 +512,16 @@ void Step5<dim>::run(std::string filename)
   setup_system();
   assemble_system();
   solve();
-  output_results(filename);
+  output_results(filename, pythonVarName);
 }
 
 // template<typename dim>
-void runFEM(FiniteElement<2> &fem, const Quadrature<2> &quadObj, std::string filename)
+void runFEM(FiniteElement<2> &fem, const Quadrature<2> &quadObj, std::string filename,
+   std::string pythonVarName)
 {
 
   Step5<2> laplace_problem_2d(fem, quadObj);
-  laplace_problem_2d.run(filename);
+  laplace_problem_2d.run(filename, pythonVarName);
 }
 
 // @sect3{The <code>main</code> function}
@@ -539,7 +533,8 @@ int main(int argc, char *argv[])
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
   std::string path = "/home/gaurav/Finch/src/examples/Mesh/MeshRun";
-  std::string filename = "/home/gaurav/gmshAutoScripts/build/triangleMeshStructN=25.msh";
+  std::string filename = argv[1];
+  std::string pythonVarName = argv[2];
 
   std::regex tri_regex("triangle",
                        std::regex_constants::ECMAScript | std::regex_constants::icase);
@@ -547,21 +542,23 @@ int main(int argc, char *argv[])
   std::regex quad_regex("regular",
                         std::regex_constants::ECMAScript | std::regex_constants::icase);
 
-  int idx = 0
+  int idx = 0;
 
-      for (const auto &filenameObj : fs::directory_iterator(path))
-  {
+  const int quadratureOrder = atoi( argv[3] );
 
-    filename = filenameObj.path();
+  // for (const auto &filenameObj : fs::directory_iterator(path))
+  // {
+
+    // filename = filenameObj.path();
 
     if (std::regex_search(filename, tri_regex))
     {
       FE_SimplexP<2> fem(1);
-      const QGaussSimplex<2> quadrature_formula(fem.degree + 1);
+      const QGaussSimplex<2> quadrature_formula( quadratureOrder );
 
-      runFEM(fem, quadrature_formula, filename);
+      runFEM(fem, quadrature_formula, filename, pythonVarName);
 
-      const std::vector<Point<dim>> quadraturePoints = quadrature_formula.get_points();
+      const std::vector<Point<2>> quadraturePoints = quadrature_formula.get_points();
       const std::vector<double> quadratureWeights = quadrature_formula.get_weights();
 
       std::cout << "idx = " << idx << " filename = " + filename << "\n";
@@ -592,11 +589,11 @@ int main(int argc, char *argv[])
     else if (std::regex_search(filename, quad_regex))
     {
       FE_Q<2> fem(1);
-      const QGauss<2> quadrature_formula(fem.degree + 1);
-      runFEM(fem, quadrature_formula, filename);
+      const QGauss<2> quadrature_formula( quadratureOrder );
+      runFEM(fem, quadrature_formula, filename, pythonVarName);
 
-      const std::vector<Point<dim>> quadraturePoints = quadrature_formula.get_points();
-      const std::vector<double> quadratureWeights = quadrature_formula.get_weights();
+      const std::vector<Point<2>>& quadraturePoints = quadrature_formula.get_points();
+      const std::vector<double>& quadratureWeights = quadrature_formula.get_weights();
 
       std::cout << "idx = " << idx << " filename = " + filename << "\n";
 
@@ -624,10 +621,10 @@ int main(int argc, char *argv[])
       fileHandle << "Weights End Here \n";
     }
 
-    idx += 1;
+    // idx += 1;
 
     // std::cout << filename << std::endl;
     // laplace_problem_2d.run( filename );
-  }
+  // }
   return 0;
 }
