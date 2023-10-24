@@ -104,7 +104,7 @@ def showParaviewPlot( simPlotFolderName, allParams, optionsParam, comparisonPara
 
             optionsParam[ "level" ] = str( level )
             pythonVarName = fileNameUtils.getPythonVarName( optionsParam )
-            regexCriteriaVals = [level]
+            regexCriteriaVals = [str(level)]
             criteriaValsStr = regexUtils.getCriteriaValsString( regexCriterias, regexCriteriaVals )
 
             meshFileName = fileNameUtils.getMeshFileName( optionsParam, regexCriterias, regexCriteriaVals, "" )
@@ -221,7 +221,7 @@ def compareParaview( simPlotFolderName, allParams, optionsParam, comparisonParam
             optionsParam[ comparisonParam ] = paramVal
 
             pythonVarName = fileNameUtils.getPythonVarName( optionsParam )
-            regexCriteriaVals = [level]
+            regexCriteriaVals = [str(level)]
             criteriaValsStr = regexUtils.getCriteriaValsString( regexCriterias, regexCriteriaVals )
 
             meshFileName = fileNameUtils.getMeshFileName( optionsParam, regexCriterias, regexCriteriaVals, "" )
@@ -311,9 +311,9 @@ if __name__ == "__main__":
     # filename = getTextFileName( folderUtils.dealiiTextfoldername, pythonVarName, "solutionValues", "vtu" )
     # print(filename) 
 
-    comparisonParam = "meshRegexVal"
+    comparisonParam = "quadratureOrder"
 
-    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotNewSetup_2pi/"
+    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotTriangleUnstructQuadrature_pi/"
     meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=2_2pi/"
 
     # regexVals = [ "mesh" ]

@@ -1019,7 +1019,7 @@ if __name__ == "__main__":
     optionsParam["sin(kpix)"] = "1"
     optionsParam["coeff_F"] = "-2"
     optionsParam["software"] = "Finch"
-    optionsParam["meshRegexVal"] = regexVals[0]
+    optionsParam["meshRegexVal"] = regexVals[1]
     optionsParam["level"] = "0"
 
     # pythonVarName = getPythonVarName( optionsParam )
@@ -1034,7 +1034,7 @@ if __name__ == "__main__":
 
     # regexVals = [ "mesh" ]
     meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
-    # buildAllMeshes( gmshFileCmdNames, meshPath )
+    buildAllMeshes( gmshFileCmdNames, meshPath )
     meshArr = meshFileUtils.getMeshFilesFromFolder( meshPath )
     # showMeshes( folderUtils.meshPlotRootFolderName, regexVals )
 
@@ -1042,14 +1042,14 @@ if __name__ == "__main__":
  
     simPlotFolderName = simPlotRootFolderName + "Finch/"
     print( "Finch" )
-    # runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath )
-    # showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
+    runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath )
+    showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
 
     srcFileName = "/home/gaurav/dealii-9.5.1/examples/step-5/step-5.cc"
-    # runDealiiSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath, srcFileName )
+    runDealiiSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath, srcFileName )
 
     simPlotFolderName = simPlotRootFolderName + "Dealii/"
-    # showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, negative=-1, pival = pi )
+    showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, negative=-1, pival = pi )
 
     compareDealiiFinch( simPlotRootFolderName, allParams,
                     optionsParam, comparisonParam, meshArr, meshPath, negative =-1, pival = pi )
