@@ -20,7 +20,7 @@ def getAllLevels( meshFileNameArr ):
     for fileName in meshFileNameArr:
 
         level = getLevelFromFileName( fileName )
-        levelsSet.add( level )
+        levelsSet.add( int(level) )
 
     return list( levelsSet )
 
