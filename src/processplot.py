@@ -80,7 +80,7 @@ def runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, compa
 
         for levelsVal in levelsArr:
 
-            optionsParam[ "level" ] = levelsVal
+            optionsParam[ "level" ] = str(levelsVal)
             
             regexCriteriaVals = [ str( levelsVal ) ]
 
@@ -201,7 +201,7 @@ def runDealiiSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comp
 
         for levelsVal in levelsArr:
 
-            optionsParam[ "level" ] = levelsVal
+            optionsParam[ "level" ] = str(levelsVal)
             regexCriteriaVals = [ str(levelsVal) ]
             meshFileName = fileNameUtils.getMeshFileName( optionsParam, regexCriterias, regexCriteriaVals, meshPath )
 
@@ -1029,7 +1029,7 @@ if __name__ == "__main__":
 
     comparisonParam = "quadratureOrder"
 
-    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotTriangleUnstructQuadrature_pi/"
+    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotTriangleStructuredQuadrature_pi/"
     # meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=2_pi/"
 
     # regexVals = [ "mesh" ]
@@ -1042,17 +1042,18 @@ if __name__ == "__main__":
  
     simPlotFolderName = simPlotRootFolderName + "Finch/"
     print( "Finch" )
-    runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath )
+    # runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath )
     showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
 
     srcFileName = "/home/gaurav/dealii-9.5.1/examples/step-5/step-5.cc"
-    runDealiiSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath, srcFileName )
+    # runDealiiSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath, srcFileName )
 
     simPlotFolderName = simPlotRootFolderName + "Dealii/"
+    print( "dealii" )
     showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, negative=-1, pival = pi )
 
-    compareDealiiFinch( simPlotRootFolderName, allParams,
-                    optionsParam, comparisonParam, meshArr, meshPath, negative =-1, pival = pi )
+    # compareDealiiFinch( simPlotRootFolderName, allParams,
+                    # optionsParam, comparisonParam, meshArr, meshPath, negative =-1, pival = pi )
 
     # fileName = folderUtils.textFolderNames["Dealii"] + "Mesh_solutionvalues_lvl=7.vtu"
     # getDealiiData( fileName, "vtu" )

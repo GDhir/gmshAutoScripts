@@ -303,7 +303,7 @@ if __name__ == "__main__":
     optionsParam["sin(kpix)"] = "1"
     optionsParam["coeff_F"] = "-2"
     optionsParam["software"] = "Finch"
-    optionsParam["meshRegexVal"] = regexVals[0]
+    optionsParam["meshRegexVal"] = regexVals[1]
     optionsParam["level"] = "0"
 
     # pythonVarName = getPythonVarName( optionsParam )
@@ -313,7 +313,7 @@ if __name__ == "__main__":
 
     comparisonParam = "quadratureOrder"
 
-    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotTriangleUnstructQuadrature_pi/"
+    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotTriangleStructuredQuadrature_pi/"
     meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=2_2pi/"
 
     # regexVals = [ "mesh" ]
