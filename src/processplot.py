@@ -70,6 +70,30 @@ def setFinchQuadQuadrature( quadratureValue ):
 
         fileHandle.writelines( allLines )
 
+def setFinchGeneratedSolveFunction( optionsParam ):
+
+    filename = "/home/gaurav/Finch/src/examples/mixed2dcodein.jl"
+    pattern = "function genfunction_1"
+    returnStr = "return (" + optionsParam["coeff_F"] + "*pi*pi*sin(" + optionsParam[ "sin(kpix)" ] + \
+        "*pi*x)*sin(" + optionsParam[ "sin(kpix)" ] + "*pi*y));"
+    replacement = "function genfunction_1(x::Union{Float64,Float64},y::Union{Float64,Float64},z::Union{Float64,Float64},t::Union{Float64,Float64},node_index::Int,face_index::Int,indices::Vector{Int}) " + returnStr + " end\n"
+
+    with open( filename ) as fileHandle:
+
+        allLines = fileHandle.readlines()
+
+        for idx, lineVal in enumerate( allLines ):
+
+            if re.search( pattern, lineVal ):
+
+                allLines[idx] = replacement
+                break
+
+    with open( filename, "w" ) as fileHandle:
+
+        fileHandle.writelines( allLines )
+
+
 def runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath ):
     
     levelsArr = meshFileUtils.getAllLevels( meshArr )
@@ -92,6 +116,9 @@ def runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, compa
                 setFinchTriangleQuadrature( optionsParam[ "quadratureOrder" ] )
             elif re.search( "regular", optionsParam[ "meshRegexVal" ] ):
                 setFinchQuadQuadrature( optionsParam[ "quadratureOrder" ] )
+            elif re.search( "mesh", optionsParam[ "meshRegexVal" ] ):
+                setFinchTriangleQuadrature( optionsParam[ "quadratureOrder" ] )
+                setFinchGeneratedSolveFunction( optionsParam )
 
             runFinchSimWithOptions( optionsParam, meshFileName )
 
@@ -502,6 +529,7 @@ def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, 
     import matplotlib.ticker as ticker
 
     levelsArr = meshFileUtils.getAllLevels( meshvals )
+    # levelsArr = levelsArr[:-2]
 
     juliaVarName = "errorvalues"
     minMaxRangeVals = dataUtils.getFinchMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, juliaVarName )
@@ -680,6 +708,7 @@ def showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam,
     import matplotlib.ticker as ticker
 
     levelsArr = meshFileUtils.getAllLevels( meshvals )
+    # levelsArr = levelsArr[:-2]
 
     # dealiiVarName = "errorvalues"
     # minMaxRangeVals = getFinchMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, juliaVarName )
@@ -858,6 +887,7 @@ def compareDealiiFinch( simPlotFolderName, allParams, optionsParam, comparisonPa
     import matplotlib.ticker as ticker
 
     levelsArr = meshFileUtils.getAllLevels( meshvals )
+    levelsArr = levelsArr[:-2]
     # minMaxRangeVals = getDealiiMinMaxRange( allSortedMeshVals )
 
     cdict = {
@@ -881,8 +911,8 @@ def compareDealiiFinch( simPlotFolderName, allParams, optionsParam, comparisonPa
         dealiiCurMaxErrorList = []
         dealiiCurL2ErrorList = []
 
-        regexVal = regexVals[idx]
-        regexCriterias = regexUtils.getRegexCriterias( regexVal )
+        # regexVal = regexVals[idx]
+        # regexCriterias = regexUtils.getRegexCriterias( regexVal )
 
         finchCurMaxErrorList = []
         finchCurL2ErrorList = []
@@ -902,7 +932,7 @@ def compareDealiiFinch( simPlotFolderName, allParams, optionsParam, comparisonPa
             optionsParam[ "level" ] = str( level )
             pythonVarName = fileNameUtils.getPythonVarName( optionsParam )
             regexCriteriaVals = [str( level )]
-            criteriaValsStr = regexUtils.getCriteriaValsString( regexCriterias, regexCriteriaVals )
+            # criteriaValsStr = regexUtils.getCriteriaValsString( regexCriterias, regexCriteriaVals )
 
             meshFileName = fileNameUtils.getMeshFileName( optionsParam, regexCriterias, regexCriteriaVals, meshPath )
 
@@ -1001,10 +1031,11 @@ if __name__ == "__main__":
 
     # gmshFileCmdNames = ["triangleMeshv1", "triangleMeshv2"]
     # regexVals = ["triangleMeshStruct", "triangleMeshUnstruct"]
-    regexVals = ["triangleMeshUnstruct", "triangleMeshStruct", "regularMesh"]
+    # regexVals = ["triangleMeshUnstruct", "triangleMeshStruct", "regularMesh"]
     gmshFileCmdNames = ["triangleMeshv2", "triangleMeshv1", "regularMeshv3"]
     # gmshFileCmdNames = ["hangingMeshv8"]
     # regexVals = ["hanging"]
+    regexVals = ["mesh"]
 
     allParams = dict()
     allParams["software"] = ["Finch", "Dealii"]
@@ -1016,10 +1047,10 @@ if __name__ == "__main__":
 
     optionsParam = dict()
     optionsParam["quadratureOrder"] = "2"
-    optionsParam["sin(kpix)"] = "1"
-    optionsParam["coeff_F"] = "-2"
+    optionsParam["sin(kpix)"] = "2"
+    optionsParam["coeff_F"] = "-8"
     optionsParam["software"] = "Finch"
-    optionsParam["meshRegexVal"] = regexVals[1]
+    optionsParam["meshRegexVal"] = regexVals[0]
     optionsParam["level"] = "0"
 
     # pythonVarName = getPythonVarName( optionsParam )
@@ -1029,15 +1060,13 @@ if __name__ == "__main__":
 
     comparisonParam = "quadratureOrder"
 
-    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotTriangleStructuredQuadrature_pi/"
+    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotMixedMeshQuadrature_2pi/"
     # meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=2_pi/"
 
-    # regexVals = [ "mesh" ]
-    meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
-    buildAllMeshes( gmshFileCmdNames, meshPath )
+    meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/mix_mesh/"
+    # buildAllMeshes( gmshFileCmdNames, meshPath )
     meshArr = meshFileUtils.getMeshFilesFromFolder( meshPath )
     # showMeshes( folderUtils.meshPlotRootFolderName, regexVals )
-
     # createMeshVTU( meshPlotRootFolderName, regexVals )
  
     simPlotFolderName = simPlotRootFolderName + "Finch/"
@@ -1045,15 +1074,19 @@ if __name__ == "__main__":
     # runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath )
     showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
 
-    srcFileName = "/home/gaurav/dealii-9.5.1/examples/step-5/step-5.cc"
-    # runDealiiSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath, srcFileName )
+    # srcFileName = "/home/gaurav/dealii-9.5.1/examples/step-5/step-5.cc"
+    srcFileName = "/home/gaurav/dealii-9.5.1/examples/doxygen/step_3_mixed.cc"
+    makeArg = "example_step_3_mixed_debug"
+    exefilename = "step_3_mixed.debug"
+    # runDealiiSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam,
+                                        # meshPath, srcFileName, exefilename, makeArg )
 
     simPlotFolderName = simPlotRootFolderName + "Dealii/"
     print( "dealii" )
-    showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, negative=-1, pival = pi )
+    # showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, negative=-1, pival = 2*pi )
 
     # compareDealiiFinch( simPlotRootFolderName, allParams,
-                    # optionsParam, comparisonParam, meshArr, meshPath, negative =-1, pival = pi )
+                    # optionsParam, comparisonParam, meshArr, meshPath, negative =-1, pival = 2*pi )
 
     # fileName = folderUtils.textFolderNames["Dealii"] + "Mesh_solutionvalues_lvl=7.vtu"
     # getDealiiData( fileName, "vtu" )

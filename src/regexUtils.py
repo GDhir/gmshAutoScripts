@@ -5,7 +5,7 @@ def getCriteriaValsString( regexCriterias, criteriaVals ):
     regexCriteriaVals = ""
 
     for idx, regexCriteria in enumerate( regexCriterias ):
-        regexCriteriaVals += regexCriteria + "=" + criteriaVals[idx]
+        regexCriteriaVals += regexCriteria + criteriaVals[idx]
 
     return regexCriteriaVals 
 

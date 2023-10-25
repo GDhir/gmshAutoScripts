@@ -26,7 +26,7 @@ def getCriteriasFromFileName( meshval, regexCriterias ):
 def getMeshFileName( optionsParam, criterias, criteriaVals, meshPath ):
 
     criteriaStr = regexUtils.getCriteriaValsString( criterias, criteriaVals )
-    fileName = meshPath + optionsParam[ "meshRegexVal" ] + criteriaStr + ".msh"
+    fileName = meshPath + optionsParam[ "meshRegexVal" ] + "_" + criteriaStr + ".msh"
 
     return fileName
 

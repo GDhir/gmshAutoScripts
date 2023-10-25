@@ -77,6 +77,7 @@ def showParaviewPlot( simPlotFolderName, allParams, optionsParam, comparisonPara
         os.mkdir( simPlotFolderName )
 
     levelsArr = meshFileUtils.getAllLevels( meshvals )
+    levelsArr = levelsArr[:-2]
 
     juliaVarName = "errorvalues"
     minMaxRangeVals = dataUtils.getFinchMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, juliaVarName )
@@ -285,10 +286,11 @@ if __name__ == "__main__":
 
     # gmshFileCmdNames = ["triangleMeshv1", "triangleMeshv2"]
     # regexVals = ["triangleMeshStruct", "triangleMeshUnstruct"]
-    regexVals = ["triangleMeshUnstruct", "triangleMeshStruct", "regularMesh"]
+    # regexVals = ["triangleMeshUnstruct", "triangleMeshStruct", "regularMesh"]
     gmshFileCmdNames = ["triangleMeshv2", "triangleMeshv1", "regularMeshv3"]
     # gmshFileCmdNames = ["hangingMeshv8"]
     # regexVals = ["hanging"]
+    regexVals = ["mesh"]
 
     allParams = dict()
     allParams["software"] = ["Finch", "Dealii"]
@@ -300,10 +302,10 @@ if __name__ == "__main__":
 
     optionsParam = dict()
     optionsParam["quadratureOrder"] = "2"
-    optionsParam["sin(kpix)"] = "1"
-    optionsParam["coeff_F"] = "-2"
+    optionsParam["sin(kpix)"] = "2"
+    optionsParam["coeff_F"] = "-8"
     optionsParam["software"] = "Finch"
-    optionsParam["meshRegexVal"] = regexVals[1]
+    optionsParam["meshRegexVal"] = regexVals[0]
     optionsParam["level"] = "0"
 
     # pythonVarName = getPythonVarName( optionsParam )
@@ -313,11 +315,11 @@ if __name__ == "__main__":
 
     comparisonParam = "quadratureOrder"
 
-    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotTriangleStructuredQuadrature_pi/"
+    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotMixedMeshQuadrature_2pi/"
     meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=2_2pi/"
 
     # regexVals = [ "mesh" ]
-    meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/mix_mesh/"
     # showMeshes( folderUtils.meshPlotRootFolderName, regexVals )
 
     # createMeshVTU( meshPlotRootFolderName, regexVals )
