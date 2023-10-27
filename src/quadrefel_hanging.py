@@ -103,8 +103,64 @@ def runconf2():
         # A[ 3, : ] = [ 1, 1, 1, 1, 1 ]
         # A[ 4, : ] = [ 1, -1, 1, -1, 1 ]
     
+def runconfLinear():
 
+    A = np.zeros( [4, 4] )
+
+    zetavals = [ -1, 1, 1, -1 ]
+    etavals = [ -1, -1, 1, 1 ]
+
+    allvals = []
+
+    print( "**********************************************************************" )
+
+    for idx in range(4):
+        A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx] ]
+
+    for idx in range(4):
+
+        b = np.zeros( [4, 1] )
+        b[idx, 0] = 1
+
+        try:
+            c = solve( A, b )
+        except np.linalg.LinAlgError:
+
+            print( "Configuration is singular \n" )
+            break
+
+        print(np.transpose(c))
+        c = np.transpose(c)[0]
+        allvals.append( c )
+
+        print( "**********************************************************************" )
+
+    return allvals
+
+def getValueQuad( coords, coeffMat ):
+
+    allBasisVals = np.zeros( (4, 4) )
+
+    for cidx, coord in enumerate( coords ):
+        
+        allBasisVals[ 0, cidx ] = 1
+        allBasisVals[ 1, cidx ] = coord[0]
+        allBasisVals[ 2, cidx ] = coord[1]
+        allBasisVals[ 3, cidx ] = coord[0]*coord[1]
+
+    evaluations = np.matmul( coeffMat, allBasisVals )
+
+    return evaluations
+
+def getDerivativeQuad( coords, coeffvals ):
+
+    return
 
 if __name__ == "__main__":
 
-    runconf()
+    coeffMat = runconfLinear()
+
+    coords = [ [ -0.5773, -0.5773 ], [ 0.5773, -0.5773 ], [ -0.5773, 0.5773 ], [ 0.5773, 0.5773 ] ]
+    evaluations = getValueQuad( coords, coeffMat )
+
+    print( evaluations )

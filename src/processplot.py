@@ -1060,7 +1060,7 @@ if __name__ == "__main__":
 
     comparisonParam = "quadratureOrder"
 
-    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotMixedMeshQuadrature_2pi/"
+    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotMixedMeshTriangleQuadratureDealii_2pi/"
     # meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=2_pi/"
 
     meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/mix_mesh/"
@@ -1072,18 +1072,18 @@ if __name__ == "__main__":
     simPlotFolderName = simPlotRootFolderName + "Finch/"
     print( "Finch" )
     # runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath )
-    showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
+    # showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
 
     # srcFileName = "/home/gaurav/dealii-9.5.1/examples/step-5/step-5.cc"
     srcFileName = "/home/gaurav/dealii-9.5.1/examples/doxygen/step_3_mixed.cc"
     makeArg = "example_step_3_mixed_debug"
     exefilename = "step_3_mixed.debug"
-    # runDealiiSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam,
-                                        # meshPath, srcFileName, exefilename, makeArg )
+    runDealiiSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam,
+                                        meshPath, srcFileName, exefilename, makeArg )
 
     simPlotFolderName = simPlotRootFolderName + "Dealii/"
     print( "dealii" )
-    # showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, negative=-1, pival = 2*pi )
+    showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, negative=-1, pival = 2*pi )
 
     # compareDealiiFinch( simPlotRootFolderName, allParams,
                     # optionsParam, comparisonParam, meshArr, meshPath, negative =-1, pival = 2*pi )
