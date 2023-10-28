@@ -135,7 +135,7 @@ def runconfLinear():
 
         print( "**********************************************************************" )
 
-    return allvals
+    return np.array( allvals )
 
 def getValueQuad( coords, coeffMat ):
 
@@ -152,9 +152,27 @@ def getValueQuad( coords, coeffMat ):
 
     return evaluations
 
-def getDerivativeQuad( coords, coeffvals ):
+def getDerivativeQuad( coords, coeffMat ):
 
-    return
+    allBasisVals = np.zeros( (2, 4) )  
+
+    for cidx, coord in enumerate( coords ):
+        
+        allBasisVals[ 0, cidx ] = 1
+        allBasisVals[ 1, cidx ] = coord[1]
+
+    coeffVals = np.transpose( np.array( [ coeffMat[ :, 1 ], coeffMat[ :, 3 ] ] ) ) 
+    derivZeta = np.transpose( np.matmul( coeffVals, allBasisVals ) )
+
+    for cidx, coord in enumerate( coords ):
+        
+        allBasisVals[ 0, cidx ] = 1
+        allBasisVals[ 1, cidx ] = coord[0]
+
+    coeffVals = np.transpose( np.array( [ coeffMat[ :, 2 ], coeffMat[ :, 3 ] ] ) ) 
+    derivEta = np.transpose( np.matmul( coeffVals, allBasisVals ) )
+
+    return [derivZeta, derivEta] 
 
 if __name__ == "__main__":
 
@@ -163,4 +181,8 @@ if __name__ == "__main__":
     coords = [ [ -0.5773, -0.5773 ], [ 0.5773, -0.5773 ], [ -0.5773, 0.5773 ], [ 0.5773, 0.5773 ] ]
     evaluations = getValueQuad( coords, coeffMat )
 
-    print( evaluations )
+    derivZeta, derivEta = getDerivativeQuad( coords, coeffMat )
+
+    print( derivZeta )
+
+    print( derivEta )
