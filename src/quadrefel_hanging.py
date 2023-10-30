@@ -103,37 +103,68 @@ def runconf2():
         # A[ 3, : ] = [ 1, 1, 1, 1, 1 ]
         # A[ 4, : ] = [ 1, -1, 1, -1, 1 ]
     
-def runconfLinear():
-
-    A = np.zeros( [4, 4] )
-
-    zetavals = [ -1, 1, 1, -1 ]
-    etavals = [ -1, -1, 1, 1 ]
+def runconfLinear( quad = True ):
 
     allvals = []
 
-    print( "**********************************************************************" )
+    if quad:
 
-    for idx in range(4):
-        A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx] ]
+        A = np.zeros( [4, 4] )
 
-    for idx in range(4):
-
-        b = np.zeros( [4, 1] )
-        b[idx, 0] = 1
-
-        try:
-            c = solve( A, b )
-        except np.linalg.LinAlgError:
-
-            print( "Configuration is singular \n" )
-            break
-
-        print(np.transpose(c))
-        c = np.transpose(c)[0]
-        allvals.append( c )
+        zetavals = [ -1, 1, -1, 1 ]
+        etavals = [ -1, -1, 1, 1 ]
 
         print( "**********************************************************************" )
+
+        for idx in range(4):
+            A[idx, :] = [ 1, zetavals[idx], etavals[idx], zetavals[idx]*etavals[idx] ]
+
+        for idx in range(4):
+
+            b = np.zeros( [4, 1] )
+            b[idx, 0] = 1
+
+            try:
+                c = solve( A, b )
+            except np.linalg.LinAlgError:
+
+                print( "Configuration is singular \n" )
+                break
+
+            print(np.transpose(c))
+            c = np.transpose(c)[0]
+            allvals.append( c )
+
+            print( "**********************************************************************" )
+    else:
+
+        A = np.zeros( [3, 3] )
+
+        zetavals = [ -1, 1, -1 ]
+        etavals = [ -1, -1, 1 ]
+
+        print( "**********************************************************************" )
+
+        for idx in range(3):
+            A[idx, :] = [ 1, zetavals[idx], etavals[idx] ]
+
+        for idx in range(3):
+
+            b = np.zeros( [3, 1] )
+            b[idx, 0] = 1
+
+            try:
+                c = solve( A, b )
+            except np.linalg.LinAlgError:
+
+                print( "Configuration is singular \n" )
+                break
+
+            print(np.transpose(c))
+            c = np.transpose(c)[0]
+            allvals.append( c )
+
+            print( "**********************************************************************" )
 
     return np.array( allvals )
 
@@ -147,6 +178,20 @@ def getValueQuad( coords, coeffMat ):
         allBasisVals[ 1, cidx ] = coord[0]
         allBasisVals[ 2, cidx ] = coord[1]
         allBasisVals[ 3, cidx ] = coord[0]*coord[1]
+
+    evaluations = np.matmul( coeffMat, allBasisVals )
+
+    return evaluations
+
+def getValueTri( coords, coeffMat ):
+
+    allBasisVals = np.zeros( (3, len( coords )) )
+
+    for cidx, coord in enumerate( coords ):
+        
+        allBasisVals[ 0, cidx ] = 1
+        allBasisVals[ 1, cidx ] = coord[0]
+        allBasisVals[ 2, cidx ] = coord[1]
 
     evaluations = np.matmul( coeffMat, allBasisVals )
 
@@ -178,11 +223,23 @@ if __name__ == "__main__":
 
     coeffMat = runconfLinear()
 
-    coords = [ [ -0.5773, -0.5773 ], [ 0.5773, -0.5773 ], [ -0.5773, 0.5773 ], [ 0.5773, 0.5773 ] ]
-    evaluations = getValueQuad( coords, coeffMat )
-
-    derivZeta, derivEta = getDerivativeQuad( coords, coeffMat )
+    coordsQuadrature = [ [ -0.5773, -0.5773 ], [ 0.5773, -0.5773 ], [ -0.5773, 0.5773 ], [ 0.5773, 0.5773 ] ]
+    coordsVertices = [ [ -1, -1 ], [ 1, -1 ], [ -1, 1 ], [ 1, 1 ] ]
+    evaluations = getValueQuad( coordsVertices, coeffMat )
+    print(evaluations)
+    derivZeta, derivEta = getDerivativeQuad( coordsVertices, coeffMat )
 
     print( derivZeta )
 
     print( derivEta )
+
+    coeffMatTri = runconfLinear( False )
+    # coordsQuadrature = [ [ -0.6667, -0.6667 ], [ 0.3333, -0.6667 ], [ -0.6667, 0.3333 ] ]
+    # coordsQuadrature = [ [ -0.3333, -0.3333 ], [ -0.6, -0.6 ], [ -0.6, 0.2 ], [0.2, -0.6] ]
+    coordsQuadrature = [ [-0.8168, -0.8168], [0.63369, -0.8168], [-0.8168, 0.63369],
+                         [-0.1081, -0.1081], [-0.78379, -0.1081], [-0.1081, -0.78379] ]
+    coordsVertices = [ [ -1, -1 ], [ 1, -1 ], [ -1, 1 ] ]
+    
+    print( coeffMatTri )
+    evaluations = getValueTri( coordsQuadrature, coeffMatTri )
+    print( evaluations )
