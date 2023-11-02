@@ -15,7 +15,8 @@ def getDealiiData( fileName, format = "hdf" ):
     elif format == "vtu":
         mesh = meshio.read( fileName )
         nodes = mesh.points
-        # print(nodes)
+        # cells = mesh.cells[0]
+        # print(cells)
         solution = mesh.point_data['solution']
 
     return (nodes, solution)

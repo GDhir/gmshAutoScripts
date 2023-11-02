@@ -529,7 +529,7 @@ def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, 
     import matplotlib.ticker as ticker
 
     levelsArr = meshFileUtils.getAllLevels( meshvals )
-    # levelsArr = levelsArr[:-2]
+    # levelsArr = levelsArr[:-1]
 
     juliaVarName = "errorvalues"
     minMaxRangeVals = dataUtils.getFinchMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, juliaVarName )
@@ -1047,8 +1047,8 @@ if __name__ == "__main__":
 
     optionsParam = dict()
     optionsParam["quadratureOrder"] = "2"
-    optionsParam["sin(kpix)"] = "2"
-    optionsParam["coeff_F"] = "-8"
+    optionsParam["sin(kpix)"] = "4"
+    optionsParam["coeff_F"] = "-32"
     optionsParam["software"] = "Finch"
     optionsParam["meshRegexVal"] = regexVals[0]
     optionsParam["level"] = "0"
@@ -1060,11 +1060,11 @@ if __name__ == "__main__":
 
     comparisonParam = "quadratureOrder"
 
-    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotMixedMeshTriangleQuadratureDealii_2pi/"
+    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotMixedMeshFinchTriangleCustomQuadrature_4pi/"
     # meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=2_pi/"
 
     meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/mix_mesh/"
-    # buildAllMeshes( gmshFileCmdNames, meshPath )
+    buildAllMeshes( gmshFileCmdNames, meshPath )
     meshArr = meshFileUtils.getMeshFilesFromFolder( meshPath )
     # showMeshes( folderUtils.meshPlotRootFolderName, regexVals )
     # createMeshVTU( meshPlotRootFolderName, regexVals )
@@ -1072,14 +1072,14 @@ if __name__ == "__main__":
     simPlotFolderName = simPlotRootFolderName + "Finch/"
     print( "Finch" )
     # runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath )
-    # showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
+    showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
 
     # srcFileName = "/home/gaurav/dealii-9.5.1/examples/step-5/step-5.cc"
     srcFileName = "/home/gaurav/dealii-9.5.1/examples/doxygen/step_3_mixed.cc"
     makeArg = "example_step_3_mixed_debug"
     exefilename = "step_3_mixed.debug"
-    runDealiiSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam,
-                                        meshPath, srcFileName, exefilename, makeArg )
+    # runDealiiSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam,
+                                        # meshPath, srcFileName, exefilename, makeArg )
 
     simPlotFolderName = simPlotRootFolderName + "Dealii/"
     print( "dealii" )

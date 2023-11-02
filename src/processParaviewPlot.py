@@ -1,5 +1,6 @@
 from os import listdir
 from os.path import isfile, join
+import subprocess
 from math import sin, cos, pi
 import os
 from paraview.simple import *
@@ -9,6 +10,8 @@ import meshFileUtils
 import fileNameUtils
 import regexUtils
 import dataUtils
+import vtk
+import errorUtils
 paraview.simple._DisableFirstRenderCameraReset()
 
 
@@ -71,7 +74,7 @@ def showMeshes( simPlotFolderName, regexVals ):
 
             Hide( gmshfile )
 
-def showParaviewPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshvals, meshPath ):
+def showParaviewPlotFinch( simPlotFolderName, allParams, optionsParam, comparisonParam, meshvals, meshPath ):
 
     if not os.path.exists(simPlotFolderName):
         os.mkdir( simPlotFolderName )
@@ -83,18 +86,6 @@ def showParaviewPlot( simPlotFolderName, allParams, optionsParam, comparisonPara
     minMaxRangeVals = dataUtils.getFinchMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, juliaVarName )
 
     meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
-
-    # for regexVal in regexVals:
-    #     regexCriterias = getRegexCriterias( regexVal )
-    #     sortedMeshVals = getSortedMeshVals( meshvals, regexVal, regexCriterias )
-    #     allSortedMeshVals.append( sortedMeshVals )
-
-    # minMaxRangeVals = getFinchMinMaxRange( allSortedMeshVals, regexVals )
-
-    # for sortedMeshVals in allSortedMeshVals:
-    #     for index, meshval in enumerate( sortedMeshVals ):
-    #         mesh = meshio.read( meshpath + meshval )
-    #         meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
 
     for idx, paramValue in enumerate( allParams[ comparisonParam ] ):
 
@@ -120,6 +111,86 @@ def showParaviewPlot( simPlotFolderName, allParams, optionsParam, comparisonPara
             solfile = OpenDataFile( solValsFileName )
             display = Show(solfile)
             ColorBy(display, ('POINTS', 'err'))
+            minVal, maxVal = minMaxRangeVals[ index ]
+            colorMap = GetColorTransferFunction('err')
+            colorMap.RescaleTransferFunction( minVal, maxVal )        
+
+            gmshfile = OpenDataFile( meshvtkName )
+            dpGmsh = GetDisplayProperties( gmshfile )
+            dpGmsh.Representation = 'Wireframe'
+            gmshdisplay = Show(gmshfile)
+            
+            myview = GetActiveView()
+            myview.ViewSize = [1920, 1080]
+            myview.InteractionMode = '2D'
+            # myview.AxesGrid = 'Grid Axes 3D Actor'
+            myview.CenterOfRotation = [0.5, 0.5, 0.0]
+            myview.StereoType = 'Crystal Eyes'
+            myview.CameraPosition = [0.5, 0.5, 3.0349403797187358]
+            myview.CameraFocalPoint = [0.5, 0.5, 0.0]
+            myview.CameraFocalDisk = 1.0
+            myview.CameraParallelScale = 0.7908298380174797
+            # myview.LegendGrid = 'Legend Grid Actor'
+
+            Render()
+            
+            dpSol = GetDisplayProperties(solfile, myview)
+            # to show the color legend
+            dpSol.SetScalarBarVisibility(myview, True)
+
+            curPlotFolderName = simPlotFolderName + "Plot" + str(index) + "/"   
+            if not os.path.exists( curPlotFolderName ):
+                os.mkdir( curPlotFolderName )
+
+            plotVarName = "paraview_error"
+            plotfilename = fileNameUtils.getTextFileName( curPlotFolderName, pythonVarName, plotVarName, "png" )
+
+            SaveScreenshot( plotfilename, myview)
+
+            Hide( solfile )
+            Hide( gmshfile )
+
+def showParaviewPlotDealii( simPlotFolderName, allParams, optionsParam,
+                        comparisonParam, meshvals, meshPath, negative = -1, pival = 2*pi ):
+
+    if not os.path.exists(simPlotFolderName):
+        os.mkdir( simPlotFolderName )
+
+    levelsArr = meshFileUtils.getAllLevels( meshvals )
+
+    minMaxRangeVals = dataUtils.getDealiiMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, negative, pival )
+
+    meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
+
+    for idx, paramValue in enumerate( allParams[ comparisonParam ] ):
+
+        optionsParam[ comparisonParam ] = paramValue
+        regexCriterias = regexUtils.getRegexCriterias( "lvl" )
+
+        for index, level in enumerate( levelsArr ):
+
+            optionsParam[ "level" ] = str( level )
+            pythonVarName = fileNameUtils.getPythonVarName( optionsParam )
+            regexCriteriaVals = [str(level)]
+
+            meshFileName = fileNameUtils.getMeshFileName( optionsParam, regexCriterias, regexCriteriaVals, "" )
+
+            mesh = meshio.read( meshPath + meshFileName )
+            meshio.write( meshVizPath + meshFileName[:-4] + ".vtu", mesh )
+
+            meshvtkName = meshVizPath + meshFileName[:-4] + ".vtu"
+
+            dealiiVarName = "solutionvalues"
+            solvalsFileName = fileNameUtils.getTextFileName( folderUtils.dealiiTextfoldername, pythonVarName, dealiiVarName, "vtu" ) 
+            # print(nodes.shape)
+
+            dealiiVarName = "errorvalues"
+            errorvalsFileName = fileNameUtils.getTextFileName( folderUtils.dealiiTextfoldername, pythonVarName, dealiiVarName, "vtu" )
+            createDataVTK( solvalsFileName, errorvalsFileName, negative, pival )
+
+            solfile = OpenDataFile( errorvalsFileName )
+            display = Show(solfile)
+            ColorBy(display, ('POINTS', 'solution'))
             minVal, maxVal = minMaxRangeVals[ index ]
             colorMap = GetColorTransferFunction('err')
             colorMap.RescaleTransferFunction( minVal, maxVal )        
@@ -277,6 +348,36 @@ def createMeshVTU( simPlotFolderName, regexVals ):
         mesh = meshio.read( meshpath + meshval )
         meshio.write( meshVizPath + meshval[:-4] + ".vtu", mesh )
 
+def createDataVTK( solvalsFileName, errvalsFileName, negative = -1, pival = 2*pi ):
+
+    mesh = meshio.read( solvalsFileName )
+    nodes = mesh.points
+    # cells = mesh.cells[0]
+    # print(cells)
+    solution = mesh.point_data['solution']
+    errvals = errorUtils.getDealiiError( nodes, solution, negative, pival )
+
+    mesh.point_data['solution'] = errvals
+    meshio.write( errvalsFileName, mesh )
+
+    return
+
+def buildAllMeshes( gmshFileCmdNames, gmshfileArgs ):
+
+    for gmshFileCmd in gmshFileCmdNames:
+        buildMesh( gmshFileCmd, gmshfileArgs )
+
+def buildMesh( gmshfilecmd, gmshfileargs ):
+
+    gmshbuildFolder = "/home/gaurav/gmshAutoScripts/build/"
+    compilecmd = ["make", "-j", "4", gmshfilecmd]
+    subprocess.run( compilecmd, cwd = gmshbuildFolder )
+
+    gmshfileargs = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    meshlstcmd = [ gmshbuildFolder + gmshfilecmd, gmshfileargs ]
+    subprocess.run( meshlstcmd, cwd = gmshbuildFolder )
+
+
 
 if __name__ == "__main__":
 
@@ -286,11 +387,11 @@ if __name__ == "__main__":
 
     # gmshFileCmdNames = ["triangleMeshv1", "triangleMeshv2"]
     # regexVals = ["triangleMeshStruct", "triangleMeshUnstruct"]
-    # regexVals = ["triangleMeshUnstruct", "triangleMeshStruct", "regularMesh"]
+    regexVals = ["triangleMeshUnstruct", "triangleMeshStruct", "regularMesh"]
     gmshFileCmdNames = ["triangleMeshv2", "triangleMeshv1", "regularMeshv3"]
     # gmshFileCmdNames = ["hangingMeshv8"]
     # regexVals = ["hanging"]
-    regexVals = ["mesh"]
+    # regexVals = ["mesh"]
 
     allParams = dict()
     allParams["software"] = ["Finch", "Dealii"]
@@ -313,13 +414,14 @@ if __name__ == "__main__":
     # filename = getTextFileName( folderUtils.dealiiTextfoldername, pythonVarName, "solutionValues", "vtu" )
     # print(filename) 
 
-    comparisonParam = "quadratureOrder"
+    comparisonParam = "meshRegexVal"
 
-    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotMixedMeshQuadrature_2pi/"
-    meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=2_2pi/"
+    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotGaussQuad_2pi/"
+    folderUtils.checkAndCreateFolder(simPlotRootFolderName)
+    meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=4_pi/"
 
     # regexVals = [ "mesh" ]
-    meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/mix_mesh/"
+    meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
     # showMeshes( folderUtils.meshPlotRootFolderName, regexVals )
 
     # createMeshVTU( meshPlotRootFolderName, regexVals )
@@ -330,10 +432,21 @@ if __name__ == "__main__":
 
     simPlotFolderName = simPlotRootFolderName + "Finch/"
     print( "Finch" )
-    # buildAllMeshes( gmshFileCmdNames, meshPath )
+    buildAllMeshes( gmshFileCmdNames, meshPath )
     meshArr = meshFileUtils.getMeshFilesFromFolder( meshPath )
 
-    showParaviewPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
+    # showParaviewPlotFinch( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
     # compareParaview( simPlotFolderName, regexVals, meshPath )
 
     # setFinchTriangleQuadrature( 2 )
+
+    level = 3
+    pythonVarName = fileNameUtils.getPythonVarName( optionsParam )
+    regexCriterias = regexUtils.getRegexCriterias( "lvl" )
+    regexCriteriaVals = [str( level )]
+
+    meshFileName = fileNameUtils.getMeshFileName( optionsParam, regexCriterias, regexCriteriaVals, meshPath )
+
+    simPlotFolderName = simPlotRootFolderName + "Dealii/"
+    showParaviewPlotDealii( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, -1, 2*pi )
+    

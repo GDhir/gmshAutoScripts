@@ -221,25 +221,42 @@ def getDerivativeQuad( coords, coeffMat ):
 
 if __name__ == "__main__":
 
-    coeffMat = runconfLinear()
+    # coeffMat = runconfLinear()
 
-    coordsQuadrature = [ [ -0.5773, -0.5773 ], [ 0.5773, -0.5773 ], [ -0.5773, 0.5773 ], [ 0.5773, 0.5773 ] ]
-    coordsVertices = [ [ -1, -1 ], [ 1, -1 ], [ -1, 1 ], [ 1, 1 ] ]
-    evaluations = getValueQuad( coordsVertices, coeffMat )
-    print(evaluations)
-    derivZeta, derivEta = getDerivativeQuad( coordsVertices, coeffMat )
+    # coordsQuadrature = [ [ -0.5773, -0.5773 ], [ 0.5773, -0.5773 ], [ -0.5773, 0.5773 ], [ 0.5773, 0.5773 ] ]
+    # coordsVertices = [ [ -1, -1 ], [ 1, -1 ], [ -1, 1 ], [ 1, 1 ] ]
+    # evaluations = getValueQuad( coordsVertices, coeffMat )
+    # print(evaluations)
+    # derivZeta, derivEta = getDerivativeQuad( coordsVertices, coeffMat )
 
-    print( derivZeta )
+    # print( derivZeta )
 
-    print( derivEta )
+    # print( derivEta )
 
-    coeffMatTri = runconfLinear( False )
-    # coordsQuadrature = [ [ -0.6667, -0.6667 ], [ 0.3333, -0.6667 ], [ -0.6667, 0.3333 ] ]
-    # coordsQuadrature = [ [ -0.3333, -0.3333 ], [ -0.6, -0.6 ], [ -0.6, 0.2 ], [0.2, -0.6] ]
-    coordsQuadrature = [ [-0.8168, -0.8168], [0.63369, -0.8168], [-0.8168, 0.63369],
-                         [-0.1081, -0.1081], [-0.78379, -0.1081], [-0.1081, -0.78379] ]
-    coordsVertices = [ [ -1, -1 ], [ 1, -1 ], [ -1, 1 ] ]
+    # coeffMatTri = runconfLinear( False )
+    # # coordsQuadrature = [ [ -0.6667, -0.6667 ], [ 0.3333, -0.6667 ], [ -0.6667, 0.3333 ] ]
+    # # coordsQuadrature = [ [ -0.3333, -0.3333 ], [ -0.6, -0.6 ], [ -0.6, 0.2 ], [0.2, -0.6] ]
+    # coordsQuadrature = [ [-0.8168, -0.8168], [0.63369, -0.8168], [-0.8168, 0.63369],
+    #                      [-0.1081, -0.1081], [-0.78379, -0.1081], [-0.1081, -0.78379] ]
+    # coordsVertices = [ [ -1, -1 ], [ 1, -1 ], [ -1, 1 ] ]
     
-    print( coeffMatTri )
-    evaluations = getValueTri( coordsQuadrature, coeffMatTri )
-    print( evaluations )
+    # print( coeffMatTri )
+    # evaluations = getValueTri( coordsQuadrature, coeffMatTri )
+    # print( evaluations )
+
+    pts = np.array( [
+      (0.333333333333334,0.333333333333334),
+      (0.470142064105115,0.470142064105115),
+      (0.470142064105115,0.059715871789770),
+      (0.059715871789770,0.470142064105115),
+      (0.101286507323456,0.101286507323456),
+      (0.101286507323456,0.797426985353087),
+      (0.797426985353087,0.101286507323456)] )
+
+    weights = np.array( [ 0.450000000000000/2, 0.264788305577012/2, 0.264788305577012/2,
+               0.264788305577012/2, 0.251878361089654/2, 0.251878361089654/2, 0.251878361089654/2 ] )
+    
+    ptsref = 2*pts - 1
+
+    print(ptsref)
+    print(weights)

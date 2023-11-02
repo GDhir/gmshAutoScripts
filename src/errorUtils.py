@@ -16,7 +16,7 @@ def getDealiiError( nodes, solution, negative = 1, pival = 2*pi ):
         yval = node[1]
         # print(xval, yval)
         exactval = getExactSol( xval, yval, negative, pival )
-        exactvals.append( exactval )
+        # exactvals.append( exactval )
 
         if len( solution.shape ) == 2:
             solval = solution[ idx, 0 ]
@@ -28,7 +28,7 @@ def getDealiiError( nodes, solution, negative = 1, pival = 2*pi ):
 
     # print(errVals)
 
-    exactvals = np.array(exactvals)
+    # exactvals = np.array(exactvals)
 
     # plt.figure()
     # plt.tricontourf( nodes[:, 0], nodes[:, 1], exactvals )
