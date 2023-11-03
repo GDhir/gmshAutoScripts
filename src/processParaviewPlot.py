@@ -12,6 +12,8 @@ import regexUtils
 import dataUtils
 import vtk
 import errorUtils
+import runCodeUtils
+
 paraview.simple._DisableFirstRenderCameraReset()
 
 
@@ -74,13 +76,13 @@ def showMeshes( simPlotFolderName, regexVals ):
 
             Hide( gmshfile )
 
-def showParaviewPlotFinch( simPlotFolderName, allParams, optionsParam, comparisonParam, meshvals, meshPath ):
+def showParaviewPlotFinch( simPlotFolderName, allParams, optionsParam, comparisonParam, meshvals, meshPath, showGaussPoints = False ):
 
     if not os.path.exists(simPlotFolderName):
         os.mkdir( simPlotFolderName )
 
     levelsArr = meshFileUtils.getAllLevels( meshvals )
-    levelsArr = levelsArr[:-2]
+    # levelsArr = levelsArr[:-2]
 
     juliaVarName = "errorvalues"
     minMaxRangeVals = dataUtils.getFinchMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, juliaVarName )
@@ -112,6 +114,10 @@ def showParaviewPlotFinch( simPlotFolderName, allParams, optionsParam, compariso
             display = Show(solfile)
             ColorBy(display, ('POINTS', 'err'))
             minVal, maxVal = minMaxRangeVals[ index ]
+
+            minVal, maxVal = minMaxRangeVals[ index ]
+            print( index, minVal, maxVal )
+
             colorMap = GetColorTransferFunction('err')
             colorMap.RescaleTransferFunction( minVal, maxVal )        
 
@@ -120,6 +126,28 @@ def showParaviewPlotFinch( simPlotFolderName, allParams, optionsParam, compariso
             dpGmsh.Representation = 'Wireframe'
             gmshdisplay = Show(gmshfile)
             
+            if showGaussPoints:
+
+                gaussPointsFileName = fileNameUtils.getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "quadpointValues", "txt" )
+                valstxt = CSVReader( FileName = gaussPointsFileName)
+                valstxt.HaveHeaders = 0
+                valstxt.FieldDelimiterCharacters = '" "'
+
+                # create a new 'Table To Points'
+                tableToPoints1 = TableToPoints(Input=valstxt)
+                tableToPoints1.XColumn = 'Field 0'
+                tableToPoints1.YColumn = 'Field 1'
+                tableToPoints1.ZColumn = 'Field 0'
+                tableToPoints1.a2DPoints = 1
+
+                # ----------------------------------------------------------------
+                # setup the visualization in view 'renderView1'
+                # ----------------------------------------------------------------
+
+                # show data from tableToPoints1
+                myview = GetActiveView()
+                tableToPoints1Display = Show(tableToPoints1, myview, 'GeometryRepresentation')
+
             myview = GetActiveView()
             myview.ViewSize = [1920, 1080]
             myview.InteractionMode = '2D'
@@ -147,8 +175,9 @@ def showParaviewPlotFinch( simPlotFolderName, allParams, optionsParam, compariso
 
             SaveScreenshot( plotfilename, myview)
 
-            Hide( solfile )
-            Hide( gmshfile )
+            Delete( solfile )
+            Delete( gmshfile )
+            Delete( tableToPoints1 )
 
 def showParaviewPlotDealii( simPlotFolderName, allParams, optionsParam,
                         comparisonParam, meshvals, meshPath, negative = -1, pival = 2*pi ):
@@ -362,21 +391,6 @@ def createDataVTK( solvalsFileName, errvalsFileName, negative = -1, pival = 2*pi
 
     return
 
-def buildAllMeshes( gmshFileCmdNames, gmshfileArgs ):
-
-    for gmshFileCmd in gmshFileCmdNames:
-        buildMesh( gmshFileCmd, gmshfileArgs )
-
-def buildMesh( gmshfilecmd, gmshfileargs ):
-
-    gmshbuildFolder = "/home/gaurav/gmshAutoScripts/build/"
-    compilecmd = ["make", "-j", "4", gmshfilecmd]
-    subprocess.run( compilecmd, cwd = gmshbuildFolder )
-
-    gmshfileargs = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
-    meshlstcmd = [ gmshbuildFolder + gmshfilecmd, gmshfileargs ]
-    subprocess.run( meshlstcmd, cwd = gmshbuildFolder )
-
 
 
 if __name__ == "__main__":
@@ -387,11 +401,11 @@ if __name__ == "__main__":
 
     # gmshFileCmdNames = ["triangleMeshv1", "triangleMeshv2"]
     # regexVals = ["triangleMeshStruct", "triangleMeshUnstruct"]
-    regexVals = ["triangleMeshUnstruct", "triangleMeshStruct", "regularMesh"]
+    # regexVals = ["triangleMeshUnstruct", "triangleMeshStruct", "regularMesh"]
     gmshFileCmdNames = ["triangleMeshv2", "triangleMeshv1", "regularMeshv3"]
     # gmshFileCmdNames = ["hangingMeshv8"]
     # regexVals = ["hanging"]
-    # regexVals = ["mesh"]
+    regexVals = ["mesh"]
 
     allParams = dict()
     allParams["software"] = ["Finch", "Dealii"]
@@ -402,51 +416,33 @@ if __name__ == "__main__":
     allParams["coeff_F"] = [ "-2", "-8", "-32" ]
 
     optionsParam = dict()
-    optionsParam["quadratureOrder"] = "2"
-    optionsParam["sin(kpix)"] = "2"
-    optionsParam["coeff_F"] = "-8"
+    optionsParam["quadratureOrder"] = "4"
+    optionsParam["sin(kpix)"] = "4"
+    optionsParam["coeff_F"] = "-32"
     optionsParam["software"] = "Finch"
     optionsParam["meshRegexVal"] = regexVals[0]
-    optionsParam["level"] = "0"
+    optionsParam["level"] = "3"
 
-    # pythonVarName = getPythonVarName( optionsParam )
-    # print(pythonVarName)
-    # filename = getTextFileName( folderUtils.dealiiTextfoldername, pythonVarName, "solutionValues", "vtu" )
-    # print(filename) 
+    comparisonParam = "quadratureOrder"
 
-    comparisonParam = "meshRegexVal"
-
-    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotGaussQuad_2pi/"
-    folderUtils.checkAndCreateFolder(simPlotRootFolderName)
+    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotMixedMeshFinchTriangleCustomQuadrature_4pi/"
     meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=4_pi/"
 
     # regexVals = [ "mesh" ]
-    meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/mix_mesh/"
     # showMeshes( folderUtils.meshPlotRootFolderName, regexVals )
-
     # createMeshVTU( meshPlotRootFolderName, regexVals )
-
-    # simPlotFolderName = simPlotRootFolderName + "Dealii/"
-    # print( "Dealii" )
-    # showDealiiPlot( simPlotFolderName, regexVals, meshpath= meshPath, varName = "solutionvalues", negative = -1, pival = 2*pi )
 
     simPlotFolderName = simPlotRootFolderName + "Finch/"
     print( "Finch" )
-    buildAllMeshes( gmshFileCmdNames, meshPath )
+    # runCodeUtils.buildAllMeshes( gmshFileCmdNames, meshPath )
     meshArr = meshFileUtils.getMeshFilesFromFolder( meshPath )
 
-    # showParaviewPlotFinch( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
+    # showParaviewPlotFinch( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, True )
     # compareParaview( simPlotFolderName, regexVals, meshPath )
 
     # setFinchTriangleQuadrature( 2 )
 
-    level = 3
-    pythonVarName = fileNameUtils.getPythonVarName( optionsParam )
-    regexCriterias = regexUtils.getRegexCriterias( "lvl" )
-    regexCriteriaVals = [str( level )]
-
-    meshFileName = fileNameUtils.getMeshFileName( optionsParam, regexCriterias, regexCriteriaVals, meshPath )
-
     simPlotFolderName = simPlotRootFolderName + "Dealii/"
-    showParaviewPlotDealii( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, -1, 2*pi )
+    showParaviewPlotDealii( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, -1, 4*pi )
     
