@@ -80,7 +80,11 @@ class Zone:
     def __init__( self, pointSet, xoffset, yoffset ):
 
         self.pts = []
-        self.addPointSet( pointSet, xoffset, yoffset )
+        self.Nx = pointSet[0]
+        self.Ny = pointSet[1]
+        self.h = pointSet[2]
+        
+        self.addPointSet( xoffset, yoffset )
 
         self.linesx = []
         self.linesy = []
@@ -90,52 +94,41 @@ class Zone:
         self.surfaces = []
         self.addSurfaces( pointSet )
 
-    def addPointSet( self, pointSet, xoffset, yoffset ):
+    def addPointSet( self, xoffset, yoffset ):
 
         yval = yoffset
         xval = xoffset
 
-        Nx = pointSet[0]
-        Ny = pointSet[1]
-        h = pointSet[2]
+        for yidx in range(self.Ny):
 
-        for yidx in range(Ny):
+            yval = yoffset + yidx * self.h
+            for xidx in range( self.Nx ):
 
-            yval = yoffset + yidx * h
-            for xidx in range(Nx):
-
-                xval = xoffset + xidx * h
-                self.pts.append( gmsh.model.geo.addPoint( xval, yval, 0, h ) )
+                xval = xoffset + xidx * self.h
+                self.pts.append( gmsh.model.geo.addPoint( xval, yval, 0, self.h ) )
 
     def addLinesInZone( self, pointSet ):
 
-        Nx = pointSet[0]
-        Ny = pointSet[1]
+        for idy in range( self.Ny ):
+            for idx in range( self.Nx - 1 ):
 
-        for idy in range( Ny ):
-            for idx in range( Nx - 1 ):
-
-                indexval = idy * (Nx) + idx
+                indexval = idy * ( self.Nx ) + idx
 
                 self.linesx.append( gmsh.model.geo.addLine( self.pts[ indexval ], self.pts[ indexval + 1 ] ) )
-                # linesy.append( gmsh.model.geo.addLine( pts[ indexval ], pts[ indexval + Nx ] ) )
 
-        for idy in range( Ny - 1 ):
-            for idx in range( Nx ):
+        for idy in range( self.Ny - 1 ):
+            for idx in range( self.Nx ):
 
-                indexval = idy * Nx + idx
-                self.linesy.append( gmsh.model.geo.addLine( self.pts[ indexval ], self.pts[ indexval + Nx ] ) )
+                indexval = idy * self.Nx + idx
+                self.linesy.append( gmsh.model.geo.addLine( self.pts[ indexval ], self.pts[ indexval + self.Nx ] ) )
 
-    def addSurfaces( self, pointSet ):
+    def addSurfaces( self ):
 
-        Nx = pointSet[0]
-        Ny = pointSet[1]
+        Nx1 = self.Nx - 1
+        Nx2 = self.Nx
 
-        Nx1 = Nx - 1
-        Nx2 = Nx
-
-        for idy in range( Ny - 1 ):
-            for idx in range( Nx - 1 ):
+        for idy in range( self.Ny - 1 ):
+            for idx in range( self.Nx - 1 ):
 
                 index1 = idy * Nx1 + idx
                 index2 = idy * Nx2 + idx
@@ -152,3 +145,31 @@ class Zone:
                 
                 pl = gmsh.model.geo.addPlaneSurface( [ cl ])
                 self.surfaces.append( pl )    
+
+    def getBoundaryPoints( self, boundaryVal = "left" ):
+
+        if boundaryVal == "left":
+            
+            indexStart = 0
+            indexEnd = self.Ny * self.Nx
+
+            bdryPts = self.pts[ indexStart : indexEnd : self.Nx ]        
+
+        elif boundaryVal == "right":
+
+            indexStart = self.Nx - 1
+            indexEnd = ( self.Ny + 1 ) * self.Nx
+
+            bdryPts = self.pts[ indexStart : indexEnd : self.Nx ] 
+            
+
+        elif boundaryVal == "top":
+
+            indexStart = ( self.Ny - 1 ) * self.Nx
+            bdryPts = self.pts[ indexStart : indexStart + self.Nx ]
+
+        elif boundaryVal == "bottom":
+
+            bdryPts = self.pts[ 0 : self.Nx ]   
+
+        return bdryPts
