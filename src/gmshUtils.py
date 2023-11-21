@@ -197,12 +197,14 @@ class Zone3D:
 
     def __init__( self, zones, Nx, Ny, transfinite = False ):
 
-        nlayers = len( zones ) - 1
+        self.nLayers = len( zones ) - 1
+        self.Nx = Nx
+        self.Ny = Ny
 
         self.layers = []
         self.zones2D = zones
 
-        for idx in range( nlayers ):
+        for idx in range( self.nLayers ):
             self.layers.append( Layer3D( zones[idx], zones[idx + 1], Nx, Ny, transfinite = transfinite ) )
 
 class Zone2D:
@@ -312,12 +314,286 @@ class Zone2D:
             bdryPts = self.pts[ 0 : self.Nx ]   
 
         return bdryPts
+    
+class ZoneConnection:
 
-    def addLayer( self, xoffset, yoffset, zval ):
+    def __init__( self, zoneNeg, zonePos, dxn, transfinite = False ):
 
-        idxOffset = len( self.pts )
+        self.surfacesNeg = []
+        self.surfacesPos = []
+        self.lineConnections = []
+        self.volumes = []
 
-        self.addPointSet( xoffset, yoffset, zval )
-        self.addLinesInZone( idxOffset )
+        self.getZoneSurfaces( zoneNeg, zonePos, dxn )
+        self.connectLines( zoneNeg, zonePos, dxn )
 
-        return
+        self.surfaces_Type1 = []
+        self.surfaces_Type2 = []
+
+        self.connectSurfaces( zoneNeg, zonePos, dxn )
+        self.addVolumes( zoneNeg, zonePos, dxn )
+
+        if transfinite:
+            
+            linesVec = [ self.lineConnections ]
+            setTransfiniteCurves( linesVec, 2 )
+            # setTransfiniteSurfaces( self.surfaces_Type1 )
+            # setTransfiniteSurfaces( self.surfaces_Type2 )
+
+    def getZoneSurfaces( self, zoneNeg, zonePos, dxn = "x" ):
+
+        if dxn == "x":
+
+            for zIdx in range( zoneNeg.nLayers ):
+
+                layerVal = zoneNeg.layers[ zIdx ]
+
+                for yidx in range( zoneNeg.Ny - 1 ):
+
+                    self.surfacesNeg.append( layerVal.surfacesz_xperp[ ( yidx + 1 ) * zoneNeg.Nx - 1 ] )                    
+
+            for zIdx in range( zonePos.nLayers ):
+
+                layerVal = zonePos.layers[ zIdx ]
+
+                for yidx in range( zonePos.Ny - 1 ):
+
+                    self.surfacesPos.append( layerVal.surfacesz_xperp[ ( yidx ) * zonePos.Nx ] )
+
+        elif dxn == "y":
+            
+            for zIdx in range( zoneNeg.nLayers ):
+
+                layerVal = zoneNeg.layers[ zIdx ]
+
+                for xidx in range( zoneNeg.Nx - 1 ):
+
+                    self.surfacesNeg.append( layerVal.surfacesz_yperp[ ( zoneNeg.Ny - 1 ) * ( zoneNeg.Nx - 1 ) + xidx ] )
+
+            for zIdx in range( zonePos.nLayers ):
+
+                layerVal = zonePos.layers[ zIdx ]
+
+                for xidx in range( zonePos.Nx - 1 ):
+
+                    self.surfacesPos.append( layerVal.surfacesz_yperp[ xidx ] )
+
+        elif dxn == "z":
+
+            zone2DNeg = zoneNeg.zones2D[ -1 ]
+            zone2DPos = zonePos.zones2D[ 0 ]
+
+            for yIdx in range( zoneNeg.Ny - 1 ):
+                for xIdx in range( zoneNeg.Nx - 1 ):
+
+                    indexval = yidx * ( zoneNeg.Nx - 1 ) + xidx
+
+                    self.surfacesNeg.append( zone2DNeg.surfaces[ indexval ] )
+
+            for yIdx in range( zonePos.Ny - 1 ):
+                for xIdx in range( zonePos.Nx - 1 ):
+
+                    indexval = yidx * ( zonePos.Nx - 1 ) + xidx
+                    
+                    self.surfacesPos.append( zone2DPos.surfaces[ indexval ] )
+
+
+    def connectLines( self, zoneNeg, zonePos, dxn ):
+
+        nZonesNeg = len( zoneNeg.zones2D )
+        nZonesPos = len( zonePos.zones2D )
+
+        nZonesToJoin = min( nZonesNeg, nZonesPos )
+        
+        if dxn == "x":
+
+            nPtsToJoin = min( zoneNeg.Ny, zonePos.Ny )
+
+            for zoneIdx in range( nZonesToJoin ):
+                for yIdx in range( nPtsToJoin ):
+
+                    if nZonesNeg < nZonesPos:
+
+                        zone2DNeg = zoneNeg.zones2D[ zoneIdx ]
+                        zone2DPos = zonePos.zones2D[ 2 * zoneIdx ]
+
+                        negIdx = ( yIdx + 1 ) * zone2DNeg.Nx - 1
+                        posIdx = yIdx * zone2DPos.Nx * 2
+
+                    else:
+
+                        zone2DNeg = zoneNeg.zones2D[ 2 * zoneIdx ]
+                        zone2DPos = zonePos.zones2D[ zoneIdx ]
+
+                        negIdx = ( 2 * yIdx + 1 ) * zone2DNeg.Nx - 1
+                        posIdx = yIdx * zone2DPos.Nx
+
+                    self.lineConnections.append( gmsh.model.geo.addLine( zone2DNeg.pts[ negIdx ], \
+                                                                        zone2DPos.pts[ posIdx ] ) )
+
+        elif dxn == "y":
+
+            nPtsToJoin = min( zoneNeg.Nx, zonePos.Nx )
+
+            for zoneIdx in range( nZonesToJoin ):
+                for xIdx in range( nPtsToJoin ):
+
+                    if nZonesNeg < nZonesPos:
+
+                        zone2DNeg = zoneNeg.zones2D[ zoneIdx ]
+                        zone2DPos = zonePos.zones2D[ 2 * zoneIdx ]
+
+                        negIdx = ( zone2DNeg.Ny - 1 ) * zone2DNeg.Nx + xIdx
+                        posIdx = 2 * xIdx
+
+                    else:
+
+                        zone2DNeg = zoneNeg.zones2D[ 2 * zoneIdx ]
+                        zone2DPos = zonePos.zones2D[ zoneIdx ]
+
+                        negIdx = ( zone2DNeg.Ny - 1 ) * zone2DNeg.Nx + 2 * xIdx
+                        posIdx = xIdx
+
+                    self.linesConnections.append( gmsh.model.geo.addLine( zone2DNeg.pts[ negIdx ], \
+                                                                        zone2DPos.pts[ posIdx ] ) )
+
+        elif dxn == "z":
+
+            zone2DNeg = zoneNeg.zones2D[ -1 ]
+            zone2DPos = zonePos.zones2D[ 0 ]
+
+            Nxpts = min( zone2DNeg.Nx, zone2DPos.Nx )
+            Nypts = min( zone2DNeg.Ny, zone2DPos.Ny )
+
+            for yIdx in range( Nypts ):
+                for xIdx in range( Nxpts ):
+
+                    if zone2DNeg.Nx < zone2DPos.Nx:
+
+                        negIdx = yIdx * Nxpts + xIdx
+                        posIdx = 2 * ( yIdx * Nxpts + xIdx )
+                        
+                    else:
+
+                        negIdx = 2 * ( yIdx * Nxpts + xIdx )
+                        posIdx = yIdx * Nxpts + xIdx
+
+                    self.linesConnections.append( gmsh.model.geo.addLine( zone2DNeg.pts[ negIdx ], \
+                                                                        zone2DPos.pts[ posIdx ] ) )
+
+
+    def connectSurfaces( self, zoneNeg, zonePos, dxn ):
+
+        nLayersNeg = zoneNeg.nLayers
+        nLayersPos = zonePos.nLayers
+
+        nZonesNeg = nLayersNeg + 1
+        nZonesPos = nLayersPos + 1
+
+        nLayersToJoin = min( nLayersNeg, nLayersPos )
+        nZonesToJoin = nLayersToJoin + 1
+
+        if dxn == "x":
+            nSurfacesToJoin = min( zoneNeg.Ny, zonePos.Ny )
+
+            for zIdx in range( nLayersToJoin ):
+                for yIdx in range( nSurfacesToJoin ):
+
+                    linesVal = []
+                    downEdge = -self.lineConnections[ zIdx * nSurfacesToJoin + yIdx ]
+                    linesVal.append( downEdge )
+
+                    if nLayersNeg < nLayersPos:
+                        linesVal.append( zoneNeg.layers[ zIdx ].linesz[ zoneNeg.Nx * ( yIdx + 1 ) - 1 ] )
+                    else:
+                        linesVal.append( zoneNeg.layers[ 2 * zIdx ].linesz[ zoneNeg.Nx * ( yIdx * 2 + 1 ) - 1 ] )
+                        linesVal.append( zoneNeg.layers[ 2 * zIdx + 1 ].linesz[ zoneNeg.Nx * ( yIdx * 2 + 1 ) - 1 ] )
+
+                    upEdge = self.lineConnections[ ( zIdx + 1 ) * nSurfacesToJoin + yIdx ]
+                    linesVal.append( upEdge )
+
+                    if nLayersPos < nLayersNeg:
+                        linesVal.append( -zonePos.layers[ zIdx ].linesz[ zonePos.Nx * yIdx ] )
+                    else:
+                        linesVal.append( -zonePos.layers[ 2 * zIdx + 1 ].linesz[ zoneNeg.Nx * yIdx * 2 ] )
+                        linesVal.append( -zonePos.layers[ 2 * zIdx ].linesz[ zoneNeg.Nx * yIdx * 2 ] )
+
+                    cl = gmsh.model.geo.addCurveLoop( linesVal )
+                    pl = gmsh.model.geo.addPlaneSurface( [ cl ] )
+                    self.surfaces_Type1.append( pl ) 
+
+            for zIdx in range( nZonesToJoin ):
+                for yIdx in range( nSurfacesToJoin - 1 ):
+
+                    linesVal = []
+                    downEdge = self.lineConnections[ zIdx * nSurfacesToJoin + yIdx ]
+                    linesVal.append( -downEdge )
+
+                    if nZonesNeg < nZonesPos:
+                        linesVal.append( zoneNeg.zones2D[ zIdx ].linesy[ zoneNeg.Nx * ( yIdx + 1 ) - 1 ] )
+                    else:
+                        linesVal.append( zoneNeg.zones2D[ 2 * zIdx ].linesy[ zoneNeg.Nx * ( yIdx * 2 + 1 ) - 1 ] )
+                        linesVal.append( zoneNeg.zones2D[ 2 * zIdx ].linesy[ zoneNeg.Nx * ( yIdx * 2 + 2 ) - 1 ] )
+
+                    upEdge = self.lineConnections[ zIdx * nSurfacesToJoin + yIdx + 1 ]
+                    linesVal.append( upEdge )
+
+                    if nZonesPos < nZonesNeg:
+                        linesVal.append( -zonePos.zones2D[ zIdx ].linesy[ zonePos.Nx * yIdx ] )
+                    else:
+                        linesVal.append( -zonePos.zones2D[ 2 * zIdx ].linesy[ zoneNeg.Nx * ( yIdx * 2 + 1 ) ] )
+                        linesVal.append( -zonePos.zones2D[ 2 * zIdx ].linesy[ zoneNeg.Nx * ( yIdx * 2 ) ] )
+
+                    cl = gmsh.model.geo.addCurveLoop( linesVal )
+                    pl = gmsh.model.geo.addPlaneSurface( [ cl ] )
+                    self.surfaces_Type2.append( pl ) 
+
+
+        elif dxn == "y":
+            pass
+
+        elif dxn == "z":
+            pass
+
+
+    def addVolumes( self, zoneNeg, zonePos, dxn ):
+
+        if dxn == "x":
+
+            Nz = min( len( zoneNeg.zones2D ), len( zonePos.zones2D ) )
+            Ny = min( zoneNeg.Ny, zonePos.Ny )
+
+            for zIdx in range( Nz - 1 ):
+                for yIdx in range( Ny - 1 ):
+
+                    surfaceVals = []
+                    surfaceVals.append( self.surfaces_Type1[ zIdx * Ny + yIdx ] )
+                    surfaceVals.append( self.surfaces_Type1[ zIdx * Ny + yIdx + 1 ] )
+
+                    if zoneNeg.nLayers < zonePos.nLayers:
+
+                        surfaceVals.append( self.surfacesNeg[ zIdx * ( Ny - 1 ) + yIdx ] )
+                        surfaceVals.append( self.surfacesPos[ 2 * zIdx * ( Ny - 1 ) + 2 * yIdx ] )
+                        surfaceVals.append( self.surfacesPos[ 2 * zIdx * ( Ny - 1 ) + 2 * yIdx + 1 ] )
+                        surfaceVals.append( self.surfacesPos[ ( 2 * zIdx + 1 ) * ( Ny - 1 ) + 2 * yIdx ] )
+                        surfaceVals.append( self.surfacesPos[ ( 2 * zIdx + 1 ) * ( Ny - 1 ) + 2 * yIdx + 1 ] )
+
+                    else:
+
+                        surfaceVals.append( self.surfacesNeg[ 2 * zIdx * ( Ny - 1 ) + 2 * yIdx ] )
+                        surfaceVals.append( self.surfacesNeg[ 2 * zIdx * ( Ny - 1 ) + 2 * yIdx + 1 ] )
+                        surfaceVals.append( self.surfacesNeg[ ( 2 * zIdx + 1 ) * ( Ny - 1 ) + 2 * yIdx ] )
+                        surfaceVals.append( self.surfacesNeg[ ( 2 * zIdx + 1 ) * ( Ny - 1 ) + 2 * yIdx + 1 ] )
+                        surfaceVals.append( self.surfacesPos[ zIdx * ( Ny - 1 ) + yIdx ] )
+
+                    surfaceVals.append( self.surfaces_Type2[ zIdx * ( Ny - 1 ) + yIdx ] )
+                    surfaceVals.append( self.surfaces_Type2[ ( zIdx + 1 ) * ( Ny - 1 ) + yIdx ] )
+
+                    sl = gmsh.model.geo.addSurfaceLoop( surfaceVals )
+                 
+                    vl = gmsh.model.geo.addVolume( [sl] )
+                    self.volumes.append( vl )
+
+        else:
+
+            pass

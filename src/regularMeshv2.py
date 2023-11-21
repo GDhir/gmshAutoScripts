@@ -251,8 +251,72 @@ def customExtrusionDoubleZoneMeshRegular():
 
     gmsh.finalize()
 
+def customExtrusionDoubleZoneConnectedMesh():
+
+    lvl = 0
+
+    Nx1 = 5
+    Nx2 = 7
+    lc = 1/( Nx1 + 2*Nx2 - 1 )
+    Ny1 = int( 1/lc + 1 )
+    Ny2 = int( 1/2/lc + 1 )
+
+    foldername = "/home/gaurav/gmshAutoScripts/build/"
+
+    gmsh.initialize(sys.argv)
+    gmsh.model.add("t2")
+
+    pointSet1 = [Nx1, Ny1, lc]
+    xoffset1 = 0
+    yoffset1 = 0
+    zonesLeft = []
+
+    for zidx in range(3):
+        
+        zcoord = zidx * lc
+        zone = gmshUtils.Zone2D( pointSet1, xoffset1, yoffset1, zcoord, transfinite = True )
+        zonesLeft.append( zone )
+
+    pointSet2 = [Nx2, Ny2, 2*lc]
+    xoffset2 = (Nx1 + 1)*lc
+    yoffset2 = 0
+    zonesRight = []
+
+    for zidx in range(2):
+        
+        zcoord = zidx * 2 * lc
+        zone = gmshUtils.Zone2D( pointSet2, xoffset2, yoffset2, zcoord, transfinite = True )
+        zonesRight.append( zone )
+
+    zone3DLeft = gmshUtils.Zone3D( zonesLeft, Nx1, Ny1, transfinite = True )
+    zone3DRight = gmshUtils.Zone3D( zonesRight, Nx2, Ny2, transfinite = True )
+
+    connectedZone = gmshUtils.ZoneConnection( zone3DLeft, zone3DRight, "x", transfinite = True )
+
+    gmsh.model.geo.synchronize()
+
+    gmshUtils.recombine3DZone( zone3DLeft )
+    gmshUtils.recombine3DZone( zone3DRight )
+
+    gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 2)
+
+    gmsh.model.mesh.generate(2)
+
+    gmsh.option.setNumber("Mesh.MshFileVersion", 2)
+
+    regMeshFileName = foldername + "regularMesh_lvl" + str(lvl) + ".msh"
+    gmsh.write( regMeshFileName )
+
+    lvl = lvl + 1
+
+    if '-nopopup' not in sys.argv:
+        gmsh.fltk.run()
+
+    gmsh.finalize()
+
 if __name__ == "__main__":
 
     # doubleZoneMesh()
-    customExtrusionDoubleZoneMeshRegular()
+    # customExtrusionDoubleZoneMeshRegular()
     # customExtrusionMeshRegular()
+    customExtrusionDoubleZoneConnectedMesh()
