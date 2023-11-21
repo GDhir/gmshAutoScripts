@@ -173,9 +173,9 @@ def customExtrusionMeshRegular():
 
     gmshUtils.recombine3DZone( zone3Dval )
 
-    gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 2)
+    gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 3)
 
-    gmsh.model.mesh.generate(2)
+    gmsh.model.mesh.generate(3)
 
     gmsh.option.setNumber("Mesh.MshFileVersion", 2)
 
@@ -255,8 +255,8 @@ def customExtrusionDoubleZoneConnectedMesh():
 
     lvl = 0
 
-    Nx1 = 5
-    Nx2 = 7
+    Nx1 = 3
+    Nx2 = 5
     lc = 1/( Nx1 + 2*Nx2 - 1 )
     Ny1 = int( 1/lc + 1 )
     Ny2 = int( 1/2/lc + 1 )
@@ -298,9 +298,9 @@ def customExtrusionDoubleZoneConnectedMesh():
     gmshUtils.recombine3DZone( zone3DLeft )
     gmshUtils.recombine3DZone( zone3DRight )
 
-    gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 2)
+    gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 3)
 
-    gmsh.model.mesh.generate(2)
+    gmsh.model.mesh.generate(3)
 
     gmsh.option.setNumber("Mesh.MshFileVersion", 2)
 

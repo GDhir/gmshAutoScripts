@@ -69,6 +69,11 @@ def setTransfiniteSurfaces( planeIds ):
 
     [ gmsh.model.geo.mesh.setTransfiniteSurface(id) \
       for id in planeIds ]
+    
+def setTransfiniteVolumes( planeIds ):
+
+    [ gmsh.model.geo.mesh.setTransfiniteVolume(id) \
+      for id in planeIds ]
 
 
 def recombineSurfaces( planeIds ):
@@ -120,6 +125,7 @@ class Layer3D:
             
             setTransfiniteSurfaces( self.surfacesz_xperp )
             setTransfiniteSurfaces( self.surfacesz_yperp )
+            setTransfiniteVolumes( self.volumes )
 
     def addLinesBetweenLayers( self, zone1, zone2 ):
 
@@ -573,17 +579,17 @@ class ZoneConnection:
                     if zoneNeg.nLayers < zonePos.nLayers:
 
                         surfaceVals.append( self.surfacesNeg[ zIdx * ( Ny - 1 ) + yIdx ] )
-                        surfaceVals.append( self.surfacesPos[ 2 * zIdx * ( Ny - 1 ) + 2 * yIdx ] )
-                        surfaceVals.append( self.surfacesPos[ 2 * zIdx * ( Ny - 1 ) + 2 * yIdx + 1 ] )
-                        surfaceVals.append( self.surfacesPos[ ( 2 * zIdx + 1 ) * ( Ny - 1 ) + 2 * yIdx ] )
-                        surfaceVals.append( self.surfacesPos[ ( 2 * zIdx + 1 ) * ( Ny - 1 ) + 2 * yIdx + 1 ] )
+                        surfaceVals.append( self.surfacesPos[ 2 * zIdx * 2 *( Ny - 1 ) + 2 * yIdx ] )
+                        surfaceVals.append( self.surfacesPos[ 2 * zIdx * 2 *( Ny - 1 ) + 2 * yIdx + 1 ] )
+                        surfaceVals.append( self.surfacesPos[ ( 2 * zIdx + 1 ) *  2 * ( Ny - 1 ) + 2 * yIdx ] )
+                        surfaceVals.append( self.surfacesPos[ ( 2 * zIdx + 1 ) * 2 * ( Ny - 1 ) + 2 * yIdx + 1 ] )
 
                     else:
 
-                        surfaceVals.append( self.surfacesNeg[ 2 * zIdx * ( Ny - 1 ) + 2 * yIdx ] )
-                        surfaceVals.append( self.surfacesNeg[ 2 * zIdx * ( Ny - 1 ) + 2 * yIdx + 1 ] )
-                        surfaceVals.append( self.surfacesNeg[ ( 2 * zIdx + 1 ) * ( Ny - 1 ) + 2 * yIdx ] )
-                        surfaceVals.append( self.surfacesNeg[ ( 2 * zIdx + 1 ) * ( Ny - 1 ) + 2 * yIdx + 1 ] )
+                        surfaceVals.append( self.surfacesNeg[ 2 * zIdx * 2 * ( Ny - 1 ) + 2 * yIdx ] )
+                        surfaceVals.append( self.surfacesNeg[ 2 * zIdx * 2 * ( Ny - 1 ) + 2 * yIdx + 1 ] )
+                        surfaceVals.append( self.surfacesNeg[ ( 2 * zIdx + 1 ) * 2 * ( Ny - 1 ) + 2 * yIdx ] )
+                        surfaceVals.append( self.surfacesNeg[ ( 2 * zIdx + 1 ) * 2 * ( Ny - 1 ) + 2 * yIdx + 1 ] )
                         surfaceVals.append( self.surfacesPos[ zIdx * ( Ny - 1 ) + yIdx ] )
 
                     surfaceVals.append( self.surfaces_Type2[ zIdx * ( Ny - 1 ) + yIdx ] )
