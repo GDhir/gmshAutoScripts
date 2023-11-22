@@ -65,10 +65,14 @@ def setTransfiniteCurves( linesVec, N ):
     for lines in linesVec:
         [ gmsh.model.geo.mesh.setTransfiniteCurve( line, N ) for line in lines ]
         
-def setTransfiniteSurfaces( planeIds ):
+def setTransfiniteSurfaces( planeIds, cornerPts = [] ):
 
-    [ gmsh.model.geo.mesh.setTransfiniteSurface(id) \
-      for id in planeIds ]
+    if cornerPts:
+        [ gmsh.model.geo.mesh.setTransfiniteSurface(id, "Left", cornerPts ) \
+        for id in planeIds ]
+    else:
+        [ gmsh.model.geo.mesh.setTransfiniteSurface(id) \
+        for id in planeIds ]
     
 def setTransfiniteVolumes( planeIds ):
 
@@ -336,7 +340,7 @@ class ZoneConnection:
         self.surfaces_Type1 = []
         self.surfaces_Type2 = []
 
-        self.connectSurfaces( zoneNeg, zonePos, dxn )
+        self.connectSurfaces( zoneNeg, zonePos, dxn, False )
         self.addVolumes( zoneNeg, zonePos, dxn )
 
         if transfinite:
@@ -488,7 +492,7 @@ class ZoneConnection:
                                                                         zone2DPos.pts[ posIdx ] ) )
 
 
-    def connectSurfaces( self, zoneNeg, zonePos, dxn ):
+    def connectSurfaces( self, zoneNeg, zonePos, dxn, transfinite = False ):
 
         nLayersNeg = zoneNeg.nLayers
         nLayersPos = zonePos.nLayers
@@ -511,9 +515,19 @@ class ZoneConnection:
 
                     if nLayersNeg < nLayersPos:
                         linesVal.append( zoneNeg.layers[ zIdx ].linesz[ zoneNeg.Nx * ( yIdx + 1 ) - 1 ] )
+
+                        cornerPts = [ zoneNeg.zones2D[ zIdx ].pts[ zoneNeg.Nx * ( yIdx + 1 ) - 1 ], \
+                                    zonePos.zones2D[ 2 * ( zIdx ) ].pts[ zonePos.Nx * ( yIdx * 2 ) ], \
+                                    zonePos.zones2D[ 2 * ( zIdx + 1 ) ].pts[ zonePos.Nx * ( yIdx * 2 ) ], \
+                                    zoneNeg.zones2D[ zIdx + 1 ].pts[ zoneNeg.Nx * ( yIdx + 1 ) - 1 ] ]
                     else:
                         linesVal.append( zoneNeg.layers[ 2 * zIdx ].linesz[ zoneNeg.Nx * ( yIdx * 2 + 1 ) - 1 ] )
                         linesVal.append( zoneNeg.layers[ 2 * zIdx + 1 ].linesz[ zoneNeg.Nx * ( yIdx * 2 + 1 ) - 1 ] )
+
+                        cornerPts = [ zoneNeg.zones2D[ 2 * zIdx ].pts[ zoneNeg.Nx * ( yIdx * 2 + 1 ) - 1 ], \
+                                    zonePos.zones2D[ zIdx ].pts[ zonePos.Nx * ( yIdx ) ], \
+                                    zonePos.zones2D[ zIdx + 1 ].pts[ zonePos.Nx * ( yIdx ) ], \
+                                    zoneNeg.zones2D[ 2 * ( zIdx + 1 ) ].pts[ zoneNeg.Nx * ( yIdx * 2 + 1 ) - 1 ] ]
 
                     upEdge = self.lineConnections[ ( zIdx + 1 ) * nSurfacesToJoin + yIdx ]
                     linesVal.append( upEdge )
@@ -528,6 +542,11 @@ class ZoneConnection:
                     pl = gmsh.model.geo.addPlaneSurface( [ cl ] )
                     self.surfaces_Type1.append( pl ) 
 
+                    if transfinite:
+                        print(pl)
+                        print( cornerPts )
+                        setTransfiniteSurfaces( [pl], cornerPts )
+
             for zIdx in range( nZonesToJoin ):
                 for yIdx in range( nSurfacesToJoin - 1 ):
 
@@ -537,9 +556,20 @@ class ZoneConnection:
 
                     if nZonesNeg < nZonesPos:
                         linesVal.append( zoneNeg.zones2D[ zIdx ].linesy[ zoneNeg.Nx * ( yIdx + 1 ) - 1 ] )
+
+                        cornerPts = [ zoneNeg.zones2D[ zIdx ].pts[ zoneNeg.Nx * ( yIdx + 1 ) - 1 ], \
+                                    zonePos.zones2D[ 2 * ( zIdx ) ].pts[ zonePos.Nx * ( yIdx * 2 ) ], \
+                                    zonePos.zones2D[ 2 * ( zIdx ) ].pts[ zonePos.Nx * ( ( yIdx + 1 ) * 2 ) ], \
+                                    zoneNeg.zones2D[ zIdx ].pts[ zoneNeg.Nx * ( yIdx + 2 ) - 1 ] ]
+                 
                     else:
                         linesVal.append( zoneNeg.zones2D[ 2 * zIdx ].linesy[ zoneNeg.Nx * ( yIdx * 2 + 1 ) - 1 ] )
                         linesVal.append( zoneNeg.zones2D[ 2 * zIdx ].linesy[ zoneNeg.Nx * ( yIdx * 2 + 2 ) - 1 ] )
+
+                        cornerPts = [ zoneNeg.zones2D[ 2 * zIdx ].pts[ zoneNeg.Nx * ( yIdx * 2 + 1 ) - 1 ], \
+                                    zonePos.zones2D[ zIdx ].pts[ zonePos.Nx * ( yIdx ) ], \
+                                    zonePos.zones2D[ zIdx ].pts[ zonePos.Nx * ( yIdx + 1 ) ], \
+                                    zoneNeg.zones2D[ 2 * ( zIdx ) ].pts[ zoneNeg.Nx * ( yIdx * 2 + 2 ) - 1 ] ]
 
                     upEdge = self.lineConnections[ zIdx * nSurfacesToJoin + yIdx + 1 ]
                     linesVal.append( upEdge )
@@ -552,8 +582,12 @@ class ZoneConnection:
 
                     cl = gmsh.model.geo.addCurveLoop( linesVal )
                     pl = gmsh.model.geo.addPlaneSurface( [ cl ] )
-                    self.surfaces_Type2.append( pl ) 
+                    self.surfaces_Type2.append( pl )
 
+                    if transfinite:
+                        print(pl)
+                        print( cornerPts )
+                        setTransfiniteSurfaces( [pl], cornerPts )
 
         elif dxn == "y":
             pass

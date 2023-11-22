@@ -13,6 +13,7 @@ import regexUtils
 import dataUtils
 import errorUtils
 import runCodeUtils
+import regularMeshv2
 
 def getNumNodes( gmshFileName ):
 
@@ -283,7 +284,7 @@ def makeMultiplePlotAdjustmentsAndSave( axisArray, figureArray, fileNames ):
     for idx, axVal in enumerate( axisArray ):
         makePlotAdjustmentsAndSave( axisArray[idx], figureArray[idx], fileNames[idx] )
 
-def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshvals, meshPath):
+def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshvals, meshPath, plotOptions, dim = 2):
     
     folderUtils.checkAndCreateFolder( simPlotFolderName )
 
@@ -306,9 +307,14 @@ def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, 
     allMaxErrorList = []
     allL2ErrorList = []
 
-    figArrayNumNodes, axisArrayNumNodes = createMultipleFigureAxis( 2 )
-    figArrayArea, axisArrayArea = createMultipleFigureAxis( 2 )
-    figArrayDx, axisArrayDx = createMultipleFigureAxis( 2 )
+    if plotOptions[ "NumNodes" ]:
+        figArrayNumNodes, axisArrayNumNodes = createMultipleFigureAxis( 2 )
+    
+    if plotOptions[ "AverageArea" ]:
+        figArrayArea, axisArrayArea = createMultipleFigureAxis( 2 )
+    
+    if plotOptions[ "MaxH" ]:
+        figArrayDx, axisArrayDx = createMultipleFigureAxis( 2 )
 
     # print(allSortedMeshVals)
     meshVizPath = "/home/gaurav/Finch/src/examples/Mesh/MeshViz/"
@@ -332,18 +338,31 @@ def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, 
 
             meshFileName = fileNameUtils.getMeshFileName( optionsParam, regexCriterias, regexCriteriaVals, meshPath )
 
-            numNodeVals.append( getNumNodes( meshFileName ) )
+            if plotOptions["NumNodes"]:
+                numNodeVals.append( getNumNodes( meshFileName ) )
+
             dxVals.append( getMaxH( meshFileName, optionsParam[ "meshRegexVal" ] ) )
-            areaVals.append( getAverage2DArea( meshFileName, optionsParam[ "meshRegexVal" ] ) )
+            
+            if plotOptions["AverageArea"]:
+                areaVals.append( getAverage2DArea( meshFileName, optionsParam[ "meshRegexVal" ] ) )
 
             xvalsFileName = fileNameUtils.getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "xvalues" )
-            yvalsFileName = fileNameUtils.getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "yvalues" )
-            uvalsFileName = fileNameUtils.getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "uvalues" )
-            
             xvals = dataUtils.getData( xvalsFileName )
-            yvals = dataUtils.getData( yvalsFileName )
+            uvalsFileName = fileNameUtils.getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "uvalues" )
             uvals = dataUtils.getData( uvalsFileName )
-            errvals = errorUtils.getFinchError( xvals, yvals, uvals, int( optionsParam[ "sin(kpix)" ] )*pi )
+
+            yvals = []
+            zvals = []
+
+            if dim > 1:
+                yvalsFileName = fileNameUtils.getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "yvalues" )
+                yvals = dataUtils.getData( yvalsFileName )
+
+            if dim > 2:
+                zvalsFileName = fileNameUtils.getTextFileName( folderUtils.finchTextfoldername, pythonVarName, "zvalues" )
+                zvals = dataUtils.getData( zvalsFileName )
+
+            errvals = errorUtils.getFinchError( xvals, yvals, zvals, uvals, int( optionsParam[ "sin(kpix)" ] )*pi, dim )
 
             # print(errvalsFileName)
 
@@ -362,30 +381,38 @@ def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, 
             # uexactvals = getData( textfoldername + "uexactvalues_index=" + str(index) + ".txt" )        
             # print( np.max(errvals) )
 
-            contourLevels = np.linspace( minVal, maxVal, 40 )
-            plt.figure()
-            plt.tricontourf( xvals, yvals, errvals, levels = contourLevels, vmin = minVal, vmax = maxVal, cmap = cm )
-            plt.colorbar()
-            plotVarName = "errorvaluesContour"
-            plotfilename = fileNameUtils.getTextFileName( curPlotFolderName, pythonVarName, plotVarName, "png" )
-            plt.savefig( plotfilename )
-            plt.close()
+            if plotOptions["ShowContours"]:
+                minVal, maxVal = minMaxRangeVals[index]
 
-            plt.figure()
-            contourLevels = np.linspace( curminval*0.4+ curmaxval*0.6, curmaxval, 40)
-            plt.tricontourf( xvals, yvals, errvals, levels = contourLevels, colors = 'r')
-            plt.colorbar()
-            plotVarName = "large" + "errorvalues" + "Contour"
-            plotfilename = fileNameUtils.getTextFileName( curPlotFolderName, pythonVarName, plotVarName, ".png" )
-            plt.savefig( plotfilename )
-            plt.close()
+                contourLevels = np.linspace( minVal, maxVal, 40 )
+                plt.figure()
+                plt.tricontourf( xvals, yvals, errvals, levels = contourLevels, vmin = minVal, vmax = maxVal, cmap = cm )
+                plt.colorbar()
+                plotVarName = "errorvaluesContour"
+                plotfilename = fileNameUtils.getTextFileName( curPlotFolderName, pythonVarName, plotVarName, "png" )
+                plt.savefig( plotfilename )
+                plt.close()
+
+                plt.figure()
+                contourLevels = np.linspace( curminval*0.4+ curmaxval*0.6, curmaxval, 40)
+                plt.tricontourf( xvals, yvals, errvals, levels = contourLevels, colors = 'r')
+                plt.colorbar()
+                plotVarName = "large" + "errorvalues" + "Contour"
+                plotfilename = fileNameUtils.getTextFileName( curPlotFolderName, pythonVarName, plotVarName, ".png" )
+                plt.savefig( plotfilename )
+                plt.close()
             
         allMaxErrorList.append( curMaxErrorList )
         allL2ErrorList.append( curL2ErrorList )
 
-        plotMaxAndL2Error( axisArrayNumNodes, numNodeVals, curMaxErrorList, curL2ErrorList, comparisonParam, paramValue )
-        plotMaxAndL2Error( axisArrayArea, areaVals, curMaxErrorList, curL2ErrorList, comparisonParam, paramValue ) 
-        plotMaxAndL2Error( axisArrayDx, dxVals, curMaxErrorList, curL2ErrorList, comparisonParam, paramValue )      
+        if plotOptions[ "NumNodes" ]:
+            plotMaxAndL2Error( axisArrayNumNodes, numNodeVals, curMaxErrorList, curL2ErrorList, comparisonParam, paramValue )
+        
+        if plotOptions[ "AverageArea" ]:
+            plotMaxAndL2Error( axisArrayArea, areaVals, curMaxErrorList, curL2ErrorList, comparisonParam, paramValue ) 
+        
+        if plotOptions[ "MaxH" ]:
+            plotMaxAndL2Error( axisArrayDx, dxVals, curMaxErrorList, curL2ErrorList, comparisonParam, paramValue )      
 
         h2Vals = [ dxVal**2 for dxVal in dxVals ]
 
@@ -394,51 +421,46 @@ def showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, 
         print( curMaxErrorList )
         print( curL2ErrorList )
 
-    xValsArray = [ numNodeVals, numNodeVals, areaVals, areaVals, dxVals, dxVals ]
+    xValsArray = []
+    yValsArray = []
+    labelNameArray = []
+    axisArray = []
+    fileNameArray = []
+    figArray = []
+
+    if plotOptions[ "NumNodes" ]:
+        xValsArray.extend( [numNodeVals, numNodeVals] )
+        axisArray.extend( [axisArrayNumNodes[0], axisArrayNumNodes[1]] )
+
+        fileNameArray.extend( [simPlotFolderName + "maxErrorNumNodes" + ".png", \
+        simPlotFolderName + "l2ErrorNumNodes" + ".png"] )
+
+        figArray.extend( [figArrayNumNodes[0], figArrayNumNodes[1]] )
+
+    if plotOptions[ "AverageArea" ]:
+        xValsArray.extend( [areaVals, areaVals] )
+        axisArray.extend( [axisArrayArea[0], axisArrayArea[1]] )
+        
+        fileNameArray.extend( [simPlotFolderName + "maxErrorArea" + ".png", \
+            simPlotFolderName + "l2ErrorArea" + ".png"] )
+
+        figArray.extend( [figArrayArea[0], figArrayArea[1]] )
+
+    if plotOptions[ "MaxH" ]:
+        xValsArray.extend( [dxVals, dxVals] )
+        axisArray.extend( [axisArrayDx[0], axisArrayDx[1]] )
+        
+        fileNameArray.extend( [simPlotFolderName + "maxErrorDx" + ".png", \
+        simPlotFolderName + "l2ErrorDx" + ".png"] )
+
+        figArray.extend( [figArrayDx[0], figArrayDx[1]] )
+
     yValsArray = [ h2Vals ]*len(xValsArray)
     labelNameArray = [ "$h^2$" ]*len(xValsArray)
-
-    axisArray = [ axisArrayNumNodes[0], axisArrayNumNodes[1],
-                    axisArrayArea[0],
-                    axisArrayArea[1],
-                    axisArrayDx[0],
-                    axisArrayDx[1] ]
-
-    fileNameArray = [   simPlotFolderName + "maxErrorNumNodes" + ".png",
-                        simPlotFolderName + "l2ErrorNumNodes" + ".png",
-                        simPlotFolderName + "maxErrorArea" + ".png",
-                        simPlotFolderName + "l2ErrorArea" + ".png",
-                        simPlotFolderName + "maxErrorDx" + ".png",
-                        simPlotFolderName + "l2ErrorDx" + ".png" ]
-
-    figArray = [ figArrayNumNodes[0], figArrayNumNodes[1],
-                figArrayArea[0],
-                figArrayArea[1],
-                figArrayDx[0],
-                figArrayDx[1] ]
-
 
     plotMultipleAxis( axisArray, xValsArray, yValsArray, labelNameArray, "-x" )
 
     makeMultiplePlotAdjustmentsAndSave( axisArray, figArray, fileNameArray )
-
-    # if len( regexVals ) > 1:
-    #     errorDiffMax = [ allMaxErrorList[1][idx] - allMaxErrorList[0][idx] for idx in range( len(allMaxErrorList[0]) ) ]
-    #     errorDiffL2 = [ allL2ErrorList[1][idx] - allL2ErrorList[0][idx] for idx in range( len(allL2ErrorList[0]) ) ]
-
-    #     plt.figure()
-    #     plt.plot( dxVals, errorDiffMax, "-o" )
-    #     titleval = regexVals[1] + " - " + regexVals[0] + " Max Error Plot"
-    #     plt.xlabel( "h" )
-    #     plt.ylabel( "Error" )
-    #     plt.title( titleval )
-
-    #     plt.figure()
-    #     titleval = regexVals[1] + " - " + regexVals[0] + " L2 Error Plot"
-    #     plt.plot( dxVals, errorDiffL2, "-o" )
-    #     plt.xlabel( "h" )
-    #     plt.ylabel( "Error" )
-    #     plt.title( titleval )
 
     plt.show()
 
@@ -793,21 +815,22 @@ if __name__ == "__main__":
     # regexVals = ["triangleMeshUnstruct", "triangleMeshStruct", "regularMesh"]
     gmshFileCmdNames = ["triangleMeshv2", "triangleMeshv1", "regularMeshv3"]
     # gmshFileCmdNames = ["hangingMeshv8"]
-    # regexVals = ["hanging"]
-    regexVals = ["mesh"]
+    regexVals = ["regularMesh3D"]
+    # regexVals = ["mesh"]
 
     allParams = dict()
     allParams["software"] = ["Finch", "Dealii"]
     allParams["meshRegexVal"] = regexVals
     allParams["gmshFileCmdName"] = gmshFileCmdNames
-    allParams["quadratureOrder"] = [ "2", "3", "4" ]
+    allParams["quadratureOrder"] = ["2"]
     allParams["sin(kpix)"] = [ "1", "2", "4" ]
-    allParams["coeff_F"] = [ "-2", "-8", "-32" ]
+    # allParams["coeff_F"] = [ "-2", "-8", "-32" ]
+    allParams["coeff_F"] = [ "-3", "-12", "-48" ]
 
     optionsParam = dict()
-    optionsParam["quadratureOrder"] = "4"
-    optionsParam["sin(kpix)"] = "4"
-    optionsParam["coeff_F"] = "-32"
+    optionsParam["quadratureOrder"] = "2"
+    optionsParam["sin(kpix)"] = "1"
+    optionsParam["coeff_F"] = "-3"
     optionsParam["software"] = "Finch"
     optionsParam["meshRegexVal"] = regexVals[0]
     optionsParam["level"] = "0"
@@ -819,19 +842,35 @@ if __name__ == "__main__":
 
     comparisonParam = "quadratureOrder"
 
-    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotMixedMeshFinchTriangleCustomQuadrature_4pi/"
+    # simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotMixedMeshFinchTriangleCustomQuadrature_pi/"
     # meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=2_pi/"
+    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotRegularMesh3DFinch_pi/"
 
-    meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/mix_mesh/"
+    # meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/mix_mesh/"
     # runCodeUtils.buildAllMeshes( gmshFileCmdNames, meshPath )
+
+    meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/Mesh3D/"
+
+    if not os.path.exists( meshPath ):
+        os.mkdir( meshPath )
+
+    regularMeshv2.customExtrusionMeshRegular( meshPath )
     meshArr = meshFileUtils.getMeshFilesFromFolder( meshPath )
+    print( meshArr )
     # showMeshes( folderUtils.meshPlotRootFolderName, regexVals )
     # createMeshVTU( meshPlotRootFolderName, regexVals )
  
     simPlotFolderName = simPlotRootFolderName + "Finch/"
     print( "Finch" )
-    # runCodeUtils.runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath, True )
-    showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath )
+    # runCodeUtils.runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath, False, 3 )
+
+    plotOptions = dict()
+    plotOptions[ "ShowContours" ] = False
+    plotOptions[ "NumNodes" ] = True
+    plotOptions[ "AverageArea" ] = False
+    plotOptions[ "MaxH" ] = False
+
+    showFinchPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, plotOptions, 3 )
 
     # srcFileName = "/home/gaurav/dealii-9.5.1/examples/step-5/step-5.cc"
     srcFileName = "/home/gaurav/dealii-9.5.1/examples/doxygen/step_3_mixed.cc"
@@ -842,10 +881,10 @@ if __name__ == "__main__":
 
     simPlotFolderName = simPlotRootFolderName + "Dealii/"
     print( "dealii" )
-    showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, negative=-1, pival = 4*pi )
+    # showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, negative=-1, pival = pi )
 
-    compareDealiiFinch( simPlotRootFolderName, allParams,
-                    optionsParam, comparisonParam, meshArr, meshPath, negative =-1, pival = 4*pi )
+    # compareDealiiFinch( simPlotRootFolderName, allParams,
+                    # optionsParam, comparisonParam, meshArr, meshPath, negative =-1, pival = pi )
 
     # fileName = folderUtils.textFolderNames["Dealii"] + "Mesh_solutionvalues_lvl=7.vtu"
     # getDealiiData( fileName, "vtu" )

@@ -1,9 +1,14 @@
 import numpy as np
 from math import sin, cos, pi
 
-def getExactSol( xval, yval, negative = -1, pival = 2*pi ):
+def getExactSol( xval, yval, zval, negative = -1, pival = 2*pi, dim = 2 ):
 
-    return negative*sin(pival*xval)*sin(pival*yval)
+    if dim == 1:
+        return negative*sin(pival*xval)
+    elif dim == 2:
+        return negative*sin(pival*xval) * sin(pival*yval)
+    elif dim == 3:
+        return negative * sin(pival*xval) * sin(pival*yval) * sin(pival*zval)
 
 def getDealiiError( nodes, solution, negative = 1, pival = 2*pi ):
 
@@ -40,17 +45,25 @@ def getDealiiError( nodes, solution, negative = 1, pival = 2*pi ):
 
     return np.array( errVals )
 
-def getFinchError( xvals, yvals, uvals, pival = 2*pi ):
+def getFinchError( xvals, yvals = [], zvals = [], uvals = [], pival = 2*pi, dim = 2 ):
 
     errVals = []
     exactvals = []
 
     for idx, xval in enumerate( xvals ):
 
-        yval = yvals[idx]
+        yval = 0
+        zval = 0
+        
+        if dim > 1:
+            yval = yvals[idx]
+        
+        if dim > 2:
+            zval = zvals[idx]
+            
         solval = uvals[idx]
         # print(xval, yval)
-        exactval = getExactSol( xval, yval, 1, pival )
+        exactval = getExactSol( xval, yval, zval, 1, pival, dim )
         exactvals.append( exactval )
 
         errorval = np.abs( exactval - solval )

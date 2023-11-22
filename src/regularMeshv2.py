@@ -139,55 +139,57 @@ def doubleZoneMesh():
 
     gmsh.finalize()
 
-def customExtrusionMeshRegular():
+def customExtrusionMeshRegular( foldername ):
 
     lvl = 0
-    Ndash = 4
+    Ndashvals = [4, 6, 8, 10]
 
-    lc = 1/( Ndash )
-    print(lc)
+    for Ndash in Ndashvals:
 
-    foldername = "/home/gaurav/gmshAutoScripts/build/"
+        lc = 1/( Ndash )
+        print(lc)
 
-    N = int( 1/lc + 1 )
+        # foldername = "/home/gaurav/gmshAutoScripts/build/"
 
-    gmsh.initialize(sys.argv)
-    gmsh.model.add("t2")
+        N = int( 1/lc + 1 )
 
-    pointSet = [N, N, lc]
-    xoffset = 0
-    yoffset = 0
+        gmsh.initialize(sys.argv)
+        gmsh.model.add("t2")
 
-    zcoord = 0
-    zones = []
-    
-    for zidx in range(N):
+        pointSet = [N, N, lc]
+        xoffset = 0
+        yoffset = 0
+
+        zcoord = 0
+        zones = []
         
-        zcoord = zidx * lc
-        zone = gmshUtils.Zone2D( pointSet, xoffset, yoffset, zcoord, transfinite = True )
-        zones.append( zone )
+        for zidx in range(N):
+            
+            zcoord = zidx * lc
+            zone = gmshUtils.Zone2D( pointSet, xoffset, yoffset, zcoord, transfinite = True )
+            zones.append( zone )
 
-    zone3Dval = gmshUtils.Zone3D( zones, N, N, transfinite = True )
+        zone3Dval = gmshUtils.Zone3D( zones, N, N, transfinite = True )
 
-    gmsh.model.geo.synchronize()
+        gmsh.model.geo.synchronize()
 
-    gmshUtils.recombine3DZone( zone3Dval )
+        gmshUtils.recombine3DZone( zone3Dval )
 
-    gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 3)
+        gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 3)
 
-    gmsh.model.mesh.generate(3)
+        gmsh.model.mesh.generate(3)
 
-    gmsh.option.setNumber("Mesh.MshFileVersion", 2)
+        gmsh.option.setNumber("Mesh.MshFileVersion", 2)
 
-    regMeshFileName = foldername + "regularMesh_lvl" + str(lvl) + ".msh"
-    gmsh.write( regMeshFileName )
+        regMeshFileName = foldername + "regularMesh3D_lvl" + str(lvl) + ".msh"
+        gmsh.write( regMeshFileName )
 
-    lvl = lvl + 1
+        lvl = lvl + 1
 
-    if '-nopopup' not in sys.argv:
-        gmsh.fltk.run()
+        if '-nopopup' not in sys.argv:
+            gmsh.fltk.run()
 
-    gmsh.finalize()
+        gmsh.finalize()
 
 
 def customExtrusionDoubleZoneMeshRegular():
@@ -256,7 +258,7 @@ def customExtrusionDoubleZoneConnectedMesh():
     lvl = 0
 
     Nx1 = 3
-    Nx2 = 5
+    Nx2 = 7
     lc = 1/( Nx1 + 2*Nx2 - 1 )
     Ny1 = int( 1/lc + 1 )
     Ny2 = int( 1/2/lc + 1 )
@@ -271,7 +273,7 @@ def customExtrusionDoubleZoneConnectedMesh():
     yoffset1 = 0
     zonesLeft = []
 
-    for zidx in range(3):
+    for zidx in range( Ny1 ):
         
         zcoord = zidx * lc
         zone = gmshUtils.Zone2D( pointSet1, xoffset1, yoffset1, zcoord, transfinite = True )
@@ -282,7 +284,7 @@ def customExtrusionDoubleZoneConnectedMesh():
     yoffset2 = 0
     zonesRight = []
 
-    for zidx in range(2):
+    for zidx in range( Ny2 ):
         
         zcoord = zidx * 2 * lc
         zone = gmshUtils.Zone2D( pointSet2, xoffset2, yoffset2, zcoord, transfinite = True )
@@ -318,5 +320,6 @@ if __name__ == "__main__":
 
     # doubleZoneMesh()
     # customExtrusionDoubleZoneMeshRegular()
-    # customExtrusionMeshRegular()
-    customExtrusionDoubleZoneConnectedMesh()
+    foldername = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
+    customExtrusionMeshRegular( foldername )
+    # customExtrusionDoubleZoneConnectedMesh()

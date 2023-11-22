@@ -77,7 +77,7 @@ def setFinchGeneratedSolveFunction( optionsParam, filename, pattern, replacement
         fileHandle.writelines( allLines )
 
 
-def runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath, gaussPointsViz = False ):
+def runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, comparisonParam, meshPath, gaussPointsViz = False, dim = 2 ):
     
     levelsArr = meshFileUtils.getAllLevels( meshArr )
 
@@ -98,7 +98,8 @@ def runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, compa
             if re.search( "triangle", optionsParam["meshRegexVal"] ):
                 setFinchTriangleQuadrature( optionsParam[ "quadratureOrder" ] )
             elif re.search( "regular", optionsParam[ "meshRegexVal" ] ):
-                setFinchQuadQuadrature( optionsParam[ "quadratureOrder" ] )
+                # setFinchQuadQuadrature( optionsParam[ "quadratureOrder" ] )
+                pass
             elif re.search( "mesh", optionsParam[ "meshRegexVal" ] ):
                 setFinchTriangleQuadrature( optionsParam[ "quadratureOrder" ] )
 
@@ -118,11 +119,15 @@ def runFinchSimWithOptionsVariousMeshes( optionsParam, meshArr, allParams, compa
 
                 setFinchGeneratedSolveFunction( optionsParam, filename, pattern, replacement )
 
-            runFinchSimWithOptions( optionsParam, meshFileName )
+            runFinchSimWithOptions( optionsParam, meshFileName, dim )
 
-def runFinchSimWithOptions( optionsParam, meshval ):
+def runFinchSimWithOptions( optionsParam, meshval, dim = 2 ):
 
-    exefilename = "/home/gaurav/Finch/src/examples/example-mixed-element-2d.jl"
+    if dim == 2:
+        exefilename = "/home/gaurav/Finch/src/examples/example-mixed-element-2d.jl"
+    elif dim == 3:
+        exefilename = "/home/gaurav/Finch/src/examples/example-mixed-element-3d.jl"
+
     pythonVarName = fileNameUtils.getPythonVarName( optionsParam )
     allFinchOptions = [ optionsParam["sin(kpix)"], optionsParam["coeff_F"], meshval, pythonVarName ]
 
