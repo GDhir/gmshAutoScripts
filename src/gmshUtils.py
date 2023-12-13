@@ -637,3 +637,100 @@ class ZoneConnection:
         else:
 
             pass
+
+def checkPtOnBoundary( pointCoords ):
+
+    boundaryCoordVals = [0, 1]
+
+    for pointCoord in pointCoords:
+
+        for bcval in boundaryCoordVals:
+            if abs( pointCoord - bcval ) < 1e-6:
+                return True
+        
+    return False
+
+def checkElementOnBoundary( vertexIndices, vertexCoords ):
+
+    for vertexIndex in vertexIndices:
+
+        if not checkPtOnBoundary( vertexCoords[ vertexIndex ] ):
+            return False
+        
+    return True
+
+def parseGMSHFile( gmshFileName ):
+
+    etype2nv = dict( [("1", "2"), ("2", "3"), ("3", "4"), ("4", "4"), ("5", "8"), ("6", "6"),\
+                       ("7", "5"), ("15", "1") ] )
+    
+    etype2dim = dict( [("1", 1), ("2", 2), ("3", 2), ("4", 3), ("5", 3), ("6", 3),\
+                       ("7", 3), ("15", 0) ] )
+    lineIndicesToDelete = set()
+
+    vertexCoords = dict()    
+
+    with open( gmshFileName ) as gmshFileHandle:
+
+        allLines = gmshFileHandle.readlines()
+
+    for idx, lineval in enumerate( allLines ):
+        if lineval == "$Nodes\n":
+
+            nodeStart = idx + 2
+
+    for idx, lineval in enumerate( allLines[ nodeStart: ] ):
+
+        if lineval == "$EndNodes\n":
+            break
+
+        splitvals = lineval.split()
+        vertexCoords[ splitvals[0] ] = [ float( val ) for val in splitvals[ 1: ] ]
+
+    for idx, lineval in enumerate( allLines ):
+        if lineval == "$Elements\n":
+
+            elementStart = idx + 2
+            nElements = int( allLines[ idx + 1 ] )
+
+    for idx, lineval in enumerate( allLines[ elementStart: ] ):
+
+        if lineval == "$EndElements\n":
+            break
+
+        splitvals = lineval.split()
+        ntags = int( splitvals[ 2 ] )
+
+        etype = splitvals[1] 
+
+        if etype2dim[ etype ] < 3:
+            vertexIndices = splitvals[ ntags + 3: ]
+
+            if not checkElementOnBoundary( vertexIndices, vertexCoords ):
+
+                lineIndicesToDelete.add( elementStart + idx )
+
+    newlines = []
+
+    for idx, lineval in enumerate( allLines ):
+
+        if idx not in lineIndicesToDelete:
+
+            newlines.append( lineval )
+
+    with open( gmshFileName, "w" ) as gmshFileHandle:
+
+        gmshFileHandle.writelines( newlines )
+
+
+if __name__ == "__main__":
+
+    gmshFileName = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/regularMesh3D_lvl0.msh"
+
+    parseGMSHFile( gmshFileName )
+
+
+
+
+
+    
