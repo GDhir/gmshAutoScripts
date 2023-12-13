@@ -50,7 +50,7 @@ def getFinchMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, ju
 
     return minMaxRangeVals
 
-def getDealiiMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, negative = 1, pival = 2*pi ):
+def getDealiiMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, dim = 2, negative = 1, pival = 2*pi ):
 
     nLevels = len( levelsArr )
     minVals = np.ones( nLevels )*100000
@@ -70,7 +70,7 @@ def getDealiiMinMaxRange( levelsArr, allParams, optionsParam, comparisonParam, n
             textFile = fileNameUtils.getTextFileName( folderUtils.dealiiTextfoldername, pythonVarName, "solutionvalues", dataFileFormat )
 
             nodes, solution = getDealiiData( textFile, dataFileFormat )
-            errVals = errorUtils.getDealiiError( nodes, solution, negative, pival )
+            errVals = errorUtils.getDealiiError( nodes, solution, negative, pival, dim = dim )
 
             minVals[idx] = np.min( [minVals[idx], np.min( errVals )] )
             maxVals[idx] = np.max( [maxVals[idx], np.max( errVals )] )

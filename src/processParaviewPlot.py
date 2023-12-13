@@ -416,16 +416,16 @@ if __name__ == "__main__":
     allParams["coeff_F"] = [ "-2", "-8", "-32" ]
 
     optionsParam = dict()
-    optionsParam["quadratureOrder"] = "4"
-    optionsParam["sin(kpix)"] = "4"
-    optionsParam["coeff_F"] = "-32"
+    optionsParam["quadratureOrder"] = "2"
+    optionsParam["sin(kpix)"] = "2"
+    optionsParam["coeff_F"] = "-8"
     optionsParam["software"] = "Finch"
     optionsParam["meshRegexVal"] = regexVals[0]
     optionsParam["level"] = "3"
 
     comparisonParam = "quadratureOrder"
 
-    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotMixedMeshFinchTriangleCustomQuadrature_4pi/"
+    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotMixedMeshFinchTriangleCustomQuadrature_2pi/"
     meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=4_pi/"
 
     # regexVals = [ "mesh" ]
@@ -438,11 +438,11 @@ if __name__ == "__main__":
     # runCodeUtils.buildAllMeshes( gmshFileCmdNames, meshPath )
     meshArr = meshFileUtils.getMeshFilesFromFolder( meshPath )
 
-    # showParaviewPlotFinch( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, True )
+    showParaviewPlotFinch( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, True )
     # compareParaview( simPlotFolderName, regexVals, meshPath )
 
     # setFinchTriangleQuadrature( 2 )
 
     simPlotFolderName = simPlotRootFolderName + "Dealii/"
-    showParaviewPlotDealii( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, -1, 4*pi )
+    # showParaviewPlotDealii( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, -1, pi )
     

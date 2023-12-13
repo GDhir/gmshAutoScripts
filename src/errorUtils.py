@@ -1,5 +1,6 @@
 import numpy as np
 from math import sin, cos, pi
+import matplotlib.pyplot as plt
 
 def getExactSol( xval, yval, zval, negative = -1, pival = 2*pi, dim = 2 ):
 
@@ -10,7 +11,7 @@ def getExactSol( xval, yval, zval, negative = -1, pival = 2*pi, dim = 2 ):
     elif dim == 3:
         return negative * sin(pival*xval) * sin(pival*yval) * sin(pival*zval)
 
-def getDealiiError( nodes, solution, negative = 1, pival = 2*pi ):
+def getDealiiError( nodes, solution, negative = 1, pival = 2*pi, dim = 2 ):
 
     errVals = []
     exactvals = []
@@ -19,9 +20,10 @@ def getDealiiError( nodes, solution, negative = 1, pival = 2*pi ):
 
         xval = node[0]
         yval = node[1]
+        zval = node[2]
         # print(xval, yval)
-        exactval = getExactSol( xval, yval, negative, pival )
-        # exactvals.append( exactval )
+        exactval = getExactSol( xval, yval, zval, negative, pival, dim )
+        exactvals.append( exactval )
 
         if len( solution.shape ) == 2:
             solval = solution[ idx, 0 ]
@@ -33,13 +35,13 @@ def getDealiiError( nodes, solution, negative = 1, pival = 2*pi ):
 
     # print(errVals)
 
-    # exactvals = np.array(exactvals)
+    exactvals = np.array(exactvals)
 
-    # plt.figure()
-    # plt.tricontourf( nodes[:, 0], nodes[:, 1], exactvals )
+    plt.figure()
+    plt.tricontourf( nodes[:, 0], nodes[:, 1], exactvals )
 
-    # plt.figure()
-    # plt.tricontourf( nodes[:, 0], nodes[:, 1], solution )
+    plt.figure()
+    plt.tricontourf( nodes[:, 0], nodes[:, 1], solution )
     # plt.colorbar()
     # plt.savefig( "solutionFile.png" )
 

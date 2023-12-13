@@ -710,6 +710,8 @@ def parseGMSHFile( gmshFileName ):
 
                 lineIndicesToDelete.add( elementStart + idx )
 
+    nElements = nElements - len( lineIndicesToDelete )
+    allLines[ elementStart - 1 ] = str( nElements ) + "\n"
     newlines = []
 
     for idx, lineval in enumerate( allLines ):
