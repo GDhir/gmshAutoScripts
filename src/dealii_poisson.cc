@@ -63,7 +63,7 @@ using numbers::PI;
 namespace fs = std::filesystem;
 
 #define k 1
-#define c -2
+#define c 2
 
 template <int dim>
 class RightHandSide : public Function<dim>
@@ -168,7 +168,7 @@ double BoundaryValues<dim>::value(const Point<dim> &p,
 
   if (dim == 2)
   {
-    return_value = -sin(k * PI * p[0]) * sin(k * PI * p[1]);
+    return_value = sin(k * PI * p[0]) * sin(k * PI * p[1]);
   }
 
   return return_value;

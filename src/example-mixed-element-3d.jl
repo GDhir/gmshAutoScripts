@@ -40,12 +40,14 @@ function runFunc( k, c, meshval, pythonVarName )
     linAlgOptions( matrixFree = false, iterative = false, reltol = 1e-20 )
 
     boundaryStr = "sin(pi*x*"*k*")*sin(pi*y*"*k*")*sin(pi*z*"*k*")"
+    # boundaryStr = "sin(pi*x)*sin(pi*y)"
     boundary(u, 1, DIRICHLET, boundaryStr)
 
     strval = c*"*pi*pi*sin(pi*x*"*k*")*sin(pi*y*"*k*")*sin(pi*z*"*k*")"
+    # strval = "pi*pi*sin(pi*x)*sin(pi*y)"
     coefficient("f", strval)
 
-    weakForm(u, "dot(grad(u), grad(v)) + f*v")
+    weakForm(u, "dot(grad(u), grad(v)) - f*v")
 
     exportCode("mixed2dcode");
     # importCode("mixed2dcodein");
@@ -91,6 +93,7 @@ function runFunc( k, c, meshval, pythonVarName )
     # h = tricontourf(xy[1,:], xy[2,:], u.values[:]) 
     # display(h)
 
+    # a = u.values[:]
     textfoldername = "/media/gaurav/easystore/Finch/MixedElement/TextFiles/"
 
     file = open( textfoldername * pythonVarName * "uvalues.txt", "w")
@@ -102,6 +105,8 @@ function runFunc( k, c, meshval, pythonVarName )
     file = open( textfoldername * pythonVarName * "uexactvalues.txt", "w")
     print( file, exactval.values[:])
     close(file)
+
+    # print( u.values[:] )
 
     file = open( textfoldername * pythonVarName * "xvalues.txt", "w")
     print( file, xyz[1, :])
@@ -134,6 +139,8 @@ function runFunc( k, c, meshval, pythonVarName )
     # outputValues([u,err], "p2dmixed", format="vtk");
 end
 
+# mixedElement()
+
 
 # for x in ARGS
 #     println(x);
@@ -143,5 +150,9 @@ k = ARGS[1]
 c = ARGS[2]
 meshval = ARGS[3]
 pythonVarName = ARGS[4]
+
+# regularElement(k, c)
+# triangleElement(k, c)
+# mixedElementWithLevel(k, c)
 
 runFunc( k, c, meshval, pythonVarName )

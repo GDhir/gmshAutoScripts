@@ -91,7 +91,7 @@ function regularElement( k, c )
             # strval = "-pi*pi*sin(pi*x)*sin(pi*y)"
             coefficient("f", strval)
 
-            weakForm(u, "dot(grad(u), grad(v)) + f*v")
+            weakForm(u, "dot(grad(u), grad(v)) - f*v")
 
             exportCode("mixed2dcode");
             # importCode("mixed2dcodein");
@@ -251,7 +251,7 @@ function mixedElement( k, c )
 
             coefficient("f", "-18*pi*pi*sin(3*pi*x)*sin(3*pi*y)")
 
-            weakForm(u, "dot(grad(u), grad(v)) + f*v")
+            weakForm(u, "dot(grad(u), grad(v)) - f*v")
 
             # exportCode("mixed2dcode");
             importCode("mixed2dcodein");
@@ -383,7 +383,7 @@ function mixedElementWithLevel( k, c )
             # strval = "pi*pi*sin(pi*x)*sin(pi*y)"
             coefficient("f", strval)
 
-            weakForm(u, "dot(grad(u), grad(v)) + f*v")
+            weakForm(u, "dot(grad(u), grad(v)) - f*v")
 
             # exportCode("mixed2dcode");
             importCode("mixed2dcodein");
@@ -510,7 +510,7 @@ function triangleElement( k, c )
             # strval = "pi*pi*sin(pi*x)*sin(pi*y)"
             coefficient("f", strval)
 
-            weakForm(u, "dot(grad(u), grad(v)) + f*v")
+            weakForm(u, "dot(grad(u), grad(v)) - f*v")
 
             exportCode("mixed2dcode");
             # importCode("mixed2dcode");
@@ -637,7 +637,7 @@ function triangleElement( k, c )
             # strval = "pi*pi*sin(pi*x)*sin(pi*y)"
             coefficient("f", strval)
 
-            weakForm(u, "dot(grad(u), grad(v)) + f*v")
+            weakForm(u, "dot(grad(u), grad(v)) - f*v")
 
             exportCode("mixed2dcode");
             # importCode("mixed2dcode");
@@ -760,7 +760,7 @@ function runFunc( k, c, meshval, pythonVarName )
     # strval = "pi*pi*sin(pi*x)*sin(pi*y)"
     coefficient("f", strval)
 
-    weakForm(u, "dot(grad(u), grad(v)) + f*v")
+    weakForm(u, "dot(grad(u), grad(v)) - f*v")
 
     exportCode("mixed2dcode");
     importCode("mixed2dcodein");

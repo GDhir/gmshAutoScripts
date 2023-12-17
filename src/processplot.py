@@ -685,7 +685,7 @@ def compareDealiiFinch( simPlotFolderName, allParams, optionsParam, comparisonPa
     import matplotlib.ticker as ticker
 
     levelsArr = meshFileUtils.getAllLevels( meshvals )
-    levelsArr = levelsArr[:-2]
+    # levelsArr = levelsArr[:-2]
     # minMaxRangeVals = getDealiiMinMaxRange( allSortedMeshVals )
 
     cdict = {
@@ -875,12 +875,12 @@ if __name__ == "__main__":
     allParams["quadratureOrder"] = ["2"]
     allParams["sin(kpix)"] = [ "1", "2", "4" ]
     # allParams["coeff_F"] = [ "-2", "-8", "-32" ]
-    allParams["coeff_F"] = [ "-3", "-12", "-48" ]
+    allParams["coeff_F"] = [ "3", "12", "48" ]
 
     optionsParam = dict()
     optionsParam["quadratureOrder"] = "2"
     optionsParam["sin(kpix)"] = "1"
-    optionsParam["coeff_F"] = "-3"
+    optionsParam["coeff_F"] = "3"
     optionsParam["software"] = "Finch"
     optionsParam["meshRegexVal"] = regexVals[0]
     optionsParam["level"] = "0"
@@ -940,7 +940,7 @@ if __name__ == "__main__":
     showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, plotOptions, dim = dim, negative=-1, pival = pi )
 
     compareDealiiFinch( simPlotRootFolderName, allParams,
-                    optionsParam, comparisonParam, meshArr, meshPath, plotOptions, negative =-1, pival = pi, dim = dim)
+                    optionsParam, comparisonParam, meshArr, meshPath, plotOptions, negative = -1, pival = pi, dim = dim)
 
     # fileName = folderUtils.textFolderNames["Dealii"] + "Mesh_solutionvalues_lvl=7.vtu"
     # getDealiiData( fileName, "vtu" )
