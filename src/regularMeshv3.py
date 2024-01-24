@@ -1,80 +1,131 @@
 # ------------------------------------------------------------------------------
 #
-#  Gmsh Python tutorial 2
+#  Gmsh Python tutorial 17
 #
-#  Transformations, extruded geometries, volumes
+#  Anisotropic background mesh
 #
 # ------------------------------------------------------------------------------
+
+# As seen in `t7.py', mesh sizes can be specified very accurately by providing a
+# background mesh, i.e., a post-processing view that contains the target mesh
+# sizes.
+
+# Here, the background mesh is represented as a metric tensor field defined on a
+# square. One should use bamg as 2d mesh generator to enable anisotropic meshes
+# in 2D.
+
 import sys
 sys.path.append( "/home/gaurav/gmsh-4.11.1-Linux64-sdk/lib/" )
 import gmsh
 import math
-import gmshUtils
+import os
+import sys
 
-# If sys.argv is passed to gmsh.initialize(), Gmsh will parse the command line
-# in the same way as the standalone Gmsh app:
+def occHexBoxMesh( folderName ):
 
-Ndashvals = [ 9, 17, 33, 65, 129 ]
+    lvl = 0
+    Ndashvals = [4, 6, 8, 10]
 
-foldername = "/home/gaurav/gmshAutoScripts/build/"
+    for Ndash in Ndashvals:
 
-lvl = 0
+        lc = 1/( Ndash )
+        print(lc)
 
-for Ndash in Ndashvals:
+        N = int( 1/lc + 1 )
 
-    Nval = int( ( Ndash + 5 )/2 )
-    lc = 1/( Ndash + 2*Nval + 1 )
-    print(lc)
+        gmsh.initialize()
+        gmsh.model.add("t17")
 
-    N = int( 1/lc + 1 )
-    n3DElements = N
+        # Create a square
+        gmsh.model.occ.addBox(0, 0, 0, 1, 1, 1, 1)
+        gmsh.model.occ.synchronize()
+        gmsh.model.mesh.setSize(gmsh.model.getEntities(0), lc)
 
-    linesval = []
-    ptsval = []
+        gmsh.model.mesh.setTransfiniteAutomatic()
 
-    gmsh.initialize(sys.argv)
-    gmsh.model.add("t2")
+        # Merge a post-processing view containing the target anisotropic mesh sizes
+        # path = os.path.dirname(os.path.abspath(__file__))
+        # gmsh.merge(os.path.join(path, os.pardir, 't17_bgmesh.pos'))
 
-    ptsval.append( gmsh.model.geo.addPoint( 0, 0, 0, lc ) )
-    ptsval.append( gmsh.model.geo.addPoint( 1, 0, 0, lc ) )
-    ptsval.append( gmsh.model.geo.addPoint( 1, 1, 0, lc ) )
-    ptsval.append( gmsh.model.geo.addPoint( 0, 1, 0, lc ) )
+        # # Apply the view as the current background mesh
+        # bg_field = gmsh.model.mesh.field.add("PostView")
+        # gmsh.model.mesh.field.setNumber(bg_field, "ViewIndex", 0)
+        # gmsh.model.mesh.field.setAsBackgroundMesh(bg_field)
 
-    linesval.append( gmsh.model.geo.addLine(ptsval[0], ptsval[1]) )
-    linesval.append( gmsh.model.geo.addLine(ptsval[1], ptsval[2]) )
-    linesval.append( gmsh.model.geo.addLine(ptsval[2], ptsval[3]) )
-    linesval.append( gmsh.model.geo.addLine(ptsval[3], ptsval[0]) )
-    
-    cl = gmsh.model.geo.addCurveLoop( linesval )
-    pl = gmsh.model.geo.addPlaneSurface( [ cl ])
+        # Use bamg
+        # gmsh.option.setNumber("Mesh.SmoothRatio", 30)
+        # gmsh.option.setNumber("Mesh.AnisoMax", 10)
+        gmsh.option.setNumber("Mesh.Algorithm", 5)
 
-    planeIds = [pl]
-    linesVec = [ linesval ]
-    gmshUtils.setTransfiniteCurves( linesVec, N )
+        gmsh.model.mesh.generate(3)
 
-    gmshUtils.setTransfiniteSurfaces( planeIds )
+        gmsh.option.setNumber("Mesh.MshFileVersion", 2)
 
-    gmsh.model.geo.synchronize()
+        regMeshFileName = folderName + "regularMesh3D_lvl" + str(lvl) + ".msh"
+        gmsh.write( regMeshFileName )
 
-    ov = gmsh.model.geo.copy( [ ( 2, pl ) ] )
-    ov2 = gmsh.model.geo.extrude( [ov[0]], 0, 0, 1, numElements = [ n3DElements ], recombine = True )
+        # Launch the GUI to see the results:
+        # if '-nopopup' not in sys.argv:
+        #     gmsh.fltk.run()
 
-    gmsh.model.geo.synchronize()
-    gmshUtils.recombineSurfaces( planeIds )
-    gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 2)
+        gmsh.finalize()
 
-    gmsh.model.mesh.generate(2)
+        lvl = lvl + 1
 
-    gmsh.option.setNumber("Mesh.MshFileVersion", 2)
+def occTetBoxMesh( folderName ):
 
-    regMeshFileName = foldername + "regularMesh_lvl" + str(lvl) + ".msh"
-    gmsh.write( regMeshFileName )
+    Ndashvals = [8, 12, 16, 20]
 
-    lvl = lvl + 1
+    for lvl, Ndash in enumerate( Ndashvals ):
 
-    if '-nopopup' not in sys.argv:
-        gmsh.fltk.run()
+        lc = 1/( Ndash )
+        print(lc)
 
-    gmsh.finalize()
+        N = int( 1/lc + 1 )
 
+        gmsh.initialize(sys.argv)
+        gmsh.model.add("t2")
 
+        xoffset = 0
+        yoffset = 0
+        pts = []
+        lines = []
+        Nx = N
+        Ny = N
+
+        # Create a square
+        gmsh.model.occ.addBox(0, 0, 0, 1, 1, 1, 1)
+        gmsh.model.occ.synchronize()
+        gmsh.model.mesh.setSize(gmsh.model.getEntities(0), lc)
+
+        # Merge a post-processing view containing the target anisotropic mesh sizes
+        # path = os.path.dirname(os.path.abspath(__file__))
+        # gmsh.merge(os.path.join(path, os.pardir, 't17_bgmesh.pos'))
+
+        # # Apply the view as the current background mesh
+        # bg_field = gmsh.model.mesh.field.add("PostView")
+        # gmsh.model.mesh.field.setNumber(bg_field, "ViewIndex", 0)
+        # gmsh.model.mesh.field.setAsBackgroundMesh(bg_field)
+
+        # Use bamg
+        gmsh.option.setNumber("Mesh.SmoothRatio", 30)
+        gmsh.option.setNumber("Mesh.AnisoMax", 10)
+        gmsh.option.setNumber("Mesh.Algorithm", 4)
+
+        gmsh.model.mesh.generate(3)
+
+        gmsh.option.setNumber("Mesh.MshFileVersion", 2)
+
+        regMeshFileName = folderName + "tetMesh3D_lvl" + str(lvl) + ".msh"
+        gmsh.write( regMeshFileName )
+
+        # Launch the GUI to see the results:
+        if '-nopopup' not in sys.argv:
+            gmsh.fltk.run()
+
+        gmsh.finalize()
+
+if __name__ == "__main__":
+
+    folderName = "/home/gaurav/gmshAutoScripts/build/"
+    occHexBoxMesh( folderName )

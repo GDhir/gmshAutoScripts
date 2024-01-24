@@ -37,11 +37,11 @@ def getDealiiError( nodes, solution, negative = 1, pival = 2*pi, dim = 2 ):
 
     exactvals = np.array(exactvals)
 
-    plt.figure()
-    plt.tricontourf( nodes[:, 0], nodes[:, 1], exactvals )
+    # plt.figure()
+    # plt.tricontourf( nodes[:, 0], nodes[:, 1], exactvals )
 
-    plt.figure()
-    plt.tricontourf( nodes[:, 0], nodes[:, 1], solution )
+    # plt.figure()
+    # plt.tricontourf( nodes[:, 0], nodes[:, 1], solution )
     # plt.colorbar()
     # plt.savefig( "solutionFile.png" )
 

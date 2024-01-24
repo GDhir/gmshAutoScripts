@@ -3,6 +3,18 @@ import sys
 sys.path.append( "/home/gaurav/gmsh-4.11.1-Linux64-sdk/lib/" )
 import gmsh
 
+def createCorners( xoffset, yoffset, pts, lines, lc, Nx, Ny ):
+
+    pts.append( gmsh.model.geo.addPoint( xoffset, yoffset, 0, lc ) )
+    pts.append( gmsh.model.geo.addPoint( xoffset + (Nx - 1)*lc, yoffset, 0, lc ) )
+    pts.append( gmsh.model.geo.addPoint( xoffset + (Nx - 1)*lc, yoffset + (Ny - 1)*lc, 0, lc ) )
+    pts.append( gmsh.model.geo.addPoint( xoffset, yoffset + (Ny - 1)*lc, 0, lc ) )
+
+    for i in range( len(pts) - 1 ):
+        lines.append( gmsh.model.geo.addLine(pts[i], pts[i + 1]) )
+
+    lines.append( gmsh.model.geo.addLine( pts[-1], pts[0] ) )
+
 def createBox( xoffset, yoffset, pts, lines, lc, Nx, Ny ):
 
     side = 1
@@ -60,19 +72,32 @@ def createBox( xoffset, yoffset, pts, lines, lc, Nx, Ny ):
 
     lines.append( gmsh.model.geo.addLine( pts[-1], pts[0] ) )
     
-def setTransfiniteCurves( linesVec, N ):
+def setTransfiniteCurves( linesVec, N, occ = False ):
 
-    for lines in linesVec:
-        [ gmsh.model.geo.mesh.setTransfiniteCurve( line, N ) for line in lines ]
-        
-def setTransfiniteSurfaces( planeIds, cornerPts = [] ):
-
-    if cornerPts:
-        [ gmsh.model.geo.mesh.setTransfiniteSurface(id, "Left", cornerPts ) \
-        for id in planeIds ]
+    if not occ:
+        for lines in linesVec:
+            [ gmsh.model.geo.mesh.setTransfiniteCurve( line, N ) for line in lines ]
     else:
-        [ gmsh.model.geo.mesh.setTransfiniteSurface(id) \
-        for id in planeIds ]
+        for lines in linesVec:
+            [ gmsh.model.mesh.setTransfiniteCurve( line, N ) for line in lines ]
+        
+def setTransfiniteSurfaces( planeIds, cornerPts = [], occ = False ):
+
+    if not occ:
+        if cornerPts:
+            [ gmsh.model.geo.mesh.setTransfiniteSurface(id, "Left", cornerPts ) \
+            for id in planeIds ]
+        else:
+            [ gmsh.model.geo.mesh.setTransfiniteSurface(id) \
+            for id in planeIds ]
+    else:
+        if cornerPts:
+            [ gmsh.model.mesh.setTransfiniteSurface(id, "Left", cornerPts ) \
+            for id in planeIds ]
+        else:
+            [ gmsh.model.mesh.setTransfiniteSurface(id) \
+            for id in planeIds ]
+
     
 def setTransfiniteVolumes( planeIds ):
 
@@ -172,7 +197,7 @@ class Layer3D:
 
                 linesVal = [ -downEdge, zEdge1, upEdge, -zEdge2 ]
 
-                print(linesVal)
+                # print(linesVal)
                 cl = gmsh.model.geo.addCurveLoop( linesVal )
                 self.curveloopsz.append( cl )
                 
@@ -543,8 +568,8 @@ class ZoneConnection:
                     self.surfaces_Type1.append( pl ) 
 
                     if transfinite:
-                        print(pl)
-                        print( cornerPts )
+                        # print(pl)
+                        # print( cornerPts )
                         setTransfiniteSurfaces( [pl], cornerPts )
 
             for zIdx in range( nZonesToJoin ):
@@ -585,8 +610,8 @@ class ZoneConnection:
                     self.surfaces_Type2.append( pl )
 
                     if transfinite:
-                        print(pl)
-                        print( cornerPts )
+                        # print(pl)
+                        # print( cornerPts )
                         setTransfiniteSurfaces( [pl], cornerPts )
 
         elif dxn == "y":

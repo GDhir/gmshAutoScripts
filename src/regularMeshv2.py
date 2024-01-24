@@ -16,9 +16,9 @@ import gmshUtils
 
 def singleZoneMesh():
 
-    Ndashvals = [ 9 ]
+    Ndashvals = [ 11 ]
 
-    foldername = "/home/gaurav/gmshAutoScripts/build/"
+    foldername = "/home/gaurav/CS6958/Project/Code/Mesh3D/"
 
     lvl = 0
 
@@ -38,7 +38,7 @@ def singleZoneMesh():
         xoffset = 0
         yoffset = 0
 
-        zone1 = gmshUtils.Zone( pointSet, xoffset, yoffset )
+        zone1 = gmshUtils.Zone2D( pointSet, xoffset, yoffset )
         gmsh.model.geo.synchronize()
         linesVec = [ zone1.linesx, zone1.linesy ]
 
@@ -52,17 +52,123 @@ def singleZoneMesh():
         gmshUtils.recombineSurfaces( zone1.surfaces )
         gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 2)
 
-        gmsh.model.mesh.generate(2)
+        gmsh.model.mesh.generate(3)
 
         gmsh.option.setNumber("Mesh.MshFileVersion", 2)
 
-        regMeshFileName = foldername + "regularMesh_lvl" + str(lvl) + ".msh"
+        regMeshFileName = foldername + "regularMesh3D_lvl" + str(lvl) + ".msh"
         gmsh.write( regMeshFileName )
 
         lvl = lvl + 1
 
         if '-nopopup' not in sys.argv:
             gmsh.fltk.run()
+
+        gmsh.finalize()
+
+def structuredCubeMesh(foldername):
+
+    Ndashvals = [ 4, 6, 8, 10 ]
+
+    # foldername = "/home/gaurav/CS6958/Project/Code/Mesh3D/"
+
+    lvl = 0
+
+    for Ndash in Ndashvals:
+
+        lc = 1/( Ndash )
+        print(lc)
+
+        # foldername = "/home/gaurav/gmshAutoScripts/build/"
+
+        N = int( 1/lc + 1 )
+
+        gmsh.initialize(sys.argv)
+        gmsh.model.add("t2")
+
+        xoffset = 0
+        yoffset = 0
+        pts = []
+        lines = []
+        Nx = N
+        Ny = N
+
+        gmshUtils.createCorners( xoffset, yoffset, pts, lines, lc, Nx, Ny )
+
+        gmshUtils.setTransfiniteCurves( [lines], N )
+
+        cl = gmsh.model.geo.addCurveLoop( lines )
+        sl = gmsh.model.geo.addPlaneSurface( [cl] )
+        gmshUtils.setTransfiniteSurfaces( [sl] )
+
+        ov2 = gmsh.model.geo.extrude( [(2, sl)], 0, 0, 1, numElements = [ N ], recombine = True )
+
+        gmsh.model.geo.synchronize()
+
+        # gmsh.option.setNumber('General.NumThreads', 64)
+
+        gmshUtils.recombineSurfaces( [sl] )
+        # gmshUtils.recombineSurfaces( [sl] )
+        gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 2)
+        gmsh.model.mesh.generate(3)
+
+        gmsh.option.setNumber("Mesh.MshFileVersion", 2)
+
+        regMeshFileName = foldername + "hexMesh3D_lvl" + str(lvl) + ".msh"
+        gmsh.write( regMeshFileName )
+
+        lvl = lvl + 1
+
+        if '-nopopup' not in sys.argv:
+            gmsh.fltk.run()
+
+        gmsh.finalize()
+
+def unstructuredCubeMesh(foldername):
+
+    Ndashvals = [ 40, 80, 160, 320, 640, 1280 ]
+
+    # foldername = "/home/gaurav/CS6958/Project/Code/Mesh3D/"
+
+    lvl = 0
+
+    for Ndash in Ndashvals:
+
+        lc = 1/( Ndash )
+        print(lc)
+
+        # foldername = "/home/gaurav/gmshAutoScripts/build/"
+
+        N = int( 1/lc + 1 )
+
+        gmsh.initialize(sys.argv)
+        gmsh.model.add("t2")
+
+        xoffset = 0
+        yoffset = 0
+        pts = []
+        lines = []
+        Nx = N
+        Ny = N
+
+        gmshUtils.createCorners( xoffset, yoffset, pts, lines, lc, Nx, Ny )
+        cl = gmsh.model.geo.addCurveLoop( lines )
+        sl = gmsh.model.geo.addPlaneSurface( [cl] )
+        ov2 = gmsh.model.geo.extrude( [(2, sl)], 0, 0, 1, numElements = [ N ] )
+
+        gmsh.model.geo.synchronize()
+
+        gmsh.model.mesh.generate(3)
+
+        gmsh.option.setNumber("Mesh.MshFileVersion", 2)
+
+        regMeshFileName = foldername + "tetMesh3D_lvl" + str(lvl) + ".msh"
+        gmsh.write( regMeshFileName )
+
+        lvl = lvl + 1
+
+        # if '-nopopup' not in sys.argv:
+        #     gmsh.fltk.run()
 
         gmsh.finalize()
 
@@ -142,7 +248,7 @@ def doubleZoneMesh():
 def customExtrusionMeshRegular( foldername ):
 
     lvl = 0
-    Ndashvals = [4, 6, 8, 10]
+    Ndashvals = [10, 20, 40, 50]
 
     for Ndash in Ndashvals:
 
@@ -186,8 +292,8 @@ def customExtrusionMeshRegular( foldername ):
 
         lvl = lvl + 1
 
-        if '-nopopup' not in sys.argv:
-            gmsh.fltk.run()
+        # if '-nopopup' not in sys.argv:
+        #     gmsh.fltk.run()
 
         gmsh.finalize()
 
@@ -320,6 +426,9 @@ if __name__ == "__main__":
 
     # doubleZoneMesh()
     # customExtrusionDoubleZoneMeshRegular()
-    foldername = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/"
-    customExtrusionMeshRegular( foldername )
+    foldername = "/mnt/chpcmt/GPUMATVEC/Code/Mesh3D/HexMesh3D/"
+    # singleZoneMesh()
+    # customExtrusionMeshRegular( foldername )
+    # unstructuredCubeMesh(foldername)
+    structuredCubeMesh(foldername)
     # customExtrusionDoubleZoneConnectedMesh()

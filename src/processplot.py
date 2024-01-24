@@ -14,6 +14,7 @@ import dataUtils
 import errorUtils
 import runCodeUtils
 import regularMeshv2
+import regularMeshv3
 import gmshUtils
 
 def getNumNodes( gmshFileName ):
@@ -545,9 +546,9 @@ def showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam,
                 areaVals.append( getAverage2DArea( meshFileName, optionsParam[ "meshRegexVal" ] ) )
 
             dealiiVarName = "solutionvalues"
-            solvalsFileName = fileNameUtils.getTextFileName( folderUtils.dealiiTextfoldername, pythonVarName, dealiiVarName, "vtu" )
+            solvalsFileName = fileNameUtils.getTextFileName( folderUtils.dealiiTextfoldername, pythonVarName, dealiiVarName, "h5" )
             
-            (nodes, solution) = dataUtils.getDealiiData( solvalsFileName, "vtu" )
+            (nodes, solution) = dataUtils.getDealiiData( solvalsFileName, "hdf" )
             xvals = nodes[:, 0]
             yvals = nodes[:, 1]
             zvals = nodes[:, 2]
@@ -748,10 +749,10 @@ def compareDealiiFinch( simPlotFolderName, allParams, optionsParam, comparisonPa
                 areaVals.append( getAverage2DArea( meshFileName, optionsParam[ "meshRegexVal" ] ) )
 
             dealiiVarName = "solutionvalues"
-            solvalsFileName = fileNameUtils.getTextFileName( folderUtils.dealiiTextfoldername, pythonVarName, dealiiVarName, "vtu" )
+            solvalsFileName = fileNameUtils.getTextFileName( folderUtils.dealiiTextfoldername, pythonVarName, dealiiVarName, "h5" )
             
-            (nodes, solution) = dataUtils.getDealiiData( solvalsFileName, "vtu" )
-            dealiiErrvals = errorUtils.getDealiiError( nodes, solution, negative = -1, pival = pival, dim = dim )
+            (nodes, solution) = dataUtils.getDealiiData( solvalsFileName, "hdf" )
+            dealiiErrvals = errorUtils.getDealiiError( nodes, solution, negative = negative, pival = pival, dim = dim )
             
             # print(solvalsFileName)
 
@@ -865,7 +866,7 @@ if __name__ == "__main__":
     # regexVals = ["triangleMeshUnstruct", "triangleMeshStruct", "regularMesh"]
     gmshFileCmdNames = ["triangleMeshv2", "triangleMeshv1", "regularMeshv3"]
     # gmshFileCmdNames = ["hangingMeshv8"]
-    regexVals = ["regularMesh3D"]
+    regexVals = ["tetMesh3D"]
     # regexVals = ["mesh"]
 
     allParams = dict()
@@ -894,7 +895,7 @@ if __name__ == "__main__":
 
     # simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotMixedMeshFinchTriangleCustomQuadrature_pi/"
     # meshPlotRootFolderName = folderUtils.gmshImageFolderName + "MeshPlotsHangingLevel_QuadratureOrder=2_pi/"
-    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotRegularMesh3DFinch_pi/"
+    simPlotRootFolderName = folderUtils.gmshImageFolderName + "PlotRegularMesh3DOccTetMesh_pi/"
 
     # meshPath = "/home/gaurav/Finch/src/examples/Mesh/MeshRun/mix_mesh/"
     # runCodeUtils.buildAllMeshes( gmshFileCmdNames, meshPath )
@@ -904,11 +905,13 @@ if __name__ == "__main__":
     if not os.path.exists( meshPath ):
         os.mkdir( meshPath )
 
-    regularMeshv2.customExtrusionMeshRegular( meshPath )
+    # regularMeshv2.customExtrusionMeshRegular( meshPath )
+    runCodeUtils.removeFiles( meshPath )
+    regularMeshv3.occTetBoxMesh( meshPath )
     meshArr = meshFileUtils.getMeshFilesFromFolder( meshPath )
 
-    for meshfileName in meshArr:
-        gmshUtils.parseGMSHFile( meshfileName )
+    # for meshfileName in meshArr:
+    #     gmshUtils.parseGMSHFile( meshfileName )
 
     print( meshArr )
     # showMeshes( folderUtils.meshPlotRootFolderName, regexVals )
@@ -937,10 +940,10 @@ if __name__ == "__main__":
 
     simPlotFolderName = simPlotRootFolderName + "Dealii/"
     print( "dealii" )
-    showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, plotOptions, dim = dim, negative=-1, pival = pi )
+    showDealiiPlot( simPlotFolderName, allParams, optionsParam, comparisonParam, meshArr, meshPath, plotOptions, dim = dim, pival = pi )
 
     compareDealiiFinch( simPlotRootFolderName, allParams,
-                    optionsParam, comparisonParam, meshArr, meshPath, plotOptions, negative = -1, pival = pi, dim = dim)
+                    optionsParam, comparisonParam, meshArr, meshPath, plotOptions, pival = pi, dim = dim)
 
     # fileName = folderUtils.textFolderNames["Dealii"] + "Mesh_solutionvalues_lvl=7.vtu"
     # getDealiiData( fileName, "vtu" )

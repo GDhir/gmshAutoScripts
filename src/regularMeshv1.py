@@ -14,7 +14,7 @@ import gmshUtils
 # If sys.argv is passed to gmsh.initialize(), Gmsh will parse the command line
 # in the same way as the standalone Gmsh app:
 
-Ndashvals = [ 9, 17, 33, 65, 129 ]
+Ndashvals = [ 65, 129, 257, 513 ]
 
 foldername = "/home/gaurav/gmshAutoScripts/build/"
 
@@ -72,8 +72,8 @@ for Ndash in Ndashvals:
 
     lvl = lvl + 1
 
-    if '-nopopup' not in sys.argv:
-        gmsh.fltk.run()
+    # if '-nopopup' not in sys.argv:
+    #     gmsh.fltk.run()
 
     gmsh.finalize()
 
