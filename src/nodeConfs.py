@@ -520,17 +520,22 @@ def addLine( nodeBitVals, isPointPresent, curIdx, linesIdx, isPresentBitVals, al
                 ptEdgeMap[ (curIdx, dxn, 0) ] = allLines[ linesIdx ]
                 ptEdgeMap[ (nextPoint + offset, dxn, 1) ] = -allLines[ linesIdx ]
 
+        return 1
+    
+    else:
+        return 0
+
 def runConfsAuto( folderName, fileNamePrefix, algNumber = 3 ):
 
     gmsh.initialize(sys.argv)
     gmsh.model.add("t2")
 
-    # isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ]
-    isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ]
+    isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ]
+    # isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ]
     isPresentBitVals = [0]*27
-    lcVals = [2] * 27
-    lcVals[ 2:27:3 ] = [1]*9
-    # lcVals[ 26 ] = 1
+    lcVals = [0.5] * 27
+    # lcVals[ 2:27:3 ] = [1]*9
+    lcVals[ 26 ] = 1
 
     curIdx = 0
     allPts = [-1] * 27
@@ -579,9 +584,9 @@ def runConfsAuto( folderName, fileNamePrefix, algNumber = 3 ):
 
             nodeBitVals = bitReprBase( curIdx, 3 )
 
-            addLine( nodeBitVals, isPointPresent, curIdx, linesXIdx, isPresentBitVals, allLinesZ, allPts, ptEdgeMap, 0 )
-            addLine( nodeBitVals, isPointPresent, curIdx, linesYIdx, isPresentBitVals, allLinesY, allPts, ptEdgeMap, 1 )
-            addLine( nodeBitVals, isPointPresent, curIdx, linesZIdx, isPresentBitVals, allLinesX, allPts, ptEdgeMap, 2 )
+            linesXIdx = linesXIdx + addLine( nodeBitVals, isPointPresent, curIdx, linesXIdx, isPresentBitVals, allLinesZ, allPts, ptEdgeMap, 0 )
+            linesYIdx = linesYIdx + addLine( nodeBitVals, isPointPresent, curIdx, linesYIdx, isPresentBitVals, allLinesY, allPts, ptEdgeMap, 1 )
+            linesZIdx = linesZIdx + addLine( nodeBitVals, isPointPresent, curIdx, linesZIdx, isPresentBitVals, allLinesX, allPts, ptEdgeMap, 2 )
 
             curIdx = curIdx + 1
 
@@ -590,9 +595,6 @@ def runConfsAuto( folderName, fileNamePrefix, algNumber = 3 ):
 
     # gmsh.model.occ.synchronize()
     
-
-    print( ptEdgeMap )
-
     transfiniteSurfaces = []
 
     for dxn in range(3):
@@ -633,9 +635,6 @@ def runConfsAuto( folderName, fileNamePrefix, algNumber = 3 ):
                         isNegativeDxn = lineIdx // 2
                         surfaceDxnIdx = lineIdx % 2
                         surfaceDxn = surfaceDxns[ surfaceDxnIdx ]
-
-                        if curPtIdx == 27:
-                            val = 2
 
                         surfaceEdges.append( ptEdgeMap[ ( curPtIdx, surfaceDxn, isNegativeDxn ) ] )
                         
@@ -682,7 +681,7 @@ def runConfsAuto( folderName, fileNamePrefix, algNumber = 3 ):
 
     gmsh.model.occ.synchronize()
     gmshUtils.setTransfiniteCurves( [allLinesX, allLinesY, allLinesZ], 2, occ = True )
-    transfiniteSurfaces.append(5)
+    # transfiniteSurfaces.append(5)
     gmshUtils.setTransfiniteSurfaces( transfiniteSurfaces, [], occ = True )
     gmshUtils.recombineSurfaces( transfiniteSurfaces )
 
@@ -713,4 +712,4 @@ if __name__ == "__main__":
     # runConfsTwoFacesHanging( folderName, fileNameVal, 3 )
 
     fileNameVal = "nodeConfAuto"
-    runConfsAuto( folderName, fileNameVal, 6 )
+    runConfsAuto( folderName, fileNameVal, 3 )
