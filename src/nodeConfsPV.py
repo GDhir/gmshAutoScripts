@@ -132,13 +132,15 @@ def createGMSHPNG( folderName, vtuFileName, plotFileName ):
     extractEdges1Display.WriteLog = ''
 
     SaveScreenshot( folderName + plotFileName + "AllEdges.png", renderView1)
+    Hide( extractEdges1 )
 
-    # show data from extractCellsByType1
+    # show data from extractCellsByType2
     extractCellsByType1Display = Show(extractCellsByType1, renderView1, 'UnstructuredGridRepresentation')
 
     # trace defaults for the display properties.
-    extractCellsByType1Display.Representation = 'Surface'
-    extractCellsByType1Display.ColorArrayName = [None, '']
+    extractCellsByType1Display.Representation = 'Wireframe'
+    extractCellsByType1Display.ColorArrayName = ['POINTS', '']
+    extractCellsByType1Display.LineWidth = 2.0
     extractCellsByType1Display.SelectTCoordArray = 'None'
     extractCellsByType1Display.SelectNormalArray = 'None'
     extractCellsByType1Display.SelectTangentArray = 'None'
@@ -155,7 +157,7 @@ def createGMSHPNG( folderName, vtuFileName, plotFileName ):
     extractCellsByType1Display.OpacityTransferFunction = 'PiecewiseFunction'
     extractCellsByType1Display.DataAxesGrid = 'GridAxesRepresentation'
     extractCellsByType1Display.PolarAxes = 'PolarAxesRepresentation'
-    extractCellsByType1Display.ScalarOpacityUnitDistance = 1.0129094569634634
+    extractCellsByType1Display.ScalarOpacityUnitDistance = 1.0911236359717214
     extractCellsByType1Display.OpacityArrayName = ['CELLS', 'gmsh:geometrical']
     extractCellsByType1Display.SelectInputVectors = [None, '']
     extractCellsByType1Display.WriteLog = ''
@@ -169,9 +171,8 @@ def createGMSHPNG( folderName, vtuFileName, plotFileName ):
 
 if __name__ == "__main__":
 
-    folderName = "/home/gaurav/gmshAutoScripts/build/"
-    plotFileName = "nodeConf1"
+    folderName = "/home/gaurav/gmshAutoScripts/Images/HangingNodeConfs/"
+    plotFileName = "nodeConf2_TwoFaces"
+    vtuFileName = "nodeConf2_TwoFaces.vtu"
 
-    createGMSHPNG( folderName, "nodeConf1.vtu", plotFileName )
-    # SaveExtracts(ExtractsOutputDirectory='extracts')
-
+    createGMSHPNG( folderName, vtuFileName, plotFileName )
