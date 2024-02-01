@@ -514,7 +514,7 @@ def addLine( nodeBitVals, isPointPresent, curIdx, linesIdx, isPresentBitVals, al
                 ptEdgeMap[ (curIdx, dxn, 0) ] = allLines[ linesIdx ]
                 ptEdgeMap[ (nextPoint, dxn, 1) ] = -allLines[ linesIdx ]
 
-            elif nodeBitVals[ dxn ] == 0 and isPresentBitVals[ nextPoint + offset ]:
+            elif nodeBitVals[ dxn ] == 0 and isPresentBitVals[ nextPoint + offset ] and 1 not in nodeBitVals:
                 allLines[ linesIdx ] = gmsh.model.occ.addLine( allPts[ curIdx ], allPts[ nextPoint + offset ] )
 
                 ptEdgeMap[ (curIdx, dxn, 0) ] = allLines[ linesIdx ]
@@ -530,12 +530,17 @@ def runConfsAuto( folderName, fileNamePrefix, algNumber = 3 ):
     gmsh.initialize(sys.argv)
     gmsh.model.add("t2")
 
-    isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ]
+    # isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ]
     # isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ]
+    # isPresent = [ 7, 5, 5, 7, 5, 5, 7, 5, 5]
+    isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ]
     isPresentBitVals = [0]*27
-    lcVals = [0.5] * 27
+    # lcVals = [0.5] * 27
+    lcVals = [1] * 27
+    lcVals[ 0 : 3 ] = [0.5] * 3
+    lcVals[ 24 : 27 ] = [0.5] * 3
     # lcVals[ 2:27:3 ] = [1]*9
-    lcVals[ 26 ] = 1
+    # lcVals[ 26 ] = 1
 
     curIdx = 0
     allPts = [-1] * 27
@@ -712,4 +717,4 @@ if __name__ == "__main__":
     # runConfsTwoFacesHanging( folderName, fileNameVal, 3 )
 
     fileNameVal = "nodeConfAuto"
-    runConfsAuto( folderName, fileNameVal, 3 )
+    runConfsAuto( folderName, fileNameVal, 5 )
