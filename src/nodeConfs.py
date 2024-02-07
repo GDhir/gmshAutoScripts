@@ -525,22 +525,12 @@ def addLine( nodeBitVals, isPointPresent, curIdx, linesIdx, isPresentBitVals, al
     else:
         return 0
 
-def runConfsAuto( folderName, fileNamePrefix, isPresent, algNumber = 3 ):
+def runConfsAuto( folderName, fileNamePrefix, isPresent, lcVals, algNumber = 3 ):
 
     gmsh.initialize(sys.argv)
     gmsh.model.add("t2")
 
-    # isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ]
-    # isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ]
-    # isPresent = [ 7, 5, 5, 7, 5, 5, 7, 5, 5]
-    # isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ]
     isPresentBitVals = [0]*27
-    # lcVals = [0.5] * 27
-    lcVals = [1] * 27
-    lcVals[ 0 : 3 ] = [0.5] * 3
-    lcVals[ 24 : 27 ] = [0.5] * 3
-    # lcVals[ 2:27:3 ] = [1]*9
-    # lcVals[ 26 ] = 1
 
     curIdx = 0
     allPts = [-1] * 27
@@ -723,11 +713,28 @@ if __name__ == "__main__":
 
     fileNameVal = "nodeConfAuto"
 
-    # isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ]
-    # isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ]
-    # isPresent = [ 7, 5, 5, 7, 5, 5, 7, 5, 5]
-    isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ]
-    isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
-    fileNameVal = "nodeConf1_" + isPresentStr
+    lcVals = [0.5] * 27
+    # lcVals = [1] * 27
+    # lcVals[ 0 : 3 ] = [0.5] * 3
+    # lcVals[ 24 : 27 ] = [0.5] * 3
+    # lcVals[ 2:27:3 ] = [1]*9
+    # lcVals[ 26 ] = 1
 
-    runConfsAuto( folderName, fileNameVal, isPresent, 5 )
+    # isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ] # One Face Hanging
+    # isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ] # Two Faces hanging
+    # isPresent = [ 7, 5, 5, 7, 5, 5, 7, 5, 5] # Three faces hanging
+    # isPresent = [ 7, 7, 7, 7, 1, 1, 7, 7, 7 ] # Four Faces hanging
+    # isPresent = [ 7, 7, 7, 7, 1, 7, 7, 7, 7 ] # Five Faces hanging
+
+    # isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ] # Two Edges hanging
+    # isPresent = [ 7, 0, 7, 0, 0, 0, 5, 0, 7 ] # Three Edges hanging
+    
+    isPresent = [ 7, 7, 7, 0, 0, 0, 5, 4, 5 ] # One face and one edge hanging
+
+    isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
+
+    nodeConfVal = 2
+    algNumberDict = dict( [(1, 5), (2, 3)] )
+
+    fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
+    runConfsAuto( folderName, fileNameVal, isPresent, lcVals, algNumberDict[ nodeConfVal ] )

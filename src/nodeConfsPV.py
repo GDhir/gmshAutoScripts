@@ -173,9 +173,15 @@ if __name__ == "__main__":
 
     folderName = "/home/gaurav/gmshAutoScripts/Images/HangingNodeConfs/"
 
-    isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ]
+    # isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ]
+    # isPresent = [ 7, 5, 5, 7, 5, 5, 7, 5, 5] # Three faces hanging
+    # isPresent = [ 7, 0, 7, 0, 0, 0, 5, 0, 7 ] # Three Edges hanging
+    # isPresent = [ 7, 7, 7, 7, 1, 1, 7, 7, 7 ] # Four Faces hanging
+    # isPresent = [ 7, 7, 7, 7, 1, 7, 7, 7, 7 ] # Five Faces hanging
+    isPresent = [ 7, 7, 7, 0, 0, 0, 5, 4, 5 ] # One face and one edge hanging
+
     isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
-    plotFileName = "nodeConf1_" + isPresentStr
+    plotFileName = "nodeConf2_" + isPresentStr
 
     # plotFileName = "nodeConf2_TwoFaces"
     vtuFileName = plotFileName + ".vtu"
