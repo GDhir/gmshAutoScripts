@@ -172,7 +172,12 @@ def createGMSHPNG( folderName, vtuFileName, plotFileName ):
 if __name__ == "__main__":
 
     folderName = "/home/gaurav/gmshAutoScripts/Images/HangingNodeConfs/"
-    plotFileName = "nodeConf2_TwoFaces"
-    vtuFileName = "nodeConf2_TwoFaces.vtu"
+
+    isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ]
+    isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
+    plotFileName = "nodeConf1_" + isPresentStr
+
+    # plotFileName = "nodeConf2_TwoFaces"
+    vtuFileName = plotFileName + ".vtu"
 
     createGMSHPNG( folderName, vtuFileName, plotFileName )

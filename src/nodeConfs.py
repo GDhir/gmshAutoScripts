@@ -525,7 +525,7 @@ def addLine( nodeBitVals, isPointPresent, curIdx, linesIdx, isPresentBitVals, al
     else:
         return 0
 
-def runConfsAuto( folderName, fileNamePrefix, algNumber = 3 ):
+def runConfsAuto( folderName, fileNamePrefix, isPresent, algNumber = 3 ):
 
     gmsh.initialize(sys.argv)
     gmsh.model.add("t2")
@@ -533,7 +533,7 @@ def runConfsAuto( folderName, fileNamePrefix, algNumber = 3 ):
     # isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ]
     # isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ]
     # isPresent = [ 7, 5, 5, 7, 5, 5, 7, 5, 5]
-    isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ]
+    # isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ]
     isPresentBitVals = [0]*27
     # lcVals = [0.5] * 27
     lcVals = [1] * 27
@@ -674,15 +674,18 @@ def runConfsAuto( folderName, fileNamePrefix, algNumber = 3 ):
 
                     if isPresentBitVals[ curPtIdx ]:
                         surfaceEdges.append( ptEdgeMap[ ( curPtIdx, surfaceDxn, isNegativeDxn ) ] )
-                    
+
                     curPtIdx = int ( ( curPtIdx + ( 1 - 2 * isNegativeDxn ) * curoffsetVal ) )
                     lineIdx = lineIdx + 1
 
                     if curPtIdx == startPt:
                         break
-                    
+
                 cl = gmsh.model.occ.addCurveLoop( surfaceEdges )
                 surfaceVals.append( gmsh.model.occ.addPlaneSurface( [ cl ] ) )
+
+                if len( surfaceEdges ) == 4:
+                    transfiniteSurfaces.append( surfaceVals[-1] )
 
     gmsh.model.occ.synchronize()
     gmshUtils.setTransfiniteCurves( [allLinesX, allLinesY, allLinesZ], 2, occ = True )
@@ -705,16 +708,26 @@ def runConfsAuto( folderName, fileNamePrefix, algNumber = 3 ):
 
     gmsh.graphics.draw()
     gmsh.model.setColor( [(0, ptVal) for ptVal in allPts], 2, 2, 127)  # Gray50
-
+    
     if '-nopopup' not in sys.argv:
         gmsh.fltk.run()
+
+    vtuFileName = fileNamePrefix
+    createGMSHVTU( folderName, vtuFileName )
+
 
 if __name__ == "__main__":
 
     folderName = "/home/gaurav/gmshAutoScripts/Images/HangingNodeConfs/"
-
-    fileNameVal = "nodeConf2_TwoFaces"
     # runConfsTwoFacesHanging( folderName, fileNameVal, 3 )
 
     fileNameVal = "nodeConfAuto"
-    runConfsAuto( folderName, fileNameVal, 5 )
+
+    # isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ]
+    # isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ]
+    # isPresent = [ 7, 5, 5, 7, 5, 5, 7, 5, 5]
+    isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ]
+    isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
+    fileNameVal = "nodeConf1_" + isPresentStr
+
+    runConfsAuto( folderName, fileNameVal, isPresent, 5 )

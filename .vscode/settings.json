@@ -53,5 +53,6 @@
         "concepts": "cpp",
         "numbers": "cpp",
         "ranges": "cpp"
-    }
+    },
+    "julia.environmentPath": "/home/gaurav/gmshAutoScripts"
 }

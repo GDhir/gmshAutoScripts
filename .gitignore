@@ -26,6 +26,9 @@
 *.la
 *.a
 *.lib
+*.msh
+*.vtu
+*.zip
 
 # Executables
 *.exe
@@ -36,3 +39,4 @@
 build/
 src/__pycache__/
 *.log
+*.pdf
