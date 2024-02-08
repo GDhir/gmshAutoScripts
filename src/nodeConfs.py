@@ -7,6 +7,7 @@ import sys
 import gmshUtils
 import meshio
 import numpy as np
+import miscUtils
 
 def createGMSHVTU( folderName, mshFileName ):
 
@@ -699,12 +700,28 @@ def runConfsAuto( folderName, fileNamePrefix, isPresent, lcVals, algNumber = 3 )
     gmsh.graphics.draw()
     gmsh.model.setColor( [(0, ptVal) for ptVal in allPts], 2, 2, 127)  # Gray50
     
-    if '-nopopup' not in sys.argv:
-        gmsh.fltk.run()
+    _, eleTags , _ = gmsh.model.mesh.getElements(dim=3)
+    q = gmsh.model.mesh.getElementQualities(eleTags[0], "minIsotropy")
+
+    print(q)
+
+    # resultVals = zip( eleTags[0], q )
+    # print( list( resultVals ) )
+
+    # gmsh.plugin.setNumber("AnalyseMeshQuality", "ICNMeasure", 1.)
+    # gmsh.plugin.setNumber("AnalyseMeshQuality", "HidingThreshold", 0.3)
+    # gmsh.plugin.setNumber("AnalyseMeshQuality", "ThresholdGreater",  1)
+
+    # gmsh.plugin.setNumber("AnalyseMeshQuality", "CreateView", 1.)
+    # t = gmsh.plugin.run("AnalyseMeshQuality")
+    # dataType, tags, data, time, numComp = gmsh.view.getModelData(t, 0)
+    # print('ICN for element {0} = {1}'.format(tags[0], data[0]))
+
+    # if '-nopopup' not in sys.argv:
+    #     gmsh.fltk.run()
 
     vtuFileName = fileNamePrefix
     createGMSHVTU( folderName, vtuFileName )
-
 
 if __name__ == "__main__":
 
@@ -719,6 +736,7 @@ if __name__ == "__main__":
     # lcVals[ 24 : 27 ] = [0.5] * 3
     # lcVals[ 2:27:3 ] = [1]*9
     # lcVals[ 26 ] = 1
+    allIsPresent = [[5, 7], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [1, 4, 5], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [5, 7]]
 
     # isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ] # One Face Hanging
     # isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ] # Two Faces hanging
@@ -726,10 +744,13 @@ if __name__ == "__main__":
     # isPresent = [ 7, 7, 7, 7, 1, 1, 7, 7, 7 ] # Four Faces hanging
     # isPresent = [ 7, 7, 7, 7, 1, 7, 7, 7, 7 ] # Five Faces hanging
 
+    # isPresent = [5, 0, 5, 1, 0, 0, 5, 0, 5] # One Edge Hanging
     # isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ] # Two Edges hanging
     # isPresent = [ 7, 0, 7, 0, 0, 0, 5, 0, 7 ] # Three Edges hanging
-    
-    isPresent = [ 7, 7, 7, 0, 0, 0, 5, 4, 5 ] # One face and one edge hanging
+
+    # isPresent = [ 7, 7, 7, 0, 0, 0, 5, 4, 5 ] # One face and one edge hanging
+    # isPresent = [ 7, 7, 7, 0, 0, 0, 5, 5, 5 ] # One face and two edges hanging
+    isPresent = [ 7, 7, 7, 1, 0, 0, 5, 5, 5 ] # One face and three edges hanging
 
     isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
 
@@ -737,4 +758,23 @@ if __name__ == "__main__":
     algNumberDict = dict( [(1, 5), (2, 3)] )
 
     fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
-    runConfsAuto( folderName, fileNameVal, isPresent, lcVals, algNumberDict[ nodeConfVal ] )
+    # runConfsAuto( folderName, fileNameVal, isPresent, lcVals, algNumberDict[ nodeConfVal ] )
+
+    allPermutes = []
+    currentPermute = []
+    miscUtils.getPermutations(allIsPresent, 0, currentPermute, allPermutes)
+
+    nIdx = 1
+
+    for possiblePermute in allPermutes:
+
+        if miscUtils.checkValidPermutation( possiblePermute ):
+            print( nIdx, "Permute: ", possiblePermute )
+
+            nIdx += 1
+            isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in possiblePermute ] )
+
+            fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
+            runConfsAuto( folderName, fileNameVal, possiblePermute, lcVals, algNumberDict[ nodeConfVal ] )
+
+    

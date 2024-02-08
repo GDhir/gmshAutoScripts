@@ -10,6 +10,7 @@ import meshio
 from paraview.simple import *
 import vtk
 import paraview
+import miscUtils
 
 # state file generated using paraview version 5.11.1
 paraview.compatibility.major = 5
@@ -178,12 +179,36 @@ if __name__ == "__main__":
     # isPresent = [ 7, 0, 7, 0, 0, 0, 5, 0, 7 ] # Three Edges hanging
     # isPresent = [ 7, 7, 7, 7, 1, 1, 7, 7, 7 ] # Four Faces hanging
     # isPresent = [ 7, 7, 7, 7, 1, 7, 7, 7, 7 ] # Five Faces hanging
-    isPresent = [ 7, 7, 7, 0, 0, 0, 5, 4, 5 ] # One face and one edge hanging
+
+    # isPresent = [ 7, 7, 7, 0, 0, 0, 5, 4, 5 ] # One face and one edge hanging
+    # isPresent = [ 7, 7, 7, 0, 0, 0, 5, 5, 5 ] # One face and two edges hanging
+    isPresent = [ 7, 7, 7, 1, 0, 0, 5, 5, 5 ] # One face and three edges hanging
 
     isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
-    plotFileName = "nodeConf2_" + isPresentStr
+    plotFileName = "nodeConf1_" + isPresentStr
 
     # plotFileName = "nodeConf2_TwoFaces"
     vtuFileName = plotFileName + ".vtu"
 
-    createGMSHPNG( folderName, vtuFileName, plotFileName )
+    allPermutes = []
+    currentPermute = []
+    allIsPresent = [[5, 7], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [1, 4, 5], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [5, 7]]
+
+    miscUtils.getPermutations(allIsPresent, 0, currentPermute, allPermutes)
+
+    nIdx = 1
+    nodeConfVal = 2
+    algNumberDict = dict( [(1, 5), (2, 3)] )
+
+    for possiblePermute in allPermutes:
+
+        if miscUtils.checkValidPermutation( possiblePermute ):
+            print( nIdx, "Permute: ", possiblePermute )
+
+            nIdx += 1
+            isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in possiblePermute ] )
+
+            plotFileName = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
+            vtuFileName = plotFileName + ".vtu"
+            
+            createGMSHPNG( folderName, vtuFileName, plotFileName )
