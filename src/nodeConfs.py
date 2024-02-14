@@ -8,6 +8,8 @@ import gmshUtils
 import meshio
 import numpy as np
 import miscUtils
+import pandas as pd
+from matplotlib import pyplot as plt
 
 def createGMSHVTU( folderName, mshFileName ):
 
@@ -701,9 +703,38 @@ def runConfsAuto( folderName, fileNamePrefix, isPresent, lcVals, algNumber = 3 )
     gmsh.model.setColor( [(0, ptVal) for ptVal in allPts], 2, 2, 127)  # Gray50
     
     _, eleTags , _ = gmsh.model.mesh.getElements(dim=3)
-    q = gmsh.model.mesh.getElementQualities(eleTags[0], "minIsotropy")
+    gammaVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "gamma") )
+    sicnVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "minSICN") )
+    sigeVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "minSIGE") )
 
-    print(q)
+    df = pd.DataFrame( 
+        {
+            "Gamma": pd.Series( gammaVals ),
+            "SICN": pd.Series( sicnVals ),
+            "SIGE": pd.Series( sigeVals )
+        }
+     )
+
+    dfStats = df.describe()
+    statsFileName = folderName + fileNamePrefix + ".csv"
+    dfStats.to_csv( statsFileName )
+
+    return dfStats
+    # angleVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "angleShape") )
+    # minAngle = min( angleVals )
+    # aveAngle = np.average( angleVals )
+    # maxAngle = max( angleVals )    
+
+    # minEdgeVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "minEdge") )
+    # maxEdgeVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "maxEdge") )
+
+    # edgeRatioVals = maxEdgeVals / minEdgeVals
+    # minEdgeRatio = min( edgeRatioVals )
+    # aveEdgeRatio = np.average( edgeRatioVals )
+    # maxEdgeRatio = max( edgeRatioVals )
+
+    # print(minEdgeRatio)
+    # print(maxEdgeRatio)
 
     # resultVals = zip( eleTags[0], q )
     # print( list( resultVals ) )
@@ -725,7 +756,9 @@ def runConfsAuto( folderName, fileNamePrefix, isPresent, lcVals, algNumber = 3 )
 
 if __name__ == "__main__":
 
-    folderName = "/home/gaurav/gmshAutoScripts/Images/HangingNodeConfs/"
+    # folderName = "/home/gaurav/gmshAutoScripts/Images/HangingNodeConfs/"
+    folderName = "/media/gaurav/easystore/HangingNodeConfs/"
+    plotFolderName = "/media/gaurav/easystore/HangingNodePlots/"
     # runConfsTwoFacesHanging( folderName, fileNameVal, 3 )
 
     fileNameVal = "nodeConfAuto"
@@ -738,7 +771,7 @@ if __name__ == "__main__":
     # lcVals[ 26 ] = 1
     allIsPresent = [[5, 7], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [1, 4, 5], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [5, 7]]
 
-    # isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ] # One Face Hanging
+    isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ] # One Face Hanging
     # isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ] # Two Faces hanging
     # isPresent = [ 7, 5, 5, 7, 5, 5, 7, 5, 5] # Three faces hanging
     # isPresent = [ 7, 7, 7, 7, 1, 1, 7, 7, 7 ] # Four Faces hanging
@@ -750,7 +783,7 @@ if __name__ == "__main__":
 
     # isPresent = [ 7, 7, 7, 0, 0, 0, 5, 4, 5 ] # One face and one edge hanging
     # isPresent = [ 7, 7, 7, 0, 0, 0, 5, 5, 5 ] # One face and two edges hanging
-    isPresent = [ 7, 7, 7, 1, 0, 0, 5, 5, 5 ] # One face and three edges hanging
+    # isPresent = [ 7, 7, 7, 1, 0, 0, 5, 5, 5 ] # One face and three edges hanging
 
     isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
 
@@ -758,23 +791,82 @@ if __name__ == "__main__":
     algNumberDict = dict( [(1, 5), (2, 3)] )
 
     fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
-    # runConfsAuto( folderName, fileNameVal, isPresent, lcVals, algNumberDict[ nodeConfVal ] )
+    runConfsAuto( folderName, fileNameVal, isPresent, lcVals, algNumberDict[ nodeConfVal ] )
 
     allPermutes = []
     currentPermute = []
     miscUtils.getPermutations(allIsPresent, 0, currentPermute, allPermutes)
 
     nIdx = 1
+    minVals = []
+    maxVals = []
+    aveVals = []
+    tagVals = []
 
     for possiblePermute in allPermutes:
 
         if miscUtils.checkValidPermutation( possiblePermute ):
             print( nIdx, "Permute: ", possiblePermute )
 
-            nIdx += 1
             isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in possiblePermute ] )
 
             fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
-            runConfsAuto( folderName, fileNameVal, possiblePermute, lcVals, algNumberDict[ nodeConfVal ] )
+            dfStats = runConfsAuto( folderName, fileNameVal, possiblePermute, lcVals, algNumberDict[ nodeConfVal ] )
 
+            print(dfStats)
+
+            if nIdx == 1:
+                tagVals = list( dfStats.columns )
+
+                for tagVal in tagVals:
+
+                    minVals.append( [] )
+                    maxVals.append( [] )
+                    aveVals.append( [] )
+
+            else:
+
+                for idx, tagVal in enumerate( tagVals ):
+
+                    minVals[idx].append( dfStats.loc[ "min" ][ tagVal ] )
+                    maxVals[idx].append( dfStats.loc[ "max" ][ tagVal ] )
+                    aveVals[idx].append( dfStats.loc[ "mean" ][ tagVal ] )
+
+            nIdx += 1
+
+    formatVal = "png"
+
+    for idx, tagVal in enumerate( tagVals ):
+
+        plt.figure()
+        plt.plot( minVals[idx], ".", label = "Minimum Values of " + tagVal )
+        plt.legend()
+        plt.xlabel( "Hanging Node Cases" )
+        plt.ylabel( tagVal )
+        plt.tight_layout()
+        plt.grid(linestyle='dotted')
+        plotfilename = plotFolderName + "Minimum" + tagVal + "." + formatVal
+        plt.savefig( plotfilename, format = formatVal )
+
+        plt.figure()
+        plt.plot( maxVals[idx], ".", label = "Maximum Values of " + tagVal )
+        plt.legend()
+        plt.xlabel( "Hanging Node Cases" )
+        plt.ylabel( tagVal )
+        plt.tight_layout()
+        plt.grid(linestyle = 'dotted')
+        plotfilename = plotFolderName + "Maximum" + tagVal + "." + formatVal
+        plt.savefig( plotfilename, format = formatVal )
+
+        plt.figure()
+        plt.plot( aveVals[idx], ".", label = "Average Values of " + tagVal )
+        plt.legend()
+        plt.xlabel( "Hanging Node Cases" )
+        plt.ylabel( tagVal )
+        plt.tight_layout()
+        plt.grid(linestyle='dotted')
+        plotfilename = plotFolderName + "Average" + tagVal + "." + formatVal
+        plt.savefig( plotfilename, format = formatVal )
+
+    plt.show()
     
