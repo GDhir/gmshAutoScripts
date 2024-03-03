@@ -9,6 +9,7 @@ import meshio
 import numpy as np
 import miscUtils
 import pandas as pd
+import meshDataUtils
 from matplotlib import pyplot as plt
 
 def createGMSHVTU( folderName, mshFileName ):
@@ -528,7 +529,8 @@ def addLine( nodeBitVals, isPointPresent, curIdx, linesIdx, isPresentBitVals, al
     else:
         return 0
 
-def runConfsAuto( folderName, fileNamePrefix, isPresent, lcVals, algNumber = 3 ):
+def runConfsAuto( folderName, fileNamePrefix, isPresent, lcVals, algNumber = 3, *, printStatsFile = False, showMesh = False,
+                createVTU = False, saveMeshFile = False ):
 
     gmsh.initialize(sys.argv)
     gmsh.model.add("t2")
@@ -696,30 +698,33 @@ def runConfsAuto( folderName, fileNamePrefix, isPresent, lcVals, algNumber = 3 )
 
     gmsh.option.setNumber("Mesh.MshFileVersion", 2)
 
-    regMeshFileName = folderName + fileNamePrefix + ".msh"
-    gmsh.write( regMeshFileName )
+    if saveMeshFile:
+        regMeshFileName = folderName + fileNamePrefix + ".msh"
+        gmsh.write( regMeshFileName )
 
     gmsh.graphics.draw()
     gmsh.model.setColor( [(0, ptVal) for ptVal in allPts], 2, 2, 127)  # Gray50
     
-    _, eleTags , _ = gmsh.model.mesh.getElements(dim=3)
-    gammaVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "gamma") )
-    sicnVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "minSICN") )
-    sigeVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "minSIGE") )
+    if printStatsFile:
+        _, eleTags , _ = gmsh.model.mesh.getElements(dim=3)
+        gammaVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "gamma") )
+        sicnVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "minSICN") )
+        sigeVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "minSIGE") )
 
-    df = pd.DataFrame( 
-        {
-            "Gamma": pd.Series( gammaVals ),
-            "SICN": pd.Series( sicnVals ),
-            "SIGE": pd.Series( sigeVals )
-        }
-     )
+        df = pd.DataFrame( 
+            {
+                "Gamma": pd.Series( gammaVals ),
+                "SICN": pd.Series( sicnVals ),
+                "SIGE": pd.Series( sigeVals )
+            }
+        )
 
-    dfStats = df.describe()
-    statsFileName = folderName + fileNamePrefix + ".csv"
-    dfStats.to_csv( statsFileName )
+        dfStats = df.describe()
+        statsFileName = folderName + fileNamePrefix + ".csv"
+        dfStats.to_csv( statsFileName )
 
-    return dfStats
+        return dfStats
+    
     # angleVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "angleShape") )
     # minAngle = min( angleVals )
     # aveAngle = np.average( angleVals )
@@ -748,93 +753,123 @@ def runConfsAuto( folderName, fileNamePrefix, isPresent, lcVals, algNumber = 3 )
     # dataType, tags, data, time, numComp = gmsh.view.getModelData(t, 0)
     # print('ICN for element {0} = {1}'.format(tags[0], data[0]))
 
-    # if '-nopopup' not in sys.argv:
-    #     gmsh.fltk.run()
+    if showMesh:
+        if '-nopopup' not in sys.argv:
+            gmsh.fltk.run()
 
-    vtuFileName = fileNamePrefix
-    createGMSHVTU( folderName, vtuFileName )
+    if createVTU:
+        vtuFileName = fileNamePrefix
+        createGMSHVTU( folderName, vtuFileName )
 
-if __name__ == "__main__":
+def getRotatedIdx( base3Idx, dxn = "x" ):
 
-    # folderName = "/home/gaurav/gmshAutoScripts/Images/HangingNodeConfs/"
-    folderName = "/media/gaurav/easystore/HangingNodeConfs/"
-    plotFolderName = "/media/gaurav/easystore/HangingNodePlots/"
-    # runConfsTwoFacesHanging( folderName, fileNameVal, 3 )
+    if dxn == "x":
+        temp = base3Idx[1]
+        base3Idx[1] = 2 - base3Idx[2]
+        base3Idx[2] = temp
 
-    fileNameVal = "nodeConfAuto"
+    elif dxn == "y":
+        temp = base3Idx[0]
+        base3Idx[0] = 2 - base3Idx[2]
+        base3Idx[2] = temp     
 
-    lcVals = [0.5] * 27
-    # lcVals = [1] * 27
-    # lcVals[ 0 : 3 ] = [0.5] * 3
-    # lcVals[ 24 : 27 ] = [0.5] * 3
-    # lcVals[ 2:27:3 ] = [1]*9
-    # lcVals[ 26 ] = 1
-    allIsPresent = [[5, 7], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [1, 4, 5], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [5, 7]]
+    elif dxn == "z":
+        temp = base3Idx[0]
+        base3Idx[0] = 2 - base3Idx[1]
+        base3Idx[1] = temp
 
-    isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ] # One Face Hanging
-    # isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ] # Two Faces hanging
-    # isPresent = [ 7, 5, 5, 7, 5, 5, 7, 5, 5] # Three faces hanging
-    # isPresent = [ 7, 7, 7, 7, 1, 1, 7, 7, 7 ] # Four Faces hanging
-    # isPresent = [ 7, 7, 7, 7, 1, 7, 7, 7, 7 ] # Five Faces hanging
+    return base3Idx
 
-    # isPresent = [5, 0, 5, 1, 0, 0, 5, 0, 5] # One Edge Hanging
-    # isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ] # Two Edges hanging
-    # isPresent = [ 7, 0, 7, 0, 0, 0, 5, 0, 7 ] # Three Edges hanging
+def checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, curEdgeConf ):
 
-    # isPresent = [ 7, 7, 7, 0, 0, 0, 5, 4, 5 ] # One face and one edge hanging
-    # isPresent = [ 7, 7, 7, 0, 0, 0, 5, 5, 5 ] # One face and two edges hanging
-    # isPresent = [ 7, 7, 7, 1, 0, 0, 5, 5, 5 ] # One face and three edges hanging
+    for xRotation in range(6):
 
-    isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
+        if xRotation == 0:
+            prevXEdgeConf = curEdgeConf
+        else:
+            prevXEdgeConf = xEdgeConf
 
-    nodeConfVal = 2
-    algNumberDict = dict( [(1, 5), (2, 3)] )
+        xEdgeConf = performRotation( prevXEdgeConf, dxn = "x" )
+        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in xEdgeConf ] )
+        if isPresentStr in allEdgeConfs:
+            return False
 
-    fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
-    runConfsAuto( folderName, fileNameVal, isPresent, lcVals, algNumberDict[ nodeConfVal ] )
+        for yRotation in range(6):
 
-    allPermutes = []
-    currentPermute = []
-    miscUtils.getPermutations(allIsPresent, 0, currentPermute, allPermutes)
-
-    nIdx = 1
-    minVals = []
-    maxVals = []
-    aveVals = []
-    tagVals = []
-
-    for possiblePermute in allPermutes:
-
-        if miscUtils.checkValidPermutation( possiblePermute ):
-            print( nIdx, "Permute: ", possiblePermute )
-
-            isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in possiblePermute ] )
-
-            fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
-            dfStats = runConfsAuto( folderName, fileNameVal, possiblePermute, lcVals, algNumberDict[ nodeConfVal ] )
-
-            print(dfStats)
-
-            if nIdx == 1:
-                tagVals = list( dfStats.columns )
-
-                for tagVal in tagVals:
-
-                    minVals.append( [] )
-                    maxVals.append( [] )
-                    aveVals.append( [] )
-
+            if yRotation == 0:
+                prevYEdgeConf = xEdgeConf
             else:
+                prevYEdgeConf = yEdgeConf
 
-                for idx, tagVal in enumerate( tagVals ):
+            yEdgeConf = performRotation( prevYEdgeConf, dxn = "y" )
+            isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in yEdgeConf ] )
+            if isPresentStr in allEdgeConfs:
+                return False
 
-                    minVals[idx].append( dfStats.loc[ "min" ][ tagVal ] )
-                    maxVals[idx].append( dfStats.loc[ "max" ][ tagVal ] )
-                    aveVals[idx].append( dfStats.loc[ "mean" ][ tagVal ] )
+            for zRotation in range(6):
 
-            nIdx += 1
+                if zRotation == 0:
+                    prevZEdgeConf = yEdgeConf
+                else:
+                    prevZEdgeConf = zEdgeConf
 
-    formatVal = "png"
+                zEdgeConf = performRotation( prevZEdgeConf, dxn = "z" )
+                isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in zEdgeConf ] )
+                if isPresentStr in allEdgeConfs:
+                    return False
+
+    return True
+
+def performRotation( edgePointConf, *, lcVals = [], folderName = "", nodeConfVal = 2, algNumberDict = dict(), dxn = "x" ):
+
+    isPresentBitVals = [0]*27
+    curIdx = 0
+
+    # isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in edgePointConf ] )
+    # fileNameVal = "originalNodeConf" + str(nodeConfVal) + "_" + isPresentStr
+    # runConfsAuto( folderName, fileNameVal, edgePointConf, lcVals, algNumberDict[ nodeConfVal ], \
+    #             printStatsFile = False, showMesh = True, createVTU = False, saveMeshFile = False  )
+
+    for edgeConf in edgePointConf:
+
+        pointConf = bitReprBase( edgeConf )
+
+        for isPointPresent in pointConf:
+
+            if isPointPresent:
+                isPresentBitVals[curIdx] = 1
+
+            curIdx = curIdx + 1
+
+    # print(isPresentBitVals)
+    rotatedIsPresentBitVals = [0]*27
+
+    for idx, isPresentVal in enumerate( isPresentBitVals ):
+
+        base3Idx = bitReprBase( idx, 3 )
+        base3Idx = getRotatedIdx( base3Idx, dxn )
+
+        newIdxVal = base3Idx[2] * (3 ** 2) + base3Idx[1] * (3 ** 1) + base3Idx[0]
+        rotatedIsPresentBitVals[newIdxVal] = isPresentVal
+
+    newEdgePointConf = []
+
+    for edgePointStartIdx in range( 0, 27, 3 ):
+
+        edgeConf = rotatedIsPresentBitVals[ edgePointStartIdx ] + rotatedIsPresentBitVals[ edgePointStartIdx + 1 ] * ( 2 ** 1 ) + \
+             rotatedIsPresentBitVals[ edgePointStartIdx + 2 ] * ( 2 ** 2 )
+        
+        newEdgePointConf.append( edgeConf )
+
+    return newEdgePointConf
+    # print(rotatedIsPresentBitVals)
+
+    # isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in newEdgePointConf ] )
+    # fileNameVal = "rotatedNodeConf" + str(nodeConfVal) + "_" + isPresentStr
+    # runConfsAuto( folderName, fileNameVal, newEdgePointConf, lcVals, algNumberDict[ nodeConfVal ], \
+    #             printStatsFile = False, showMesh = True, createVTU = False, saveMeshFile = False )
+
+def plotDFStats( plotFolderName, minVals, maxVals, aveVals, tagVals, formatVal ):
 
     for idx, tagVal in enumerate( tagVals ):
 
@@ -869,4 +904,97 @@ if __name__ == "__main__":
         plt.savefig( plotfilename, format = formatVal )
 
     plt.show()
+
+def runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, lcVals ):
+
+    allPermutes = []
+    currentPermute = []
+    miscUtils.getPermutations(allIsPresent, 0, currentPermute, allPermutes)
+
+    nIdx = 1
+    minVals = []
+    maxVals = []
+    aveVals = []
+    tagVals = []
+
+    allEdgeConfs = set()
+
+    for possiblePermute in allPermutes:
+
+        if miscUtils.checkValidPermutation( possiblePermute ):
+
+            if checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, possiblePermute ):
+
+                isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in possiblePermute ] )
+                allEdgeConfs.add( isPresentStr )
+                print( nIdx, "Permute: ", possiblePermute )
+
+                fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
+                dfStats = runConfsAuto( folderName, fileNameVal, possiblePermute, lcVals, algNumberDict[ nodeConfVal ], 
+                    printStatsFile = True, showMesh = False, createVTU = True, saveMeshFile = True )
+
+                if nIdx == 1:
+                    tagVals = list( dfStats.columns )
+
+                    for tagVal in tagVals:
+
+                        minVals.append( [] )
+                        maxVals.append( [] )
+                        aveVals.append( [] )
+
+                else:
+                    for idx, tagVal in enumerate( tagVals ):
+
+                        minVals[idx].append( dfStats.loc[ "min" ][ tagVal ] )
+                        maxVals[idx].append( dfStats.loc[ "max" ][ tagVal ] )
+                        aveVals[idx].append( dfStats.loc[ "mean" ][ tagVal ] )
+
+                nIdx += 1
+
+    formatVal = "png"
+    print( nIdx )
+    plotDFStats( plotFolderName, minVals, maxVals, aveVals, tagVals, formatVal )
+
+if __name__ == "__main__":
+
+    # folderName = "/home/gaurav/gmshAutoScripts/Images/HangingNodeConfs/"
+    folderName = "/media/gaurav/easystore/HangingNodeConfs/"
+    plotFolderName = "/media/gaurav/easystore/HangingNodePlots/"
+    # runConfsTwoFacesHanging( folderName, fileNameVal, 3 )
+
+    fileNameVal = "nodeConfAuto"
+
+    lcVals = [0.5] * 27
+    # lcVals = [1] * 27
+    # lcVals[ 0 : 3 ] = [0.5] * 3
+    # lcVals[ 24 : 27 ] = [0.5] * 3
+    # lcVals[ 2:27:3 ] = [1]*9
+    # lcVals[ 26 ] = 1
+    allIsPresent = [[5, 7], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [1, 4, 5], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [5, 7]]
+
+    isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ] # One Face Hanging
+    # isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ] # Two Faces hanging
+    # isPresent = [ 7, 5, 5, 7, 5, 5, 7, 5, 5] # Three faces hanging
+    # isPresent = [ 7, 7, 7, 7, 1, 1, 7, 7, 7 ] # Four Faces hanging
+    # isPresent = [ 7, 7, 7, 7, 1, 7, 7, 7, 7 ] # Five Faces hanging
+
+    # isPresent = [5, 0, 5, 1, 0, 0, 5, 0, 5] # One Edge Hanging
+    # isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ] # Two Edges hanging
+    # isPresent = [ 7, 0, 7, 0, 0, 0, 5, 0, 7 ] # Three Edges hanging
+
+    # isPresent = [ 7, 7, 7, 0, 0, 0, 5, 4, 5 ] # One face and one edge hanging
+    # isPresent = [ 7, 7, 7, 0, 0, 0, 5, 5, 5 ] # One face and two edges hanging
+    # isPresent = [ 7, 7, 7, 1, 0, 0, 5, 5, 5 ] # One face and three edges hanging
+
+    nodeConfVal = 2
+    algNumberDict = dict( [(1, 5), (2, 3)] )
+    # isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
+    # fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
+    # runConfsAuto( folderName, fileNameVal, isPresent, lcVals, algNumberDict[ nodeConfVal ] )
+
+    runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, lcVals )
+
+    # performRotation( folderName, isPresent, lcVals, nodeConfVal, algNumberDict, "z" )
+    
+    
     

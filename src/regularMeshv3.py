@@ -24,7 +24,7 @@ import sys
 def occHexBoxMesh( folderName ):
 
     lvl = 0
-    Ndashvals = [4, 6, 8, 10]
+    Ndashvals = [10, 20, 30, 40]
 
     for Ndash in Ndashvals:
 
