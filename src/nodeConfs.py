@@ -952,21 +952,67 @@ def getReflectedIsPresentBitVals( isPresentBitVals, dxn ):
 
 def checkRotationAndReflection( allEdgeConfs, curEdgeConf, *, printConfs = False ):
 
-    if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, curEdgeConf, printConfs = printConfs ):
-        return False
+    reflectionIdx = 0
 
-    xReflectionConf = performReflection( curEdgeConf, dxn = "x" )
+    for xReflection in range(2):
 
-    if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, xReflectionConf, printConfs = printConfs ):
-        return False
-    
-    yReflectionConf = performReflection( curEdgeConf, dxn = "y" )
-    if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, yReflectionConf, printConfs = printConfs ):
-        return False
+        if xReflection == 0:
+            prevXEdgeConf = curEdgeConf
+        else:
+            prevXEdgeConf = xEdgeConf
 
-    zReflectionConf = performReflection( curEdgeConf, dxn = "z" )
-    if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, zReflectionConf, printConfs = printConfs ):
-        return False
+        xEdgeConf = performReflection( prevXEdgeConf, dxn = "x" )
+        reflectionIdx += 1
+
+        if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, xEdgeConf, printConfs = printConfs ):
+            return False
+
+        if printConfs:
+            print( reflectionIdx, xEdgeConf )
+
+        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in xEdgeConf ] )
+        if isPresentStr in allEdgeConfs:
+            return False
+
+        for yReflection in range(2):
+
+            if yReflection == 0:
+                prevYEdgeConf = xEdgeConf
+            else:
+                prevYEdgeConf = yEdgeConf
+
+            yEdgeConf = performReflection( prevYEdgeConf, dxn = "y" )
+            reflectionIdx += 1
+
+            if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, yEdgeConf, printConfs = printConfs ):
+                return False
+
+            if printConfs:
+                print( reflectionIdx, yEdgeConf )
+
+            isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in yEdgeConf ] )
+            if isPresentStr in allEdgeConfs:
+                return False
+
+            for zReflection in range(2):
+
+                if zReflection == 0:
+                    prevZEdgeConf = yEdgeConf
+                else:
+                    prevZEdgeConf = zEdgeConf
+
+                zEdgeConf = performReflection( prevZEdgeConf, dxn = "z" )
+                reflectionIdx += 1
+
+                if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, zEdgeConf, printConfs = printConfs ):
+                    return False
+
+                if printConfs:
+                    print( reflectionIdx, zEdgeConf )
+
+                isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in zEdgeConf ] )
+                if isPresentStr in allEdgeConfs:
+                    return False
 
     return True
 
