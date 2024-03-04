@@ -705,6 +705,10 @@ def runConfsAuto( folderName, fileNamePrefix, isPresent, lcVals, algNumber = 3, 
     gmsh.graphics.draw()
     gmsh.model.setColor( [(0, ptVal) for ptVal in allPts], 2, 2, 127)  # Gray50
     
+    if showMesh:
+        if '-nopopup' not in sys.argv:
+            gmsh.fltk.run()
+
     if printStatsFile:
         _, eleTags , _ = gmsh.model.mesh.getElements(dim=3)
         gammaVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "gamma") )
@@ -753,10 +757,6 @@ def runConfsAuto( folderName, fileNamePrefix, isPresent, lcVals, algNumber = 3, 
     # dataType, tags, data, time, numComp = gmsh.view.getModelData(t, 0)
     # print('ICN for element {0} = {1}'.format(tags[0], data[0]))
 
-    if showMesh:
-        if '-nopopup' not in sys.argv:
-            gmsh.fltk.run()
-
     if createVTU:
         vtuFileName = fileNamePrefix
         createGMSHVTU( folderName, vtuFileName )
@@ -780,9 +780,11 @@ def getRotatedIdx( base3Idx, dxn = "x" ):
 
     return base3Idx
 
-def checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, curEdgeConf ):
+def checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, curEdgeConf, *, printConfs = False ):
 
-    for xRotation in range(6):
+    rotationIdx = 0
+
+    for xRotation in range(4):
 
         if xRotation == 0:
             prevXEdgeConf = curEdgeConf
@@ -790,11 +792,16 @@ def checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, curEdgeConf ):
             prevXEdgeConf = xEdgeConf
 
         xEdgeConf = performRotation( prevXEdgeConf, dxn = "x" )
+        rotationIdx += 1
+
+        if printConfs:
+            print( rotationIdx, xEdgeConf )
+
         isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in xEdgeConf ] )
         if isPresentStr in allEdgeConfs:
             return False
 
-        for yRotation in range(6):
+        for yRotation in range(4):
 
             if yRotation == 0:
                 prevYEdgeConf = xEdgeConf
@@ -802,11 +809,16 @@ def checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, curEdgeConf ):
                 prevYEdgeConf = yEdgeConf
 
             yEdgeConf = performRotation( prevYEdgeConf, dxn = "y" )
+            rotationIdx += 1
+
+            if printConfs:
+                print( rotationIdx, yEdgeConf )
+
             isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in yEdgeConf ] )
             if isPresentStr in allEdgeConfs:
                 return False
 
-            for zRotation in range(6):
+            for zRotation in range(4):
 
                 if zRotation == 0:
                     prevZEdgeConf = yEdgeConf
@@ -814,21 +826,70 @@ def checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, curEdgeConf ):
                     prevZEdgeConf = zEdgeConf
 
                 zEdgeConf = performRotation( prevZEdgeConf, dxn = "z" )
+                rotationIdx += 1
+
+                if printConfs:
+                    print( rotationIdx, zEdgeConf )
+
                 isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in zEdgeConf ] )
                 if isPresentStr in allEdgeConfs:
                     return False
 
     return True
 
-def performRotation( edgePointConf, *, lcVals = [], folderName = "", nodeConfVal = 2, algNumberDict = dict(), dxn = "x" ):
+def performRotation( edgePointConf, *, lcVals = [], folderName = "", nodeConfVal = 2, algNumberDict = dict(),\
+                    dxn = "x", createConfs = False ):
+
+    if createConfs:
+        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in edgePointConf ] )
+        fileNameVal = "originalNodeConf" + str(nodeConfVal) + "_" + isPresentStr
+        runConfsAuto( folderName, fileNameVal, edgePointConf, lcVals, algNumberDict[ nodeConfVal ], \
+                    printStatsFile = False, showMesh = True, createVTU = False, saveMeshFile = False  )
+
+    isPresentBitVals = convertEdgePointConfToIsPresentBitVals( edgePointConf )
+    rotatedIsPresentBitVals = getRotatedIsPresentBitVals( isPresentBitVals, dxn )
+    newEdgePointConf = []
+
+    for edgePointStartIdx in range( 0, 27, 3 ):
+
+        edgeConf = rotatedIsPresentBitVals[ edgePointStartIdx ] + rotatedIsPresentBitVals[ edgePointStartIdx + 1 ] * ( 2 ** 1 ) + \
+             rotatedIsPresentBitVals[ edgePointStartIdx + 2 ] * ( 2 ** 2 )
+        
+        newEdgePointConf.append( edgeConf )
+    # print(rotatedIsPresentBitVals)
+
+    if createConfs:
+        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in newEdgePointConf ] )
+        fileNameVal = "rotatedNodeConf" + str(nodeConfVal) + "_" + isPresentStr
+        runConfsAuto( folderName, fileNameVal, newEdgePointConf, lcVals, algNumberDict[ nodeConfVal ], \
+                    printStatsFile = False, showMesh = True, createVTU = False, saveMeshFile = False )
+        
+    return newEdgePointConf
+
+def getRotatedIsPresentBitVals( isPresentBitVals, dxn ):
+
+    rotatedIsPresentBitVals = [0]*27
+
+    for idx, isPresentVal in enumerate( isPresentBitVals ):
+
+        base3Idx = bitReprBase( idx, 3 )
+        base3Idx = getRotatedIdx( base3Idx, dxn )
+
+        newIdxVal = base3Idx[2] * (3 ** 2) + base3Idx[1] * (3 ** 1) + base3Idx[0]
+        rotatedIsPresentBitVals[newIdxVal] = isPresentVal
+
+    return rotatedIsPresentBitVals
+
+def swapBitVals( isPresentBitVals, idxVal1, idxVal2 ):
+
+    temp = isPresentBitVals[ idxVal1 ]
+    isPresentBitVals[ idxVal1 ] = isPresentBitVals[ idxVal2 ]
+    isPresentBitVals[ idxVal2 ] = temp
+
+def convertEdgePointConfToIsPresentBitVals( edgePointConf ):
 
     isPresentBitVals = [0]*27
     curIdx = 0
-
-    # isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in edgePointConf ] )
-    # fileNameVal = "originalNodeConf" + str(nodeConfVal) + "_" + isPresentStr
-    # runConfsAuto( folderName, fileNameVal, edgePointConf, lcVals, algNumberDict[ nodeConfVal ], \
-    #             printStatsFile = False, showMesh = True, createVTU = False, saveMeshFile = False  )
 
     for edgeConf in edgePointConf:
 
@@ -841,33 +902,73 @@ def performRotation( edgePointConf, *, lcVals = [], folderName = "", nodeConfVal
 
             curIdx = curIdx + 1
 
-    # print(isPresentBitVals)
-    rotatedIsPresentBitVals = [0]*27
+    return isPresentBitVals
 
-    for idx, isPresentVal in enumerate( isPresentBitVals ):
+def performReflection( edgePointConf, *, lcVals = [], folderName = "", nodeConfVal = 2, algNumberDict = dict(),\
+                    dxn = "x", createConfs = False ):
 
-        base3Idx = bitReprBase( idx, 3 )
-        base3Idx = getRotatedIdx( base3Idx, dxn )
+    if createConfs:
+        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in edgePointConf ] )
+        fileNameVal = "originalNodeConf" + str(nodeConfVal) + "_" + isPresentStr
+        runConfsAuto( folderName, fileNameVal, edgePointConf, lcVals, algNumberDict[ nodeConfVal ], \
+                    printStatsFile = False, showMesh = True, createVTU = False, saveMeshFile = False  )
 
-        newIdxVal = base3Idx[2] * (3 ** 2) + base3Idx[1] * (3 ** 1) + base3Idx[0]
-        rotatedIsPresentBitVals[newIdxVal] = isPresentVal
-
+    isPresentBitVals = convertEdgePointConfToIsPresentBitVals( edgePointConf )
+    reflectedIsPresentBitVals = getReflectedIsPresentBitVals( isPresentBitVals, dxn )
     newEdgePointConf = []
 
     for edgePointStartIdx in range( 0, 27, 3 ):
 
-        edgeConf = rotatedIsPresentBitVals[ edgePointStartIdx ] + rotatedIsPresentBitVals[ edgePointStartIdx + 1 ] * ( 2 ** 1 ) + \
-             rotatedIsPresentBitVals[ edgePointStartIdx + 2 ] * ( 2 ** 2 )
+        edgeConf = reflectedIsPresentBitVals[ edgePointStartIdx ] + reflectedIsPresentBitVals[ edgePointStartIdx + 1 ] * ( 2 ** 1 ) + \
+             reflectedIsPresentBitVals[ edgePointStartIdx + 2 ] * ( 2 ** 2 )
         
         newEdgePointConf.append( edgeConf )
+    # print(reflectedIsPresentBitVals)
 
+    if createConfs:
+        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in newEdgePointConf ] )
+        fileNameVal = "reflectedNodeConf" + str(nodeConfVal) + "_" + isPresentStr
+        runConfsAuto( folderName, fileNameVal, newEdgePointConf, lcVals, algNumberDict[ nodeConfVal ], \
+                    printStatsFile = False, showMesh = True, createVTU = False, saveMeshFile = False )
+        
     return newEdgePointConf
-    # print(rotatedIsPresentBitVals)
 
-    # isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in newEdgePointConf ] )
-    # fileNameVal = "rotatedNodeConf" + str(nodeConfVal) + "_" + isPresentStr
-    # runConfsAuto( folderName, fileNameVal, newEdgePointConf, lcVals, algNumberDict[ nodeConfVal ], \
-    #             printStatsFile = False, showMesh = True, createVTU = False, saveMeshFile = False )
+def getReflectedIsPresentBitVals( isPresentBitVals, dxn ):
+
+    expDict = dict( [ ("x", [1, 2, 0]), ("y", [0, 2, 1]), ("z", [0, 1, 2]) ] )
+
+    for idx1 in range(3):
+        for idx2 in range(3):
+
+            exp1 = 3 ** expDict[dxn][0]
+            exp2 = 3 ** expDict[dxn][1]
+            exp3 = 3 ** expDict[dxn][2]             
+
+            idxVal1 = idx1 * ( exp1 ) + idx2 * ( exp2 )
+            idxVal2 = idx1 * ( exp1 ) + idx2 * ( exp2 ) + 2 * ( exp3 )
+            swapBitVals( isPresentBitVals, idxVal1, idxVal2 )     
+
+    return isPresentBitVals
+
+def checkRotationAndReflection( allEdgeConfs, curEdgeConf, *, printConfs = False ):
+
+    if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, curEdgeConf, printConfs = printConfs ):
+        return False
+
+    xReflectionConf = performReflection( curEdgeConf, dxn = "x" )
+
+    if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, xReflectionConf, printConfs = printConfs ):
+        return False
+    
+    yReflectionConf = performReflection( curEdgeConf, dxn = "y" )
+    if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, yReflectionConf, printConfs = printConfs ):
+        return False
+
+    zReflectionConf = performReflection( curEdgeConf, dxn = "z" )
+    if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, zReflectionConf, printConfs = printConfs ):
+        return False
+
+    return True
 
 def plotDFStats( plotFolderName, minVals, maxVals, aveVals, tagVals, formatVal ):
 
@@ -905,7 +1006,7 @@ def plotDFStats( plotFolderName, minVals, maxVals, aveVals, tagVals, formatVal )
 
     plt.show()
 
-def runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, lcVals ):
+def runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, lcVals, *, showMesh = False ):
 
     allPermutes = []
     currentPermute = []
@@ -923,7 +1024,7 @@ def runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, l
 
         if miscUtils.checkValidPermutation( possiblePermute ):
 
-            if checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, possiblePermute ):
+            if checkRotationAndReflection( allEdgeConfs, possiblePermute ):
 
                 isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in possiblePermute ] )
                 allEdgeConfs.add( isPresentStr )
@@ -931,7 +1032,7 @@ def runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, l
 
                 fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
                 dfStats = runConfsAuto( folderName, fileNameVal, possiblePermute, lcVals, algNumberDict[ nodeConfVal ], 
-                    printStatsFile = True, showMesh = False, createVTU = True, saveMeshFile = True )
+                    printStatsFile = True, showMesh = showMesh, createVTU = True, saveMeshFile = True )
 
                 if nIdx == 1:
                     tagVals = list( dfStats.columns )
@@ -992,9 +1093,11 @@ if __name__ == "__main__":
     # fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
     # runConfsAuto( folderName, fileNameVal, isPresent, lcVals, algNumberDict[ nodeConfVal ] )
 
-    runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, lcVals )
+    runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, lcVals, showMesh = False )
 
     # performRotation( folderName, isPresent, lcVals, nodeConfVal, algNumberDict, "z" )
+    # checkNonDuplicateEdgeConfOnRotation( [], [5, 1, 5, 1, 1, 1, 7, 5, 5], printConfs = True )
     
-    
+    # performReflection( [5, 1, 5, 1, 1, 1, 7, 5, 5], lcVals = lcVals, folderName = folderName, nodeConfVal = 2,\
+                    #    algNumberDict = algNumberDict, dxn = "x", createConfs = True )
     
