@@ -187,6 +187,10 @@ def runConfsAuto( folderName, fileNamePrefix, isPresent, lcVals, algNumber = 3, 
         if '-nopopup' not in sys.argv:
             gmsh.fltk.run()
 
+    if createVTU:
+        vtuFileName = fileNamePrefix
+        meshFileUtils.createGMSHVTU( folderName, vtuFileName )
+
     if printStatsFile:
         _, eleTags , _ = gmsh.model.mesh.getElements(dim=3)
         gammaVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "gamma") )
@@ -234,9 +238,4 @@ def runConfsAuto( folderName, fileNamePrefix, isPresent, lcVals, algNumber = 3, 
     # t = gmsh.plugin.run("AnalyseMeshQuality")
     # dataType, tags, data, time, numComp = gmsh.view.getModelData(t, 0)
     # print('ICN for element {0} = {1}'.format(tags[0], data[0]))
-
-    if createVTU:
-        vtuFileName = fileNamePrefix
-        meshFileUtils.createGMSHVTU( folderName, vtuFileName )
-
 

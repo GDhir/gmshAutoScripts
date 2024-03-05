@@ -175,7 +175,7 @@ def printAllValidPermutations( vtuFolderName, plotFolderName, nodeConfVal, check
 
     allPermutes = []
     currentPermute = []
-    allIsPresent = [[5, 7], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [1, 4, 5], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [5, 7]]
+    allIsPresent = [[5, 7], [0, 1, 4, 5, 7], [5, 7], [0, 1, 4, 5, 7], [0, 1, 4, 5], [0, 1, 4, 5, 7], [5, 7], [0, 1, 4, 5, 7], [5, 7]]
 
     miscUtils.getPermutations(allIsPresent, 0, currentPermute, allPermutes)
 
@@ -234,4 +234,4 @@ if __name__ == "__main__":
     nodeConfVal = 2
     algNumberDict = dict( [(1, 5), (2, 3)] )
     
-    printAllValidPermutations( vtuFolderName, plotFolderName, nodeConfVal, True, [0, 11, 1] )
+    printAllValidPermutations( vtuFolderName, plotFolderName, nodeConfVal, True, [0, 21, 1] )

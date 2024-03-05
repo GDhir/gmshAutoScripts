@@ -514,6 +514,7 @@ def runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, l
 
     allPermutes = []
     currentPermute = []
+    allIsPresent = [[5, 7], [0, 1, 4, 5, 7], [5, 7], [0, 1, 4, 5, 7], [0, 1, 4, 5], [0, 1, 4, 5, 7], [5, 7], [0, 1, 4, 5, 7], [5, 7]]
     miscUtils.getPermutations(allIsPresent, 0, currentPermute, allPermutes)
 
     nIdx = 1
@@ -529,6 +530,7 @@ def runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, l
         if miscUtils.checkValidPermutation( possiblePermute ):
 
             if rotateReflect.checkRotationAndReflection( allEdgeConfs, possiblePermute ):
+            # if True:
 
                 isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in possiblePermute ] )
                 allEdgeConfs.add( isPresentStr )
@@ -575,7 +577,6 @@ if __name__ == "__main__":
     # lcVals[ 24 : 27 ] = [0.5] * 3
     # lcVals[ 2:27:3 ] = [1]*9
     # lcVals[ 26 ] = 1
-    allIsPresent = [[5, 7], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [1, 4, 5], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [5, 7]]
 
     isPresent = [ 5, 1, 5, 1, 1, 1, 5, 1, 5 ] # One Face Hanging
     # isPresent = [ 7, 1, 5, 7, 1, 1, 7, 1, 5 ] # Two Faces hanging

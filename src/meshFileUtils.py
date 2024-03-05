@@ -73,4 +73,6 @@ def createGMSHVTU( folderName, mshFileName ):
     mesh = meshio.read( folderName + mshFileName + ".msh" )
     meshio.write( folderName + mshFileName + ".vtu", mesh )
 
+    print( folderName + mshFileName + ".vtu")
+
     return 0
