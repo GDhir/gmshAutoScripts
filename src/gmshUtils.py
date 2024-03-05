@@ -749,6 +749,32 @@ def parseGMSHFile( gmshFileName ):
 
         gmshFileHandle.writelines( newlines )
 
+def addLine( nodeBitVals, isPointPresent, curIdx, linesIdx, isPresentBitVals, allLines, allPts, ptEdgeMap, dxn ):
+
+    offset = 3**dxn
+
+    if nodeBitVals[ dxn ] != 2:
+        if isPointPresent:    
+
+            nextPoint = curIdx + offset
+            
+            if isPresentBitVals[ nextPoint ]:
+                
+                allLines[ linesIdx ] = gmsh.model.occ.addLine( allPts[ curIdx ], allPts[ nextPoint ] )
+                
+                ptEdgeMap[ (curIdx, dxn, 0) ] = allLines[ linesIdx ]
+                ptEdgeMap[ (nextPoint, dxn, 1) ] = -allLines[ linesIdx ]
+
+            elif nodeBitVals[ dxn ] == 0 and isPresentBitVals[ nextPoint + offset ] and 1 not in nodeBitVals:
+                allLines[ linesIdx ] = gmsh.model.occ.addLine( allPts[ curIdx ], allPts[ nextPoint + offset ] )
+
+                ptEdgeMap[ (curIdx, dxn, 0) ] = allLines[ linesIdx ]
+                ptEdgeMap[ (nextPoint + offset, dxn, 1) ] = -allLines[ linesIdx ]
+
+        return 1
+    
+    else:
+        return 0
 
 if __name__ == "__main__":
 

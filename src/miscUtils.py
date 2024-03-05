@@ -1,3 +1,5 @@
+import numpy as np
+
 def getPermutations( allVals, idx, currentPermute, allPermutes):
 
     if idx < len( allVals ) - 1:
@@ -42,3 +44,27 @@ def checkValidPermutation( permuteVals ):
                 return False
 
     return True            
+
+def bitReprBase( number, baseVal = 2 ):
+
+    output = [0, 0, 0]
+
+    reprVal = np.base_repr( number, baseVal )
+
+    for idx, x in enumerate( reprVal[::-1] ):
+        output[idx] = int(x)
+
+    # print(output)
+    return output
+
+def getCoords( nodeBitVals ):
+
+    nodeCoords = [0, 0, 0]
+
+    for idx, bitVal in enumerate( nodeBitVals ):
+        nodeCoords[ idx ] = bitVal * 0.5
+
+    # print( nodeBitVals )
+    # print( nodeCoords )
+
+    return nodeCoords

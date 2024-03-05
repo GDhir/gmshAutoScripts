@@ -10,14 +10,10 @@ import numpy as np
 import miscUtils
 import pandas as pd
 import meshDataUtils
+import rotateReflect
+import gmshConfGenerate
+import meshFileUtils
 from matplotlib import pyplot as plt
-
-def createGMSHVTU( folderName, mshFileName ):
-
-    mesh = meshio.read( folderName + mshFileName + ".msh" )
-    meshio.write( folderName + mshFileName + ".vtu", mesh )
-
-    return 0
 
 def runConfs( folderName ):
 
@@ -144,7 +140,7 @@ def runConfs( folderName ):
     gmsh.write( pngFileName )
 
     vtuFileName = "nodeConf2"
-    createGMSHVTU( folderName, vtuFileName )
+    meshFileUtils.createGMSHVTU( folderName, vtuFileName )
 
     gmsh.finalize()
 
@@ -247,7 +243,7 @@ def runConfs2( folderName ):
     gmsh.write( pngFileName )
 
     vtuFileName = "nodeConf3"
-    createGMSHVTU( folderName, vtuFileName )
+    meshFileUtils.createGMSHVTU( folderName, vtuFileName )
 
     gmsh.finalize()
 
@@ -355,7 +351,7 @@ def runConfsEdgeHanging( folderName, fileNamePrefix, algNumber = 3 ):
     gmsh.write( pngFileName )
 
     vtuFileName = fileNamePrefix
-    createGMSHVTU( folderName, vtuFileName )
+    meshFileUtils.createGMSHVTU( folderName, vtuFileName )
 
     gmsh.finalize()
 
@@ -474,547 +470,9 @@ def runConfsTwoFacesHanging( folderName, fileNamePrefix, algNumber = 3 ):
     gmsh.write( pngFileName )
 
     vtuFileName = fileNamePrefix
-    createGMSHVTU( folderName, vtuFileName )
+    meshFileUtils.createGMSHVTU( folderName, vtuFileName )
 
     gmsh.finalize()
-
-def bitReprBase( number, baseVal = 2 ):
-
-    output = [0, 0, 0]
-
-    reprVal = np.base_repr( number, baseVal )
-
-    for idx, x in enumerate( reprVal[::-1] ):
-        output[idx] = int(x)
-
-    # print(output)
-    return output
-
-def getCoords( nodeBitVals ):
-
-    nodeCoords = [0, 0, 0]
-
-    for idx, bitVal in enumerate( nodeBitVals ):
-        nodeCoords[ idx ] = bitVal * 0.5
-
-    # print( nodeBitVals )
-    # print( nodeCoords )
-
-    return nodeCoords
-
-def addLine( nodeBitVals, isPointPresent, curIdx, linesIdx, isPresentBitVals, allLines, allPts, ptEdgeMap, dxn ):
-
-    offset = 3**dxn
-
-    if nodeBitVals[ dxn ] != 2:
-        if isPointPresent:    
-
-            nextPoint = curIdx + offset
-            
-            if isPresentBitVals[ nextPoint ]:
-                
-                allLines[ linesIdx ] = gmsh.model.occ.addLine( allPts[ curIdx ], allPts[ nextPoint ] )
-                
-                ptEdgeMap[ (curIdx, dxn, 0) ] = allLines[ linesIdx ]
-                ptEdgeMap[ (nextPoint, dxn, 1) ] = -allLines[ linesIdx ]
-
-            elif nodeBitVals[ dxn ] == 0 and isPresentBitVals[ nextPoint + offset ] and 1 not in nodeBitVals:
-                allLines[ linesIdx ] = gmsh.model.occ.addLine( allPts[ curIdx ], allPts[ nextPoint + offset ] )
-
-                ptEdgeMap[ (curIdx, dxn, 0) ] = allLines[ linesIdx ]
-                ptEdgeMap[ (nextPoint + offset, dxn, 1) ] = -allLines[ linesIdx ]
-
-        return 1
-    
-    else:
-        return 0
-
-def runConfsAuto( folderName, fileNamePrefix, isPresent, lcVals, algNumber = 3, *, printStatsFile = False, showMesh = False,
-                createVTU = False, saveMeshFile = False ):
-
-    gmsh.initialize(sys.argv)
-    gmsh.model.add("t2")
-
-    isPresentBitVals = [0]*27
-
-    curIdx = 0
-    allPts = [-1] * 27
-
-    for edgePointConf in isPresent:
-
-        pointConf = bitReprBase( edgePointConf )
-        print(pointConf)
-
-        for isPointPresent in pointConf:
-
-            # print(curIdx)
-            # nodeBitVals = bitReprBase( curIdx, 3 )
-
-            # print(nodeBitVals)
-
-            if isPointPresent:
-
-                isPresentBitVals[curIdx] = 1
-                nodeBitVals = bitReprBase( curIdx, 3 )
-
-                # print(nodeBitVals)
-
-                nodeCoords = getCoords( nodeBitVals )
-
-                allPts[ curIdx ] = gmsh.model.occ.addPoint( nodeCoords[0], nodeCoords[1], nodeCoords[2], lcVals[ curIdx ] )
-
-            curIdx = curIdx + 1
-
-    curIdx = 0
-    allLinesX = [-1] * 18
-    allLinesY = [-1] * 18
-    allLinesZ = [-1] * 18
-
-    linesXIdx = 0
-    linesYIdx = 0
-    linesZIdx = 0
-
-    ptEdgeMap = dict()
-
-    for edgePointConf in isPresent:
-
-        pointConf = bitReprBase( edgePointConf )
-
-        for isPointPresent in pointConf:
-
-            nodeBitVals = bitReprBase( curIdx, 3 )
-
-            linesXIdx = linesXIdx + addLine( nodeBitVals, isPointPresent, curIdx, linesXIdx, isPresentBitVals, allLinesZ, allPts, ptEdgeMap, 0 )
-            linesYIdx = linesYIdx + addLine( nodeBitVals, isPointPresent, curIdx, linesYIdx, isPresentBitVals, allLinesY, allPts, ptEdgeMap, 1 )
-            linesZIdx = linesZIdx + addLine( nodeBitVals, isPointPresent, curIdx, linesZIdx, isPresentBitVals, allLinesX, allPts, ptEdgeMap, 2 )
-
-            curIdx = curIdx + 1
-
-    facePtStarts = [0, 2]
-    surfaceVals = []
-
-    # gmsh.model.occ.synchronize()
-    
-    transfiniteSurfaces = []
-
-    for dxn in range(3):
-
-        surfaceDxns = [ ( dxn + 1 ) % 3, ( dxn + 2 ) % 3 ]
-        offsetVal = 3 ** ( ( dxn + 1 ) % 3 )
-
-        for faceNum in range( 2 ):
-
-            startPt = facePtStarts[ faceNum ] * ( 3 ** dxn )      
-            isFull = True
-
-            for ptIdx in range(9):
-
-                curPtIdx = ( startPt + ptIdx * offsetVal ) % 26
-
-                if not isPresentBitVals[ curPtIdx ]:
-
-                    isFull = False
-                    break
-
-            if isFull:
-
-                startPts = ( np.array( [0, 1, 3, 4], dtype = int ) * offsetVal + startPt ) % 26
-
-                for semiFaceNum in range(4):
-
-                    curStartPt = startPts[ semiFaceNum ]
-                    # curStartPtVal = allPts[ curStartPt ]
-                    curPtIdx = int( curStartPt )
-                    lineIdx = 0
-
-                    surfaceEdges = []
-
-                    while 1:
-
-                        # curPtVal = allPts[ curPtIdx ]
-                        isNegativeDxn = lineIdx // 2
-                        surfaceDxnIdx = lineIdx % 2
-                        surfaceDxn = surfaceDxns[ surfaceDxnIdx ]
-
-                        surfaceEdges.append( ptEdgeMap[ ( curPtIdx, surfaceDxn, isNegativeDxn ) ] )
-                        
-                        curoffsetVal =  3 ** ( surfaceDxn )
-                        curPtIdx = int ( ( curPtIdx + ( 1 - 2 * isNegativeDxn ) * curoffsetVal ) )
-                        lineIdx = lineIdx + 1
-
-                        if curPtIdx == curStartPt:
-                            break
-
-                    cl = gmsh.model.occ.addCurveLoop( surfaceEdges )
-                    surfaceVals.append( gmsh.model.occ.addPlaneSurface( [ cl ] ) )
-
-                    gmsh.model.occ.synchronize()
-                    # gmshUtils.setTransfiniteSurfaces( [surfaceVals[-1]], [], occ = True )
-
-                    transfiniteSurfaces.append( surfaceVals[-1] )
-
-            else:
-
-                curPtIdx = int( startPt )
-                lineIdx = 0
-                surfaceEdges = []                
-
-                while 1:
-
-                    isNegativeDxn = lineIdx // 4
-                    surfaceDxnIdx = ( lineIdx // 2 ) % 2
-                    surfaceDxn = surfaceDxns[ surfaceDxnIdx ]
-
-                    curoffsetVal =  3 ** ( surfaceDxn )
-
-                    if isPresentBitVals[ curPtIdx ]:
-                        surfaceEdges.append( ptEdgeMap[ ( curPtIdx, surfaceDxn, isNegativeDxn ) ] )
-
-                    curPtIdx = int ( ( curPtIdx + ( 1 - 2 * isNegativeDxn ) * curoffsetVal ) )
-                    lineIdx = lineIdx + 1
-
-                    if curPtIdx == startPt:
-                        break
-
-                cl = gmsh.model.occ.addCurveLoop( surfaceEdges )
-                surfaceVals.append( gmsh.model.occ.addPlaneSurface( [ cl ] ) )
-
-                if len( surfaceEdges ) == 4:
-                    transfiniteSurfaces.append( surfaceVals[-1] )
-
-    gmsh.model.occ.synchronize()
-    gmshUtils.setTransfiniteCurves( [allLinesX, allLinesY, allLinesZ], 2, occ = True )
-    # transfiniteSurfaces.append(5)
-    gmshUtils.setTransfiniteSurfaces( transfiniteSurfaces, [], occ = True )
-    gmshUtils.recombineSurfaces( transfiniteSurfaces )
-
-    sl = gmsh.model.occ.addSurfaceLoop( surfaceVals )
-    vl = gmsh.model.occ.addVolume( [sl] )
-    gmsh.model.occ.synchronize()
-
-    gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 3)
-    gmsh.option.setNumber("Mesh.Algorithm", algNumber)
-    gmsh.model.mesh.generate(3)
-
-    gmsh.option.setNumber("Mesh.MshFileVersion", 2)
-
-    if saveMeshFile:
-        regMeshFileName = folderName + fileNamePrefix + ".msh"
-        gmsh.write( regMeshFileName )
-
-    gmsh.graphics.draw()
-    gmsh.model.setColor( [(0, ptVal) for ptVal in allPts], 2, 2, 127)  # Gray50
-    
-    if showMesh:
-        if '-nopopup' not in sys.argv:
-            gmsh.fltk.run()
-
-    if printStatsFile:
-        _, eleTags , _ = gmsh.model.mesh.getElements(dim=3)
-        gammaVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "gamma") )
-        sicnVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "minSICN") )
-        sigeVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "minSIGE") )
-
-        df = pd.DataFrame( 
-            {
-                "Gamma": pd.Series( gammaVals ),
-                "SICN": pd.Series( sicnVals ),
-                "SIGE": pd.Series( sigeVals )
-            }
-        )
-
-        dfStats = df.describe()
-        statsFileName = folderName + fileNamePrefix + ".csv"
-        dfStats.to_csv( statsFileName )
-
-        return dfStats
-    
-    # angleVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "angleShape") )
-    # minAngle = min( angleVals )
-    # aveAngle = np.average( angleVals )
-    # maxAngle = max( angleVals )    
-
-    # minEdgeVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "minEdge") )
-    # maxEdgeVals = np.array( gmsh.model.mesh.getElementQualities(eleTags[0], "maxEdge") )
-
-    # edgeRatioVals = maxEdgeVals / minEdgeVals
-    # minEdgeRatio = min( edgeRatioVals )
-    # aveEdgeRatio = np.average( edgeRatioVals )
-    # maxEdgeRatio = max( edgeRatioVals )
-
-    # print(minEdgeRatio)
-    # print(maxEdgeRatio)
-
-    # resultVals = zip( eleTags[0], q )
-    # print( list( resultVals ) )
-
-    # gmsh.plugin.setNumber("AnalyseMeshQuality", "ICNMeasure", 1.)
-    # gmsh.plugin.setNumber("AnalyseMeshQuality", "HidingThreshold", 0.3)
-    # gmsh.plugin.setNumber("AnalyseMeshQuality", "ThresholdGreater",  1)
-
-    # gmsh.plugin.setNumber("AnalyseMeshQuality", "CreateView", 1.)
-    # t = gmsh.plugin.run("AnalyseMeshQuality")
-    # dataType, tags, data, time, numComp = gmsh.view.getModelData(t, 0)
-    # print('ICN for element {0} = {1}'.format(tags[0], data[0]))
-
-    if createVTU:
-        vtuFileName = fileNamePrefix
-        createGMSHVTU( folderName, vtuFileName )
-
-def getRotatedIdx( base3Idx, dxn = "x" ):
-
-    if dxn == "x":
-        temp = base3Idx[1]
-        base3Idx[1] = 2 - base3Idx[2]
-        base3Idx[2] = temp
-
-    elif dxn == "y":
-        temp = base3Idx[0]
-        base3Idx[0] = 2 - base3Idx[2]
-        base3Idx[2] = temp     
-
-    elif dxn == "z":
-        temp = base3Idx[0]
-        base3Idx[0] = 2 - base3Idx[1]
-        base3Idx[1] = temp
-
-    return base3Idx
-
-def checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, curEdgeConf, *, printConfs = False ):
-
-    rotationIdx = 0
-
-    for xRotation in range(4):
-
-        if xRotation == 0:
-            prevXEdgeConf = curEdgeConf
-        else:
-            prevXEdgeConf = xEdgeConf
-
-        xEdgeConf = performRotation( prevXEdgeConf, dxn = "x" )
-        rotationIdx += 1
-
-        if printConfs:
-            print( rotationIdx, xEdgeConf )
-
-        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in xEdgeConf ] )
-        if isPresentStr in allEdgeConfs:
-            return False
-
-        for yRotation in range(4):
-
-            if yRotation == 0:
-                prevYEdgeConf = xEdgeConf
-            else:
-                prevYEdgeConf = yEdgeConf
-
-            yEdgeConf = performRotation( prevYEdgeConf, dxn = "y" )
-            rotationIdx += 1
-
-            if printConfs:
-                print( rotationIdx, yEdgeConf )
-
-            isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in yEdgeConf ] )
-            if isPresentStr in allEdgeConfs:
-                return False
-
-            for zRotation in range(4):
-
-                if zRotation == 0:
-                    prevZEdgeConf = yEdgeConf
-                else:
-                    prevZEdgeConf = zEdgeConf
-
-                zEdgeConf = performRotation( prevZEdgeConf, dxn = "z" )
-                rotationIdx += 1
-
-                if printConfs:
-                    print( rotationIdx, zEdgeConf )
-
-                isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in zEdgeConf ] )
-                if isPresentStr in allEdgeConfs:
-                    return False
-
-    return True
-
-def performRotation( edgePointConf, *, lcVals = [], folderName = "", nodeConfVal = 2, algNumberDict = dict(),\
-                    dxn = "x", createConfs = False ):
-
-    if createConfs:
-        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in edgePointConf ] )
-        fileNameVal = "originalNodeConf" + str(nodeConfVal) + "_" + isPresentStr
-        runConfsAuto( folderName, fileNameVal, edgePointConf, lcVals, algNumberDict[ nodeConfVal ], \
-                    printStatsFile = False, showMesh = True, createVTU = False, saveMeshFile = False  )
-
-    isPresentBitVals = convertEdgePointConfToIsPresentBitVals( edgePointConf )
-    rotatedIsPresentBitVals = getRotatedIsPresentBitVals( isPresentBitVals, dxn )
-    newEdgePointConf = []
-
-    for edgePointStartIdx in range( 0, 27, 3 ):
-
-        edgeConf = rotatedIsPresentBitVals[ edgePointStartIdx ] + rotatedIsPresentBitVals[ edgePointStartIdx + 1 ] * ( 2 ** 1 ) + \
-             rotatedIsPresentBitVals[ edgePointStartIdx + 2 ] * ( 2 ** 2 )
-        
-        newEdgePointConf.append( edgeConf )
-    # print(rotatedIsPresentBitVals)
-
-    if createConfs:
-        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in newEdgePointConf ] )
-        fileNameVal = "rotatedNodeConf" + str(nodeConfVal) + "_" + isPresentStr
-        runConfsAuto( folderName, fileNameVal, newEdgePointConf, lcVals, algNumberDict[ nodeConfVal ], \
-                    printStatsFile = False, showMesh = True, createVTU = False, saveMeshFile = False )
-        
-    return newEdgePointConf
-
-def getRotatedIsPresentBitVals( isPresentBitVals, dxn ):
-
-    rotatedIsPresentBitVals = [0]*27
-
-    for idx, isPresentVal in enumerate( isPresentBitVals ):
-
-        base3Idx = bitReprBase( idx, 3 )
-        base3Idx = getRotatedIdx( base3Idx, dxn )
-
-        newIdxVal = base3Idx[2] * (3 ** 2) + base3Idx[1] * (3 ** 1) + base3Idx[0]
-        rotatedIsPresentBitVals[newIdxVal] = isPresentVal
-
-    return rotatedIsPresentBitVals
-
-def swapBitVals( isPresentBitVals, idxVal1, idxVal2 ):
-
-    temp = isPresentBitVals[ idxVal1 ]
-    isPresentBitVals[ idxVal1 ] = isPresentBitVals[ idxVal2 ]
-    isPresentBitVals[ idxVal2 ] = temp
-
-def convertEdgePointConfToIsPresentBitVals( edgePointConf ):
-
-    isPresentBitVals = [0]*27
-    curIdx = 0
-
-    for edgeConf in edgePointConf:
-
-        pointConf = bitReprBase( edgeConf )
-
-        for isPointPresent in pointConf:
-
-            if isPointPresent:
-                isPresentBitVals[curIdx] = 1
-
-            curIdx = curIdx + 1
-
-    return isPresentBitVals
-
-def performReflection( edgePointConf, *, lcVals = [], folderName = "", nodeConfVal = 2, algNumberDict = dict(),\
-                    dxn = "x", createConfs = False ):
-
-    if createConfs:
-        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in edgePointConf ] )
-        fileNameVal = "originalNodeConf" + str(nodeConfVal) + "_" + isPresentStr
-        runConfsAuto( folderName, fileNameVal, edgePointConf, lcVals, algNumberDict[ nodeConfVal ], \
-                    printStatsFile = False, showMesh = True, createVTU = False, saveMeshFile = False  )
-
-    isPresentBitVals = convertEdgePointConfToIsPresentBitVals( edgePointConf )
-    reflectedIsPresentBitVals = getReflectedIsPresentBitVals( isPresentBitVals, dxn )
-    newEdgePointConf = []
-
-    for edgePointStartIdx in range( 0, 27, 3 ):
-
-        edgeConf = reflectedIsPresentBitVals[ edgePointStartIdx ] + reflectedIsPresentBitVals[ edgePointStartIdx + 1 ] * ( 2 ** 1 ) + \
-             reflectedIsPresentBitVals[ edgePointStartIdx + 2 ] * ( 2 ** 2 )
-        
-        newEdgePointConf.append( edgeConf )
-    # print(reflectedIsPresentBitVals)
-
-    if createConfs:
-        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in newEdgePointConf ] )
-        fileNameVal = "reflectedNodeConf" + str(nodeConfVal) + "_" + isPresentStr
-        runConfsAuto( folderName, fileNameVal, newEdgePointConf, lcVals, algNumberDict[ nodeConfVal ], \
-                    printStatsFile = False, showMesh = True, createVTU = False, saveMeshFile = False )
-        
-    return newEdgePointConf
-
-def getReflectedIsPresentBitVals( isPresentBitVals, dxn ):
-
-    expDict = dict( [ ("x", [1, 2, 0]), ("y", [0, 2, 1]), ("z", [0, 1, 2]) ] )
-
-    for idx1 in range(3):
-        for idx2 in range(3):
-
-            exp1 = 3 ** expDict[dxn][0]
-            exp2 = 3 ** expDict[dxn][1]
-            exp3 = 3 ** expDict[dxn][2]             
-
-            idxVal1 = idx1 * ( exp1 ) + idx2 * ( exp2 )
-            idxVal2 = idx1 * ( exp1 ) + idx2 * ( exp2 ) + 2 * ( exp3 )
-            swapBitVals( isPresentBitVals, idxVal1, idxVal2 )     
-
-    return isPresentBitVals
-
-def checkRotationAndReflection( allEdgeConfs, curEdgeConf, *, printConfs = False ):
-
-    reflectionIdx = 0
-
-    for xReflection in range(2):
-
-        if xReflection == 0:
-            prevXEdgeConf = curEdgeConf
-        else:
-            prevXEdgeConf = xEdgeConf
-
-        xEdgeConf = performReflection( prevXEdgeConf, dxn = "x" )
-        reflectionIdx += 1
-
-        if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, xEdgeConf, printConfs = printConfs ):
-            return False
-
-        if printConfs:
-            print( reflectionIdx, xEdgeConf )
-
-        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in xEdgeConf ] )
-        if isPresentStr in allEdgeConfs:
-            return False
-
-        for yReflection in range(2):
-
-            if yReflection == 0:
-                prevYEdgeConf = xEdgeConf
-            else:
-                prevYEdgeConf = yEdgeConf
-
-            yEdgeConf = performReflection( prevYEdgeConf, dxn = "y" )
-            reflectionIdx += 1
-
-            if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, yEdgeConf, printConfs = printConfs ):
-                return False
-
-            if printConfs:
-                print( reflectionIdx, yEdgeConf )
-
-            isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in yEdgeConf ] )
-            if isPresentStr in allEdgeConfs:
-                return False
-
-            for zReflection in range(2):
-
-                if zReflection == 0:
-                    prevZEdgeConf = yEdgeConf
-                else:
-                    prevZEdgeConf = zEdgeConf
-
-                zEdgeConf = performReflection( prevZEdgeConf, dxn = "z" )
-                reflectionIdx += 1
-
-                if not checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, zEdgeConf, printConfs = printConfs ):
-                    return False
-
-                if printConfs:
-                    print( reflectionIdx, zEdgeConf )
-
-                isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in zEdgeConf ] )
-                if isPresentStr in allEdgeConfs:
-                    return False
-
-    return True
 
 def plotDFStats( plotFolderName, minVals, maxVals, aveVals, tagVals, formatVal ):
 
@@ -1070,14 +528,14 @@ def runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, l
 
         if miscUtils.checkValidPermutation( possiblePermute ):
 
-            if checkRotationAndReflection( allEdgeConfs, possiblePermute ):
+            if rotateReflect.checkRotationAndReflection( allEdgeConfs, possiblePermute ):
 
                 isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in possiblePermute ] )
                 allEdgeConfs.add( isPresentStr )
                 print( nIdx, "Permute: ", possiblePermute )
 
                 fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
-                dfStats = runConfsAuto( folderName, fileNameVal, possiblePermute, lcVals, algNumberDict[ nodeConfVal ], 
+                dfStats = gmshConfGenerate.runConfsAuto( folderName, fileNameVal, possiblePermute, lcVals, algNumberDict[ nodeConfVal ], 
                     printStatsFile = True, showMesh = showMesh, createVTU = True, saveMeshFile = True )
 
                 if nIdx == 1:
@@ -1137,7 +595,7 @@ if __name__ == "__main__":
     algNumberDict = dict( [(1, 5), (2, 3)] )
     # isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
     # fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
-    # runConfsAuto( folderName, fileNameVal, isPresent, lcVals, algNumberDict[ nodeConfVal ] )
+    # gmshConfGenerate.runConfsAuto( folderName, fileNameVal, isPresent, lcVals, algNumberDict[ nodeConfVal ] )
 
     runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, lcVals, showMesh = False )
 

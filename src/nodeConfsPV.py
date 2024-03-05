@@ -11,12 +11,14 @@ from paraview.simple import *
 import vtk
 import paraview
 import miscUtils
+import meshFileUtils
+import rotateReflect
 
 # state file generated using paraview version 5.11.1
 paraview.compatibility.major = 5
 paraview.compatibility.minor = 11
 
-def createGMSHPNG( folderName, vtuFileName, plotFileName ):
+def createGMSHPNG( vtuFolderName, plotFolderName, vtuFileName, plotFileName ):
 
     #### disable automatic camera reset on 'Show'
     paraview.simple._DisableFirstRenderCameraReset()
@@ -63,7 +65,7 @@ def createGMSHPNG( folderName, vtuFileName, plotFileName ):
     # ----------------------------------------------------------------
 
     # create a new 'XML Unstructured Grid Reader'
-    nodeConf3vtu = XMLUnstructuredGridReader(registrationName=vtuFileName, FileName=[folderName + vtuFileName])
+    nodeConf3vtu = XMLUnstructuredGridReader(registrationName=vtuFileName, FileName=[vtuFolderName + vtuFileName])
     nodeConf3vtu.CellArrayStatus = ['gmsh:physical', 'gmsh:geometrical']
     nodeConf3vtu.TimeArray = 'None'
 
@@ -132,7 +134,7 @@ def createGMSHPNG( folderName, vtuFileName, plotFileName ):
     extractEdges1Display.SelectInputVectors = [None, '']
     extractEdges1Display.WriteLog = ''
 
-    SaveScreenshot( folderName + plotFileName + "AllEdges.png", renderView1)
+    SaveScreenshot( plotFolderName + plotFileName + "AllEdges.png", renderView1)
     Hide( extractEdges1 )
 
     # show data from extractCellsByType2
@@ -167,12 +169,52 @@ def createGMSHPNG( folderName, vtuFileName, plotFileName ):
     # restore active source
     SetActiveSource(nodeConf3vtu)
     # ----------------------------------------------------------------
-    SaveScreenshot( folderName + plotFileName + "AllPyramids.png", renderView1)
+    SaveScreenshot( plotFolderName + plotFileName + "AllPyramids.png", renderView1)
+
+def printAllValidPermutations( vtuFolderName, plotFolderName, nodeConfVal, checkRotateAndReflect = True, rangeVals = [0, 84, 1] ):
+
+    allPermutes = []
+    currentPermute = []
+    allIsPresent = [[5, 7], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [1, 4, 5], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [5, 7]]
+
+    miscUtils.getPermutations(allIsPresent, 0, currentPermute, allPermutes)
+
+    allEdgeConfs = set()
+    edgeConfsList = []
+
+    for possiblePermute in allPermutes:
+
+        if miscUtils.checkValidPermutation( possiblePermute ):        
+            if checkRotateAndReflect:
+
+                if rotateReflect.checkRotationAndReflection( allEdgeConfs, possiblePermute ):
+                    isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in possiblePermute ] )
+                    allEdgeConfs.add( isPresentStr )
+                    edgeConfsList.append( possiblePermute )
+
+            else:
+                isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in possiblePermute ] )
+                allEdgeConfs.add( isPresentStr )
+                edgeConfsList.append( possiblePermute )
+
+    for idx in range( rangeVals[0], rangeVals[1], rangeVals[2] ):
+        
+        possiblePermute = edgeConfsList[idx]
+        print( idx, "Permute: ", possiblePermute )
+
+        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in possiblePermute ] )
+
+        plotFileName = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
+        vtuFileName = plotFileName + ".vtu"
+        
+        createGMSHPNG( vtuFolderName, plotFolderName, vtuFileName, plotFileName )
 
 
 if __name__ == "__main__":
 
-    folderName = "/home/gaurav/gmshAutoScripts/Images/HangingNodeConfs/"
+    # folderName = "/home/gaurav/gmshAutoScripts/Images/HangingNodeConfs/"
+    plotFolderName = "/media/gaurav/easystore/RotateReflectHangingNodePlots/"
+    vtuFolderName = "/media/gaurav/easystore/HangingNodeConfs/"
 
     # isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ]
     # isPresent = [ 7, 5, 5, 7, 5, 5, 7, 5, 5] # Three faces hanging
@@ -184,31 +226,12 @@ if __name__ == "__main__":
     # isPresent = [ 7, 7, 7, 0, 0, 0, 5, 5, 5 ] # One face and two edges hanging
     isPresent = [ 7, 7, 7, 1, 0, 0, 5, 5, 5 ] # One face and three edges hanging
 
-    isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
-    plotFileName = "nodeConf1_" + isPresentStr
-
+    # isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
+    # plotFileName = "nodeConf1_" + isPresentStr
     # plotFileName = "nodeConf2_TwoFaces"
-    vtuFileName = plotFileName + ".vtu"
+    # vtuFileName = plotFileName + ".vtu"
 
-    allPermutes = []
-    currentPermute = []
-    allIsPresent = [[5, 7], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [1, 4, 5], [1, 4, 5, 7], [5, 7], [1, 4, 5, 7], [5, 7]]
-
-    miscUtils.getPermutations(allIsPresent, 0, currentPermute, allPermutes)
-
-    nIdx = 1
     nodeConfVal = 2
     algNumberDict = dict( [(1, 5), (2, 3)] )
-
-    for possiblePermute in allPermutes:
-
-        if miscUtils.checkValidPermutation( possiblePermute ):
-            print( nIdx, "Permute: ", possiblePermute )
-
-            nIdx += 1
-            isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in possiblePermute ] )
-
-            plotFileName = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
-            vtuFileName = plotFileName + ".vtu"
-            
-            createGMSHPNG( folderName, vtuFileName, plotFileName )
+    
+    printAllValidPermutations( vtuFolderName, plotFolderName, nodeConfVal, True, [0, 11, 1] )

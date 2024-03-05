@@ -1,6 +1,7 @@
 import re
 from os import listdir
 from os.path import isfile, join
+import meshio
 
 def getLevelFromFileName( meshval ):
 
@@ -66,3 +67,10 @@ def getSortedMeshVals( meshvals, regexVal, regexCriterias ):
         sortedMeshVals.append( meshvals[idx] )
 
     return sortedMeshVals
+
+def createGMSHVTU( folderName, mshFileName ):
+
+    mesh = meshio.read( folderName + mshFileName + ".msh" )
+    meshio.write( folderName + mshFileName + ".vtu", mesh )
+
+    return 0
