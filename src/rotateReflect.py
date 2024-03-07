@@ -23,59 +23,66 @@ def getRotatedIdx( base3Idx, dxn = "x" ):
 def checkNonDuplicateEdgeConfOnRotation( allEdgeConfs, curEdgeConf, *, printConfs = False ):
 
     rotationIdx = 0
+    dxnVals = ["x", "y", "z"]
 
-    for xRotation in range(4):
+    for idx1 in range(3):
 
-        if xRotation == 0:
-            prevXEdgeConf = curEdgeConf
-        else:
-            prevXEdgeConf = xEdgeConf
+        dxn1 = dxnVals[ idx1 ]
+        dxn2 = dxnVals[ ( idx1 + 1 ) % 3 ]
+        dxn3 = dxnVals[ ( idx1 + 2 ) % 3 ]            
+    
+        for xRotation in range(4):
 
-        xEdgeConf = performRotation( prevXEdgeConf, dxn = "x" )
-        rotationIdx += 1
-
-        if printConfs:
-            print( rotationIdx, xEdgeConf )
-
-        isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in xEdgeConf ] )
-        if isPresentStr in allEdgeConfs:
-            return False
-
-        for yRotation in range(4):
-
-            if yRotation == 0:
-                prevYEdgeConf = xEdgeConf
+            if xRotation == 0:
+                prevXEdgeConf = curEdgeConf
             else:
-                prevYEdgeConf = yEdgeConf
+                prevXEdgeConf = xEdgeConf
 
-            yEdgeConf = performRotation( prevYEdgeConf, dxn = "y" )
+            xEdgeConf = performRotation( prevXEdgeConf, dxn = dxn1 )
             rotationIdx += 1
 
             if printConfs:
-                print( rotationIdx, yEdgeConf )
+                print( rotationIdx, xEdgeConf )
 
-            isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in yEdgeConf ] )
+            isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in xEdgeConf ] )
             if isPresentStr in allEdgeConfs:
                 return False
 
-            for zRotation in range(4):
+            for yRotation in range(4):
 
-                if zRotation == 0:
-                    prevZEdgeConf = yEdgeConf
+                if yRotation == 0:
+                    prevYEdgeConf = xEdgeConf
                 else:
-                    prevZEdgeConf = zEdgeConf
+                    prevYEdgeConf = yEdgeConf
 
-                zEdgeConf = performRotation( prevZEdgeConf, dxn = "z" )
+                yEdgeConf = performRotation( prevYEdgeConf, dxn = dxn2 )
                 rotationIdx += 1
 
                 if printConfs:
-                    print( rotationIdx, zEdgeConf )
+                    print( rotationIdx, yEdgeConf )
 
-                isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in zEdgeConf ] )
+                isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in yEdgeConf ] )
                 if isPresentStr in allEdgeConfs:
                     return False
 
-    return True
+                for zRotation in range(4):
+
+                    if zRotation == 0:
+                        prevZEdgeConf = yEdgeConf
+                    else:
+                        prevZEdgeConf = zEdgeConf
+
+                    zEdgeConf = performRotation( prevZEdgeConf, dxn = dxn3 )
+                    rotationIdx += 1
+
+                    if printConfs:
+                        print( rotationIdx, zEdgeConf )
+
+                    isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in zEdgeConf ] )
+                    if isPresentStr in allEdgeConfs:
+                        return False
+
+        return True
 
 def performRotation( edgePointConf, *, lcVals = [], folderName = "", nodeConfVal = 2, algNumberDict = dict(),\
                     dxn = "x", createConfs = False ):

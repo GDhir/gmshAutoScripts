@@ -5,6 +5,7 @@ import gmsh
 import math
 import os
 import sys
+import subprocess
 import gmshUtils
 import meshio
 from paraview.simple import *
@@ -171,6 +172,9 @@ def createGMSHPNG( vtuFolderName, plotFolderName, vtuFileName, plotFileName ):
     # ----------------------------------------------------------------
     SaveScreenshot( plotFolderName + plotFileName + "AllPyramids.png", renderView1)
 
+    # Disconnect()
+    # Connect()
+
 def printAllValidPermutations( vtuFolderName, plotFolderName, nodeConfVal, checkRotateAndReflect = True, rangeVals = [0, 84, 1] ):
 
     allPermutes = []
@@ -197,9 +201,10 @@ def printAllValidPermutations( vtuFolderName, plotFolderName, nodeConfVal, check
                 allEdgeConfs.add( isPresentStr )
                 edgeConfsList.append( possiblePermute )
 
-    for idx in range( rangeVals[0], rangeVals[1], rangeVals[2] ):
-        
-        possiblePermute = edgeConfsList[idx]
+    # for idx in range( rangeVals[0], rangeVals[1], rangeVals[2] ):
+    for idx, possiblePermute in enumerate( edgeConfsList ):
+
+        # possiblePermute = edgeConfsList[idx]
         print( idx, "Permute: ", possiblePermute )
 
         isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in possiblePermute ] )
@@ -209,11 +214,30 @@ def printAllValidPermutations( vtuFolderName, plotFolderName, nodeConfVal, check
         
         createGMSHPNG( vtuFolderName, plotFolderName, vtuFileName, plotFileName )
 
+        if idx % 10 == 0:
+            ResetSession()
+
+        # try: 
+        #     if idx % 5 == 0:
+        #         # os.system( "kill -9 $(pgrep -f pvpython-real)" )
+        # except:
+        #     continue
+
+def createSpecificConfiguration( vtuFolderName, plotFolderName ):
+
+    nodeConfVal = 2
+
+    isPresent = [5, 1, 5, 1, 1, 1, 5, 5, 7]
+    isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
+    plotFileName = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
+    vtuFileName = plotFileName + ".vtu"
+    createGMSHPNG( vtuFolderName, plotFolderName, vtuFileName, plotFileName )
 
 if __name__ == "__main__":
 
     # folderName = "/home/gaurav/gmshAutoScripts/Images/HangingNodeConfs/"
-    plotFolderName = "/media/gaurav/easystore/RotateReflectHangingNodePlots/"
+    # plotFolderName = "/media/gaurav/easystore/RotateReflectHangingNodePlots/"
+    plotFolderName = "/home/gaurav/gmshAutoScripts/Images/"
     vtuFolderName = "/media/gaurav/easystore/HangingNodeConfs/"
 
     # isPresent = [ 7, 0, 5, 0, 0, 0, 5, 0, 7 ]
@@ -224,14 +248,9 @@ if __name__ == "__main__":
 
     # isPresent = [ 7, 7, 7, 0, 0, 0, 5, 4, 5 ] # One face and one edge hanging
     # isPresent = [ 7, 7, 7, 0, 0, 0, 5, 5, 5 ] # One face and two edges hanging
-    isPresent = [ 7, 7, 7, 1, 0, 0, 5, 5, 5 ] # One face and three edges hanging
-
-    # isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
-    # plotFileName = "nodeConf1_" + isPresentStr
-    # plotFileName = "nodeConf2_TwoFaces"
-    # vtuFileName = plotFileName + ".vtu"
+    # isPresent = [ 7, 7, 7, 1, 0, 0, 5, 5, 5 ] # One face and three edges hanging
 
     nodeConfVal = 2
     algNumberDict = dict( [(1, 5), (2, 3)] )
-    
-    printAllValidPermutations( vtuFolderName, plotFolderName, nodeConfVal, True, [0, 21, 1] )
+
+    printAllValidPermutations( vtuFolderName, plotFolderName, nodeConfVal, True )

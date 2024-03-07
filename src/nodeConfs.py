@@ -562,6 +562,16 @@ def runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, l
     print( nIdx )
     plotDFStats( plotFolderName, minVals, maxVals, aveVals, tagVals, formatVal )
 
+def createSpecificConfiguration( folderName, lcVals ):
+
+    nodeConfVal = 2
+    algNumberDict = dict( [(1, 5), (2, 3)] )
+    isPresent = [5, 1, 5, 1, 1, 1, 5, 5, 7]
+    isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
+    fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
+    gmshConfGenerate.runConfsAuto( folderName, fileNameVal, isPresent, lcVals, algNumberDict[ nodeConfVal ], createVTU=True, showMesh=False )
+
+
 if __name__ == "__main__":
 
     # folderName = "/home/gaurav/gmshAutoScripts/Images/HangingNodeConfs/"
@@ -594,9 +604,6 @@ if __name__ == "__main__":
 
     nodeConfVal = 2
     algNumberDict = dict( [(1, 5), (2, 3)] )
-    # isPresentStr = ''.join( [ str( isPresentVal ) for isPresentVal in isPresent ] )
-    # fileNameVal = "nodeConf" + str(nodeConfVal) + "_" + isPresentStr
-    # gmshConfGenerate.runConfsAuto( folderName, fileNameVal, isPresent, lcVals, algNumberDict[ nodeConfVal ] )
 
     runAllPermutations(folderName, plotFolderName, nodeConfVal, algNumberDict, lcVals, showMesh = False )
 
